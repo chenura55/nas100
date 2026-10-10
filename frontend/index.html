@@ -50,7 +50,7 @@ td{padding:12px 8px;border-top:1px solid var(--line);white-space:nowrap}
 <div class="wrap" id="app"></div>
 <script>
 // ⚠️ After deploying the backend on Render, put its URL here (no trailing slash)
-const API = "http://localhost:3000";
+const API = "https://nas100.onrender.com";
 
 const $ = (s) => document.querySelector(s);
 let S = { token: localStorage.token, user: JSON.parse(localStorage.user || "null"), trades: [], view: "dashboard", mode: "login", f: { dir: "", out: "", from: "", to: "" }, editing: null };
