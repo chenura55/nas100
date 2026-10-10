@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Loud · NAS100 Journal</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap">
+<style>
+:root{--bg:#000;--card:#1a1a1c;--card2:#242427;--line:#2e2e33;--text:#f4f4f6;--mute:#8d8d96;--p:#7c3aed;--p2:#a78bfa;--lime:#c6f432;--red:#f0627a;--blue:#38bdf8}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(120% 60% at 0% 0%,#4c3a7a 0,#000 55%) fixed,#000;color:var(--text);font:15px/1.4 "DM Sans",system-ui,sans-serif;min-height:100vh}
+button,input,select,textarea{font:inherit;color:inherit}
+.wrap{max-width:1200px;margin:0 auto;padding:20px}
+.top{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:28px}
+.logo{display:flex;align-items:center;gap:10px;font-weight:600;font-size:20px;margin-right:auto}
+.logo i{width:32px;height:32px;border-radius:50%;background:conic-gradient(#e9e0ff 0 25%,var(--p) 0)}
+.nav{display:flex;gap:8px}
+.pill{background:var(--card);border:1px solid var(--line);border-radius:999px;padding:9px 18px;cursor:pointer;color:var(--mute)}
+.pill.on{background:#fff;color:#000;border-color:#fff}
+.btn{background:#fff;color:#000;border:0;border-radius:999px;padding:10px 20px;cursor:pointer;font-weight:500}
+.btn.p{background:var(--p);color:#fff}.btn.g{background:var(--card2);color:var(--text)}
+h1{font-size:40px;font-weight:500;margin:0 0 4px;letter-spacing:-.02em}h1 span{color:var(--mute)}
+.sub{color:var(--mute);margin:0 0 26px}
+.grid{display:grid;gap:16px}.stats{grid-template-columns:repeat(auto-fit,minmax(170px,1fr));margin-bottom:16px}
+.card{background:var(--card);border-radius:24px;padding:20px}
+.lbl{color:var(--mute);font-size:13px}.big{font-size:30px;font-weight:500;margin-top:6px}
+.up{color:var(--lime)}.dn{color:var(--red)}
+.two{grid-template-columns:2fr 1fr}@media(max-width:800px){.two{grid-template-columns:1fr}h1{font-size:30px}}
+.bar{display:flex;height:10px;border-radius:9px;overflow:hidden;margin:12px 0;background:var(--card2)}
+table{width:100%;border-collapse:collapse;font-size:14px}th{color:var(--mute);font-weight:400;text-align:left;padding:10px 8px;white-space:nowrap}
+td{padding:12px 8px;border-top:1px solid var(--line);white-space:nowrap}
+.tag{border-radius:999px;padding:3px 11px;font-size:12px;background:var(--card2)}
+.tag.BUY,.tag.TP{color:var(--lime)}.tag.SELL,.tag.SL{color:var(--red)}.tag.BE{color:var(--blue)}
+.scroll{overflow-x:auto}
+.filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.filters select,.filters input,.f input,.f select,.f textarea{background:var(--card2);border:1px solid var(--line);border-radius:14px;padding:10px 12px;width:100%}
+.filters select,.filters input{width:auto}
+.modal{position:fixed;inset:0;background:#000b;display:none;align-items:flex-start;justify-content:center;overflow:auto;padding:20px;z-index:9}
+.modal.on{display:flex}.modal .card{width:100%;max-width:640px;margin:auto}
+.f{display:grid;grid-template-columns:1fr 1fr;gap:12px}.f label{font-size:13px;color:var(--mute);display:block}.f .full{grid-column:1/-1}
+.seg{display:flex;gap:6px}.seg button{flex:1;padding:10px;border-radius:14px;border:1px solid var(--line);background:var(--card2);cursor:pointer}
+.seg button.on[data-v=BUY],.seg button.on[data-v=TP]{background:var(--lime);color:#000}.seg button.on[data-v=SELL],.seg button.on[data-v=SL]{background:var(--red);color:#000}.seg button.on[data-v=BE]{background:var(--blue);color:#000}
+.live{background:var(--card2);border-radius:16px;padding:12px;display:flex;justify-content:space-around;text-align:center}
+.auth{max-width:380px;margin:12vh auto}.auth input{width:100%;margin:6px 0;background:var(--card2);border:1px solid var(--line);border-radius:14px;padding:12px}
+.err{color:var(--red);min-height:20px;font-size:13px}.empty{color:var(--mute);text-align:center;padding:40px 0}
+.x{background:none;border:0;color:var(--mute);cursor:pointer}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+<script>
+// ⚠️ After deploying the backend on Render, put its URL here (no trailing slash)
+const API = "http://localhost:3000";
+
+const $ = (s) => document.querySelector(s);
+let S = { token: localStorage.token, user: JSON.parse(localStorage.user || "null"), trades: [], view: "dashboard", mode: "login", f: { dir: "", out: "", from: "", to: "" }, editing: null };
+
+async function api(path, method = "GET", body) {
+  const r = await fetch(API + path, { method, headers: { "Content-Type": "application/json", Authorization: "Bearer " + S.token }, body: body && JSON.stringify(body) });
+  const d = await r.json();
+  if (r.status === 401 && S.token) logout();
+  if (!r.ok) throw new Error(d.error || "Something went wrong");
+  return d;
+}
+const logout = () => { localStorage.clear(); S.token = null; render(); };
+const dur = (m) => (m == null ? "-" : m >= 60 ? `${Math.floor(m / 60)}h ${m % 60}m` : `${m}m`);
+const sign = (n) => (n > 0 ? "+" : "") + (+n).toFixed(2);
+const cls = (n) => (n > 0 ? "up" : n < 0 ? "dn" : "");
+const fmtT = (s) => (s || "").replace("T", " ").slice(5, 16);
+
+async function load() { S.trades = await api("/api/trades"); render(); }
+
+function filtered() {
+  const { dir, out, from, to } = S.f;
+  return S.trades.filter((t) => (!dir || t.direction === dir) && (!out || t.outcome === out) && (!from || t.trade_date >= from) && (!to || t.trade_date <= to));
+}
+
+function stats(list) {
+  const n = list.length, w = list.filter((t) => t.points > 0), l = list.filter((t) => t.points < 0);
+  const total = list.reduce((a, t) => a + t.points, 0), gp = w.reduce((a, t) => a + t.points, 0), gl = Math.abs(l.reduce((a, t) => a + t.points, 0));
+  const rs = list.filter((t) => t.r_multiple != null);
+  return {
+    n, total, win: n ? (w.length / n) * 100 : 0, pf: gl ? gp / gl : gp ? Infinity : 0,
+    avgW: w.length ? gp / w.length : 0, avgL: l.length ? -gl / l.length : 0,
+    avgDur: n ? Math.round(list.reduce((a, t) => a + t.duration_min, 0) / n) : 0,
+    avgR: rs.length ? rs.reduce((a, t) => a + t.r_multiple, 0) / rs.length : 0,
+    tp: list.filter((t) => t.outcome === "TP").length, sl: list.filter((t) => t.outcome === "SL").length, be: list.filter((t) => t.outcome === "BE").length,
+  };
+}
+
+function curve(list) {
+  const pts = [...list].reverse(); let c = 0; const ys = pts.map((t) => (c += t.points));
+  if (ys.length < 2) return `<div class="empty">Log 2+ trades to see your equity curve</div>`;
+  const W = 600, H = 200, min = Math.min(0, ...ys), max = Math.max(0, ...ys), r = max - min || 1;
+  const X = (i) => (i / (ys.length - 1)) * W, Y = (v) => H - ((v - min) / r) * (H - 20) - 10;
+  const d = ys.map((v, i) => `${i ? "L" : "M"}${X(i).toFixed(1)},${Y(v).toFixed(1)}`).join(" ");
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%"><defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c6f432" stop-opacity=".3"/><stop offset="1" stop-color="#c6f432" stop-opacity="0"/></linearGradient></defs>
+  <line x1="0" x2="${W}" y1="${Y(0)}" y2="${Y(0)}" stroke="#444" stroke-dasharray="4"/><path d="${d} L${W},${H} L0,${H}Z" fill="url(#g)"/><path d="${d}" fill="none" stroke="#c6f432" stroke-width="2.5"/></svg>`;
+}
+
+function authView() {
+  const reg = S.mode === "register";
+  $("#app").innerHTML = `<div class="auth card"><div class="logo" style="margin-bottom:18px"><i></i>Loud</div><h1 style="font-size:28px">${reg ? "Create account" : "Welcome back"}</h1><p class="sub">NAS100 trading journal</p>
+  ${reg ? `<input id="nm" placeholder="Name">` : ""}<input id="em" type="email" placeholder="Email"><input id="pw" type="password" placeholder="Password (6+ characters)">
+  <div class="err" id="err"></div><button class="btn p" style="width:100%" id="go">${reg ? "Sign up" : "Log in"}</button>
+  <p class="sub" style="margin:14px 0 0;text-align:center"><a href="#" id="sw" style="color:var(--p2)">${reg ? "Have an account? Log in" : "New here? Create an account"}</a></p></div>`;
+  $("#sw").onclick = (e) => { e.preventDefault(); S.mode = reg ? "login" : "register"; authView(); };
+  $("#go").onclick = async () => {
+    try {
+      const d = await api("/api/auth/" + S.mode, "POST", { name: $("#nm")?.value, email: $("#em").value, password: $("#pw").value });
+      S.token = localStorage.token = d.token; S.user = d.user; localStorage.user = JSON.stringify(d.user); load();
+    } catch (e) { $("#err").textContent = e.message; }
+  };
+}
+
+function render() {
+  if (!S.token) return authView();
+  const list = filtered(), st = stats(S.view === "journal" ? list : S.trades);
+  const nav = ["dashboard", "journal"].map((v) => `<button class="pill ${S.view === v ? "on" : ""}" data-v="${v}">${v[0].toUpperCase() + v.slice(1)}</button>`).join("");
+  const head = `<div class="top"><div class="logo"><i></i>Loud</div><div class="nav">${nav}</div><button class="btn p" id="add">+ New trade</button><button class="pill" id="out">Log out</button></div>`;
+  let body;
+  if (S.view === "dashboard") {
+    const tot = st.n || 1;
+    body = `<h1>Welcome back, <span>${S.user?.name || "trader"}</span></h1><p class="sub">Your NAS100 performance, all trades</p>
+    <div class="grid stats">
+      <div class="card"><div class="lbl">Total points</div><div class="big ${cls(st.total)}">${sign(st.total)}</div></div>
+      <div class="card"><div class="lbl">Win rate</div><div class="big">${st.win.toFixed(1)}%</div></div>
+      <div class="card"><div class="lbl">Profit factor</div><div class="big">${st.pf === Infinity ? "∞" : st.pf.toFixed(2)}</div></div>
+      <div class="card"><div class="lbl">Avg trade duration</div><div class="big">${dur(st.avgDur)}</div></div>
+      <div class="card"><div class="lbl">Avg R</div><div class="big ${cls(st.avgR)}">${sign(st.avgR)}R</div></div></div>
+    <div class="grid two"><div class="card"><div class="lbl">Equity curve (points)</div>${curve(S.trades)}</div>
+    <div class="card"><div class="lbl">Outcomes · ${st.n} trades</div>
+      <div class="bar"><span style="width:${(st.tp / tot) * 100}%;background:var(--lime)"></span><span style="width:${(st.be / tot) * 100}%;background:var(--blue)"></span><span style="width:${(st.sl / tot) * 100}%;background:var(--red)"></span></div>
+      <p><span class="up">TP ${st.tp}</span> &nbsp; <span style="color:var(--blue)">BE ${st.be}</span> &nbsp; <span class="dn">SL ${st.sl}</span></p>
+      <div class="lbl" style="margin-top:18px">Avg win</div><div class="up">${sign(st.avgW)} pts</div>
+      <div class="lbl" style="margin-top:10px">Avg loss</div><div class="dn">${sign(st.avgL)} pts</div></div></div>`;
+  } else {
+    const rows = list.map((t) => `<tr><td>${t.trade_date}</td><td><span class="tag ${t.direction}">${t.direction}</span></td><td><span class="tag ${t.outcome}">${t.outcome}</span></td>
+      <td>${t.entry_price}</td><td>${t.exit_price}</td><td>${t.sl_price ?? "-"}</td><td>${t.tp_price ?? "-"}</td>
+      <td class="${cls(t.points)}">${sign(t.points)}</td><td>${t.r_multiple != null ? sign(t.r_multiple) + "R" : "-"}</td>
+      <td>${fmtT(t.entry_time)}</td><td>${fmtT(t.close_time)}</td><td>${dur(t.duration_min)}</td><td>${t.setup || ""}</td><td>${t.emotion || ""}</td>
+      <td><button class="x" data-e="${t.id}">Edit</button><button class="x" data-d="${t.id}">Delete</button></td></tr>`).join("");
+    body = `<h1>Journal</h1><p class="sub">${st.n} trades · ${sign(st.total)} pts · ${st.win.toFixed(0)}% win rate · avg ${dur(st.avgDur)}</p>
+    <div class="filters"><select id="fd"><option value="">Buy & Sell</option><option ${S.f.dir === "BUY" ? "selected" : ""}>BUY</option><option ${S.f.dir === "SELL" ? "selected" : ""}>SELL</option></select>
+    <select id="fo"><option value="">TP, SL & BE</option>${["TP", "SL", "BE"].map((o) => `<option ${S.f.out === o ? "selected" : ""}>${o}</option>`).join("")}</select>
+    <input id="ff" type="date" value="${S.f.from}"><input id="ft" type="date" value="${S.f.to}"></div>
+    <div class="card scroll">${rows ? `<table><tr><th>Date</th><th>Side</th><th>Result</th><th>Entry</th><th>Exit</th><th>SL</th><th>TP</th><th>Points</th><th>R</th><th>Entry time</th><th>Close time</th><th>Duration</th><th>Setup</th><th>Emotion</th><th></th></tr>${rows}</table>` : `<div class="empty">No trades yet. Log your first NAS100 trade with “New trade”.</div>`}</div>`;
+  }
+  $("#app").innerHTML = head + body + modal();
+  document.querySelectorAll("[data-v].pill").forEach((b) => (b.onclick = () => { S.view = b.dataset.v; render(); }));
+  $("#out").onclick = logout; $("#add").onclick = () => openForm();
+  document.querySelectorAll("[data-e]").forEach((b) => (b.onclick = () => openForm(S.trades.find((t) => t.id == b.dataset.e))));
+  document.querySelectorAll("[data-d]").forEach((b) => (b.onclick = async () => { if (confirm("Delete this trade?")) { await api("/api/trades/" + b.dataset.d, "DELETE"); load(); } }));
+  if ($("#fd")) { const u = () => { S.f = { dir: $("#fd").value, out: $("#fo").value, from: $("#ff").value, to: $("#ft").value }; render(); }; ["#fd", "#fo", "#ff", "#ft"].forEach((s) => ($(s).onchange = u)); }
+}
+
+function modal() {
+  return `<div class="modal" id="m"><div class="card"><h1 style="font-size:24px" id="mt">New trade</h1><div class="f" style="margin-top:14px">
+  <div><label>Side</label><div class="seg" id="sd"><button data-v="BUY">Buy</button><button data-v="SELL">Sell</button></div></div>
+  <div><label>Result</label><div class="seg" id="oc"><button data-v="TP">TP</button><button data-v="SL">SL</button><button data-v="BE">BE</button></div></div>
+  <div><label>Entry price</label><input id="ep" type="number" step="0.01"></div><div><label>Exit price</label><input id="xp" type="number" step="0.01"></div>
+  <div><label>Stop loss (SL) price</label><input id="sp" type="number" step="0.01"></div><div><label>Take profit (TP) price</label><input id="tp" type="number" step="0.01"></div>
+  <div><label>Entry time</label><input id="et" type="datetime-local"></div><div><label>Close time</label><input id="ct" type="datetime-local"></div>
+  <div><label>Lots</label><input id="lt" type="number" step="0.01"></div><div><label>Profit / loss ($)</label><input id="pl" type="number" step="0.01"></div>
+  <div><label>Setup</label><input id="su" placeholder="e.g. Breakout, FVG, NY open"></div>
+  <div><label>Emotion</label><select id="em"><option value="">-</option><option>Calm</option><option>Confident</option><option>Fearful</option><option>Greedy</option><option>Revenge</option><option>FOMO</option></select></div>
+  <div class="full"><label>Notes</label><textarea id="nt" rows="3" placeholder="Why did you take it? What would you change?"></textarea></div>
+  <div class="full live" id="lv"></div><div class="full err" id="me"></div>
+  <div class="full" style="display:flex;gap:10px;justify-content:flex-end"><button class="btn g" id="cx">Cancel</button><button class="btn p" id="sv">Save trade</button></div></div></div></div>`;
+}
+
+function openForm(t) {
+  S.editing = t?.id || null;
+  const v = { d: t?.direction || "BUY", o: t?.outcome || "TP" };
+  const set = (id, val) => ($("#" + id).value = val ?? "");
+  $("#mt").textContent = t ? "Edit trade" : "New trade";
+  set("ep", t?.entry_price); set("xp", t?.exit_price); set("sp", t?.sl_price); set("tp", t?.tp_price); set("et", t?.entry_time); set("ct", t?.close_time);
+  set("lt", t?.lots); set("pl", t?.pnl); set("su", t?.setup); set("em", t?.emotion); set("nt", t?.notes);
+  const seg = (id, key) => { const el = $("#" + id); const paint = () => el.querySelectorAll("button").forEach((b) => b.classList.toggle("on", b.dataset.v === v[key])); el.querySelectorAll("button").forEach((b) => (b.onclick = () => { v[key] = b.dataset.v; paint(); live(); })); paint(); };
+  const live = () => {
+    const e = +$("#ep").value, x = +$("#xp").value, s = $("#sp").value, p = (v.d === "BUY" ? x - e : e - x), m = (new Date($("#ct").value) - new Date($("#et").value)) / 60000;
+    const ok = $("#ep").value && $("#xp").value;
+    $("#lv").innerHTML = `<div><div class="lbl">Points</div><b class="${cls(p)}">${ok ? sign(p) : "-"}</b></div><div><div class="lbl">R multiple</div><b>${ok && s ? sign(p / Math.abs(e - s)) + "R" : "-"}</b></div><div><div class="lbl">Duration</div><b>${m >= 0 ? dur(Math.round(m)) : "-"}</b></div>`;
+  };
+  seg("sd", "d"); seg("oc", "o"); ["ep", "xp", "sp", "et", "ct"].forEach((i) => ($("#" + i).oninput = live)); live();
+  $("#m").classList.add("on"); $("#me").textContent = "";
+  $("#cx").onclick = () => $("#m").classList.remove("on");
+  $("#sv").onclick = async () => {
+    const body = { direction: v.d, outcome: v.o, entry_price: $("#ep").value, exit_price: $("#xp").value, sl_price: $("#sp").value, tp_price: $("#tp").value, entry_time: $("#et").value, close_time: $("#ct").value, lots: $("#lt").value, pnl: $("#pl").value, setup: $("#su").value, emotion: $("#em").value, notes: $("#nt").value };
+    try { await api("/api/trades" + (S.editing ? "/" + S.editing : ""), S.editing ? "PUT" : "POST", body); load(); }
+    catch (e) { $("#me").textContent = e.message; }
+  };
+}
+
+S.token ? load().catch(authView) : authView();
+</script>
+</body>
+</html>
