@@ -27,6 +27,10 @@ await db.batch([
   `CREATE INDEX IF NOT EXISTS idx_trades_user ON trades(user_id, entry_time)`,
 ]);
 
+// Auto-migrate: adds new columns to an existing database without losing data
+const NEW = { sl_points: "REAL", tp_points: "REAL", planned_rr: "REAL", mfe: "REAL", mae: "REAL", session: "TEXT", timeframe: "TEXT", risk_pct: "REAL", fees: "REAL", followed_plan: "TEXT", mistake: "TEXT", rating: "INTEGER", screenshot: "TEXT" };
+for (const [c, t] of Object.entries(NEW)) { try { await db.execute(`ALTER TABLE trades ADD COLUMN ${c} ${t}`); } catch {} }
+
 const auth = (req, res, next) => {
   try {
     req.uid = jwt.verify((req.headers.authorization || "").replace("Bearer ", ""), SECRET).uid;
@@ -59,13 +63,17 @@ function calc(t) {
   const risk = sl != null ? Math.abs(entry - sl) : 0;
   const duration = Math.max(0, Math.round((new Date(t.close_time) - new Date(t.entry_time)) / 60000));
   const num = (v) => (v === "" || v == null ? null : +v);
+  const slp = sl != null ? +Math.abs(entry - sl).toFixed(2) : null;
+  const tpp = num(t.tp_price) != null ? +Math.abs(+t.tp_price - entry).toFixed(2) : null;
   return [
     String(t.entry_time).slice(0, 10), t.direction, t.outcome, entry, exit, sl, num(t.tp_price),
     points, risk ? +(points / risk).toFixed(2) : null, num(t.lots), num(t.pnl),
     t.entry_time, t.close_time, duration, t.setup || "", t.emotion || "", t.notes || "",
+    slp, tpp, slp && tpp ? +(tpp / slp).toFixed(2) : null, num(t.mfe), num(t.mae),
+    t.session || "", t.timeframe || "", num(t.risk_pct), num(t.fees), t.followed_plan || "", t.mistake || "", num(t.rating), t.screenshot || "",
   ];
 }
-const COLS = "trade_date,direction,outcome,entry_price,exit_price,sl_price,tp_price,points,r_multiple,lots,pnl,entry_time,close_time,duration_min,setup,emotion,notes";
+const COLS = "trade_date,direction,outcome,entry_price,exit_price,sl_price,tp_price,points,r_multiple,lots,pnl,entry_time,close_time,duration_min,setup,emotion,notes,sl_points,tp_points,planned_rr,mfe,mae,session,timeframe,risk_pct,fees,followed_plan,mistake,rating,screenshot";
 const valid = (t) => ["BUY", "SELL"].includes(t.direction) && ["TP", "SL", "BE"].includes(t.outcome) && t.entry_price !== "" && t.exit_price !== "" && t.entry_time && t.close_time && new Date(t.close_time) >= new Date(t.entry_time);
 
 app.get("/api/trades", auth, async (req, res) => {

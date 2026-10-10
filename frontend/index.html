@@ -41,7 +41,7 @@ td{padding:12px 8px;border-top:1px solid var(--line);white-space:nowrap}
 .f{display:grid;grid-template-columns:1fr 1fr;gap:12px}.f label{font-size:13px;color:var(--mute);display:block}.f .full{grid-column:1/-1}
 .seg{display:flex;gap:6px}.seg button{flex:1;padding:10px;border-radius:14px;border:1px solid var(--line);background:var(--card2);cursor:pointer}
 .seg button.on[data-v=BUY],.seg button.on[data-v=TP]{background:var(--lime);color:#000}.seg button.on[data-v=SELL],.seg button.on[data-v=SL]{background:var(--red);color:#000}.seg button.on[data-v=BE]{background:var(--blue);color:#000}
-.live{background:var(--card2);border-radius:16px;padding:12px;display:flex;justify-content:space-around;text-align:center}
+.live{background:var(--card2);border-radius:16px;padding:12px;display:flex;justify-content:space-around;text-align:center;flex-wrap:wrap;gap:10px}.bk{grid-template-columns:repeat(auto-fit,minmax(260px,1fr));margin-top:16px}.bk td,.bk th{padding:7px 4px}.sm .big{font-size:22px}
 .auth{max-width:380px;margin:12vh auto}.auth input{width:100%;margin:6px 0;background:var(--card2);border:1px solid var(--line);border-radius:14px;padding:12px}
 .err{color:var(--red);min-height:20px;font-size:13px}.empty{color:var(--mute);text-align:center;padding:40px 0}
 .x{background:none;border:0;color:var(--mute);cursor:pointer}
@@ -50,7 +50,7 @@ td{padding:12px 8px;border-top:1px solid var(--line);white-space:nowrap}
 <body>
 <div class="wrap" id="app"></div>
 <script>
-
+// ⚠️ After deploying the backend on Render, put its URL here (no trailing slash)
 const API = "https://nas100.onrender.com";
 
 const $ = (s) => document.querySelector(s);
@@ -80,8 +80,12 @@ function stats(list) {
   const n = list.length, w = list.filter((t) => t.points > 0), l = list.filter((t) => t.points < 0);
   const total = list.reduce((a, t) => a + t.points, 0), gp = w.reduce((a, t) => a + t.points, 0), gl = Math.abs(l.reduce((a, t) => a + t.points, 0));
   const rs = list.filter((t) => t.r_multiple != null);
+  const ch = [...list].reverse(); let c = 0, pk = 0, dd = 0, ws = 0, ls = 0, cw = 0, cl = 0;
+  ch.forEach((t) => { c += t.points; pk = Math.max(pk, c); dd = Math.max(dd, pk - c); if (t.points > 0) { cw++; cl = 0; } else if (t.points < 0) { cl++; cw = 0; } else { cw = 0; cl = 0; } ws = Math.max(ws, cw); ls = Math.max(ls, cl); });
+  const avg = (a) => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : 0), pl = list.filter((t) => t.followed_plan), cap = w.filter((t) => t.mfe > 0).map((t) => (t.points / t.mfe) * 100);
+  const ex = { dd, ws, ls, exp: n ? total / n : 0, best: Math.max(0, ...list.map((t) => t.points)), worst: Math.min(0, ...list.map((t) => t.points)), adh: pl.length ? (pl.filter((t) => t.followed_plan === "Yes").length / pl.length) * 100 : null, prr: avg(list.filter((t) => t.planned_rr).map((t) => t.planned_rr)), wDur: Math.round(avg(w.map((t) => t.duration_min))), lDur: Math.round(avg(l.map((t) => t.duration_min))), cap: cap.length ? avg(cap) : null, avgSL: avg(list.filter((t) => t.sl_points).map((t) => t.sl_points)), avgTP: avg(list.filter((t) => t.tp_points).map((t) => t.tp_points)), avgMae: avg(list.filter((t) => t.mae != null).map((t) => t.mae)) };
   return {
-    n, total, win: n ? (w.length / n) * 100 : 0, pf: gl ? gp / gl : gp ? Infinity : 0,
+    ...ex, n, total, win: n ? (w.length / n) * 100 : 0, pf: gl ? gp / gl : gp ? Infinity : 0,
     avgW: w.length ? gp / w.length : 0, avgL: l.length ? -gl / l.length : 0,
     avgDur: n ? Math.round(list.reduce((a, t) => a + t.duration_min, 0) / n) : 0,
     avgR: rs.length ? rs.reduce((a, t) => a + t.r_multiple, 0) / rs.length : 0,
@@ -98,6 +102,13 @@ function curve(list) {
   return `<svg viewBox="0 0 ${W} ${H}" width="100%"><defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c6f432" stop-opacity=".3"/><stop offset="1" stop-color="#c6f432" stop-opacity="0"/></linearGradient></defs>
   <line x1="0" x2="${W}" y1="${Y(0)}" y2="${Y(0)}" stroke="#444" stroke-dasharray="4"/><path d="${d} L${W},${H} L0,${H}Z" fill="url(#g)"/><path d="${d}" fill="none" stroke="#c6f432" stroke-width="2.5"/></svg>`;
 }
+
+function group(list, kf) {
+  const m = {}; list.forEach((t) => { const k = kf(t) || "-"; (m[k] = m[k] || []).push(t); });
+  return Object.entries(m).map(([k, a]) => ({ k, n: a.length, w: (a.filter((t) => t.points > 0).length / a.length) * 100, p: a.reduce((s, t) => s + t.points, 0) })).sort((a, b) => b.p - a.p);
+}
+const bk = (title, rows) => `<div class="card"><div class="lbl" style="margin-bottom:6px">${title}</div><table><tr><th></th><th>Trades</th><th>Win</th><th>Points</th></tr>${rows.map((r) => `<tr><td>${r.k}</td><td>${r.n}</td><td>${r.w.toFixed(0)}%</td><td class="${cls(r.p)}">${sign(r.p)}</td></tr>`).join("")}</table></div>`;
+const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 function authView() {
   const reg = S.mode === "register";
@@ -129,23 +140,35 @@ function render() {
       <div class="card"><div class="lbl">Profit factor</div><div class="big">${st.pf === Infinity ? "∞" : st.pf.toFixed(2)}</div></div>
       <div class="card"><div class="lbl">Avg trade duration</div><div class="big">${dur(st.avgDur)}</div></div>
       <div class="card"><div class="lbl">Avg R</div><div class="big ${cls(st.avgR)}">${sign(st.avgR)}R</div></div></div>
+    <div class="grid stats sm">
+      <div class="card"><div class="lbl">Expectancy / trade</div><div class="big ${cls(st.exp)}">${sign(st.exp)} pts</div></div>
+      <div class="card"><div class="lbl">Max drawdown</div><div class="big dn">-${st.dd.toFixed(1)} pts</div></div>
+      <div class="card"><div class="lbl">Best / worst trade</div><div class="big"><span class="up">${sign(st.best)}</span> / <span class="dn">${sign(st.worst)}</span></div></div>
+      <div class="card"><div class="lbl">Max win / loss streak</div><div class="big"><span class="up">${st.ws}</span> / <span class="dn">${st.ls}</span></div></div>
+      <div class="card"><div class="lbl">Avg SL / TP distance</div><div class="big">${st.avgSL.toFixed(1)} / ${st.avgTP.toFixed(1)} pts</div></div>
+      <div class="card"><div class="lbl">Avg planned RR</div><div class="big">${st.prr ? "1:" + st.prr.toFixed(2) : "-"}</div></div>
+      <div class="card"><div class="lbl">Avg win / loss duration</div><div class="big">${dur(st.wDur)} / ${dur(st.lDur)}</div></div>
+      <div class="card"><div class="lbl">Avg MAE (heat taken)</div><div class="big">${st.avgMae.toFixed(1)} pts</div></div>
+      <div class="card"><div class="lbl">Move captured (winners)</div><div class="big">${st.cap != null ? st.cap.toFixed(0) + "%" : "-"}</div></div>
+      <div class="card"><div class="lbl">Plan adherence</div><div class="big ${st.adh >= 80 ? "up" : ""}">${st.adh != null ? st.adh.toFixed(0) + "%" : "-"}</div></div></div>
     <div class="grid two"><div class="card"><div class="lbl">Equity curve (points)</div>${curve(S.trades)}</div>
     <div class="card"><div class="lbl">Outcomes · ${st.n} trades</div>
       <div class="bar"><span style="width:${(st.tp / tot) * 100}%;background:var(--lime)"></span><span style="width:${(st.be / tot) * 100}%;background:var(--blue)"></span><span style="width:${(st.sl / tot) * 100}%;background:var(--red)"></span></div>
       <p><span class="up">TP ${st.tp}</span> &nbsp; <span style="color:var(--blue)">BE ${st.be}</span> &nbsp; <span class="dn">SL ${st.sl}</span></p>
       <div class="lbl" style="margin-top:18px">Avg win</div><div class="up">${sign(st.avgW)} pts</div>
-      <div class="lbl" style="margin-top:10px">Avg loss</div><div class="dn">${sign(st.avgL)} pts</div></div></div>`;
+      <div class="lbl" style="margin-top:10px">Avg loss</div><div class="dn">${sign(st.avgL)} pts</div></div></div>
+    <div class="grid bk">${bk("By session", group(S.trades, (t) => t.session))}${bk("By weekday", group(S.trades, (t) => DAYS[new Date(t.trade_date + "T00:00").getDay()]))}${bk("By setup", group(S.trades, (t) => t.setup))}${bk("By mistake", group(S.trades.filter((t) => t.mistake), (t) => t.mistake))}${bk("By timeframe", group(S.trades, (t) => t.timeframe))}${bk("By side", group(S.trades, (t) => t.direction))}</div>`;
   } else {
     const rows = list.map((t) => `<tr><td>${t.trade_date}</td><td><span class="tag ${t.direction}">${t.direction}</span></td><td><span class="tag ${t.outcome}">${t.outcome}</span></td>
-      <td>${t.entry_price}</td><td>${t.exit_price}</td><td>${t.sl_price ?? "-"}</td><td>${t.tp_price ?? "-"}</td>
-      <td class="${cls(t.points)}">${sign(t.points)}</td><td>${t.r_multiple != null ? sign(t.r_multiple) + "R" : "-"}</td>
-      <td>${fmtT(t.entry_time)}</td><td>${fmtT(t.close_time)}</td><td>${dur(t.duration_min)}</td><td>${t.setup || ""}</td><td>${t.emotion || ""}</td>
-      <td><button class="x" data-e="${t.id}">Edit</button><button class="x" data-d="${t.id}">Delete</button></td></tr>`).join("");
+      <td>${t.entry_price}</td><td>${t.exit_price}</td><td>${t.sl_price ?? "-"}</td><td>${t.tp_price ?? "-"}</td><td>${t.sl_points ?? "-"}</td><td>${t.tp_points ?? "-"}</td><td>${t.planned_rr ? "1:" + t.planned_rr : "-"}</td>
+      <td class="${cls(t.points)}">${sign(t.points)}</td><td>${t.r_multiple != null ? sign(t.r_multiple) + "R" : "-"}</td><td>${t.mfe ?? "-"}</td><td>${t.mae ?? "-"}</td>
+      <td>${fmtT(t.entry_time)}</td><td>${fmtT(t.close_time)}</td><td>${dur(t.duration_min)}</td><td>${t.timeframe || ""}</td><td>${t.session || ""}</td><td>${t.setup || ""}</td><td>${t.followed_plan || ""}</td><td>${t.mistake || ""}</td><td>${t.emotion || ""}</td><td>${t.rating ? t.rating + "/5" : ""}</td>
+      <td>${t.screenshot ? `<a href="${t.screenshot}" target="_blank" style="color:var(--p2)">View</a>` : ""}<button class="x" data-e="${t.id}">Edit</button><button class="x" data-d="${t.id}">Delete</button></td></tr>`).join("");
     body = `<h1>Journal</h1><p class="sub">${st.n} trades · ${sign(st.total)} pts · ${st.win.toFixed(0)}% win rate · avg ${dur(st.avgDur)}</p>
     <div class="filters"><select id="fd"><option value="">Buy & Sell</option><option ${S.f.dir === "BUY" ? "selected" : ""}>BUY</option><option ${S.f.dir === "SELL" ? "selected" : ""}>SELL</option></select>
     <select id="fo"><option value="">TP, SL & BE</option>${["TP", "SL", "BE"].map((o) => `<option ${S.f.out === o ? "selected" : ""}>${o}</option>`).join("")}</select>
     <input id="ff" type="date" value="${S.f.from}"><input id="ft" type="date" value="${S.f.to}"></div>
-    <div class="card scroll">${rows ? `<table><tr><th>Date</th><th>Side</th><th>Result</th><th>Entry</th><th>Exit</th><th>SL</th><th>TP</th><th>Points</th><th>R</th><th>Entry time</th><th>Close time</th><th>Duration</th><th>Setup</th><th>Emotion</th><th></th></tr>${rows}</table>` : `<div class="empty">No trades yet. Log your first NAS100 trade with “New trade”.</div>`}</div>`;
+    <div class="card scroll">${rows ? `<table><tr><th>Date</th><th>Side</th><th>Result</th><th>Entry</th><th>Exit</th><th>SL</th><th>TP</th><th>SL pts</th><th>TP pts</th><th>Plan RR</th><th>Points</th><th>R</th><th>MFE</th><th>MAE</th><th>Entry time</th><th>Close time</th><th>Duration</th><th>TF</th><th>Session</th><th>Setup</th><th>Plan?</th><th>Mistake</th><th>Emotion</th><th>Rating</th><th></th></tr>${rows}</table>` : `<div class="empty">No trades yet. Log your first NAS100 trade with “New trade”.</div>`}</div>`;
   }
   $("#app").innerHTML = head + body + modal();
   document.querySelectorAll("[data-v].pill").forEach((b) => (b.onclick = () => { S.view = b.dataset.v; render(); }));
@@ -165,6 +188,13 @@ function modal() {
   <div><label>Lots</label><input id="lt" type="number" step="0.01"></div><div><label>Profit / loss ($)</label><input id="pl" type="number" step="0.01"></div>
   <div><label>Setup</label><input id="su" placeholder="e.g. Breakout, FVG, NY open"></div>
   <div><label>Emotion</label><select id="em"><option value="">-</option><option>Calm</option><option>Confident</option><option>Fearful</option><option>Greedy</option><option>Revenge</option><option>FOMO</option></select></div>
+  <div><label>Timeframe</label><select id="tf"><option value="">-</option><option>1m</option><option>3m</option><option>5m</option><option>15m</option><option>1h</option><option>4h</option></select></div>
+  <div><label>Session</label><select id="se"><option value="">-</option><option>Asia</option><option>London</option><option>New York</option><option>NY Open</option><option>Overlap</option></select></div>
+  <div><label>Max move in favour (MFE, pts)</label><input id="mf" type="number" step="0.01" placeholder="Best price reached after entry"></div><div><label>Max move against (MAE, pts)</label><input id="ma" type="number" step="0.01" placeholder="Worst drawdown after entry"></div>
+  <div><label>Risk % of account</label><input id="rk" type="number" step="0.01"></div><div><label>Fees / commission ($)</label><input id="fe" type="number" step="0.01"></div>
+  <div><label>Followed my plan?</label><select id="fp"><option value="">-</option><option>Yes</option><option>No</option></select></div>
+  <div><label>Mistake</label><select id="mi"><option value="">None</option><option>Early entry</option><option>Late entry</option><option>Moved SL</option><option>Cut winner early</option><option>Over-risked</option><option>Overtrading</option><option>No setup</option><option>Revenge trade</option></select></div>
+  <div><label>Execution rating</label><select id="rt"><option value="">-</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div><div><label>Screenshot link</label><input id="sc" placeholder="TradingView / image URL"></div>
   <div class="full"><label>Notes</label><textarea id="nt" rows="3" placeholder="Why did you take it? What would you change?"></textarea></div>
   <div class="full live" id="lv"></div><div class="full err" id="me"></div>
   <div class="full" style="display:flex;gap:10px;justify-content:flex-end"><button class="btn g" id="cx">Cancel</button><button class="btn p" id="sv">Save trade</button></div></div></div></div>`;
@@ -176,18 +206,19 @@ function openForm(t) {
   const set = (id, val) => ($("#" + id).value = val ?? "");
   $("#mt").textContent = t ? "Edit trade" : "New trade";
   set("ep", t?.entry_price); set("xp", t?.exit_price); set("sp", t?.sl_price); set("tp", t?.tp_price); set("et", t?.entry_time); set("ct", t?.close_time);
-  set("lt", t?.lots); set("pl", t?.pnl); set("su", t?.setup); set("em", t?.emotion); set("nt", t?.notes);
+  set("lt", t?.lots); set("tf", t?.timeframe); set("se", t?.session); set("mf", t?.mfe); set("ma", t?.mae); set("rk", t?.risk_pct); set("fe", t?.fees); set("fp", t?.followed_plan); set("mi", t?.mistake); set("rt", t?.rating); set("sc", t?.screenshot); set("pl", t?.pnl); set("su", t?.setup); set("em", t?.emotion); set("nt", t?.notes);
   const seg = (id, key) => { const el = $("#" + id); const paint = () => el.querySelectorAll("button").forEach((b) => b.classList.toggle("on", b.dataset.v === v[key])); el.querySelectorAll("button").forEach((b) => (b.onclick = () => { v[key] = b.dataset.v; paint(); live(); })); paint(); };
   const live = () => {
     const e = +$("#ep").value, x = +$("#xp").value, s = $("#sp").value, p = (v.d === "BUY" ? x - e : e - x), m = (new Date($("#ct").value) - new Date($("#et").value)) / 60000;
     const ok = $("#ep").value && $("#xp").value;
-    $("#lv").innerHTML = `<div><div class="lbl">Points</div><b class="${cls(p)}">${ok ? sign(p) : "-"}</b></div><div><div class="lbl">R multiple</div><b>${ok && s ? sign(p / Math.abs(e - s)) + "R" : "-"}</b></div><div><div class="lbl">Duration</div><b>${m >= 0 ? dur(Math.round(m)) : "-"}</b></div>`;
+    const sl = +s, tpv = $("#tp").value, slp = s ? Math.abs(e - sl) : null, tpp = tpv ? Math.abs(+tpv - e) : null;
+    $("#lv").innerHTML = `<div><div class="lbl">Points</div><b class="${cls(p)}">${ok ? sign(p) : "-"}</b></div><div><div class="lbl">Entry → SL</div><b>${slp != null ? slp.toFixed(1) + " pts" : "-"}</b></div><div><div class="lbl">Entry → TP</div><b>${tpp != null ? tpp.toFixed(1) + " pts" : "-"}</b></div><div><div class="lbl">Planned RR</div><b>${slp && tpp ? "1:" + (tpp / slp).toFixed(2) : "-"}</b></div><div><div class="lbl">R result</div><b>${ok && s ? sign(p / slp) + "R" : "-"}</b></div><div><div class="lbl">Duration</div><b>${m >= 0 ? dur(Math.round(m)) : "-"}</b></div>`;
   };
   seg("sd", "d"); seg("oc", "o"); ["ep", "xp", "sp", "et", "ct"].forEach((i) => ($("#" + i).oninput = live)); live();
   $("#m").classList.add("on"); $("#me").textContent = "";
   $("#cx").onclick = () => $("#m").classList.remove("on");
   $("#sv").onclick = async () => {
-    const body = { direction: v.d, outcome: v.o, entry_price: $("#ep").value, exit_price: $("#xp").value, sl_price: $("#sp").value, tp_price: $("#tp").value, entry_time: $("#et").value, close_time: $("#ct").value, lots: $("#lt").value, pnl: $("#pl").value, setup: $("#su").value, emotion: $("#em").value, notes: $("#nt").value };
+    const body = { direction: v.d, outcome: v.o, entry_price: $("#ep").value, exit_price: $("#xp").value, sl_price: $("#sp").value, tp_price: $("#tp").value, entry_time: $("#et").value, close_time: $("#ct").value, lots: $("#lt").value, timeframe: $("#tf").value, session: $("#se").value, mfe: $("#mf").value, mae: $("#ma").value, risk_pct: $("#rk").value, fees: $("#fe").value, followed_plan: $("#fp").value, mistake: $("#mi").value, rating: $("#rt").value, screenshot: $("#sc").value, pnl: $("#pl").value, setup: $("#su").value, emotion: $("#em").value, notes: $("#nt").value };
     try { await api("/api/trades" + (S.editing ? "/" + S.editing : ""), S.editing ? "PUT" : "POST", body); load(); }
     catch (e) { $("#me").textContent = e.message; }
   };
