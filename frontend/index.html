@@ -61,16 +61,20 @@ body{overflow-x:hidden}.bk{grid-template-columns:repeat(auto-fit,minmax(min(100%
   .f{grid-template-columns:1fr}.live>div{min-width:30%}
   .auth{margin:6vh auto}
 }
+.cal{display:grid;grid-template-columns:repeat(7,1fr) 1.1fr;gap:6px}.cal .h{color:var(--mute);font-size:12px;text-align:center}
+.cd{background:var(--card2);border-radius:14px;min-height:82px;padding:8px;display:flex;flex-direction:column;justify-content:space-between;font-size:13px;min-width:0}
+.cd.blank{background:none}.cd.win{background:#c6f43226;color:var(--lime)}.cd.loss{background:#f0627a26;color:var(--red)}.cd.be{background:#38bdf826;color:var(--blue)}.cd[data-day]{cursor:pointer}
+.cd .dnum{color:var(--mute);font-size:12px}.cd b{font-size:15px}.cd small{color:var(--mute);font-size:11px}.cd.wk{background:var(--bg)}
+@media(max-width:700px){.cal{grid-template-columns:repeat(7,1fr);gap:4px}.cal .wk{display:none}.cd{min-height:58px;padding:5px;border-radius:10px}.cd b{font-size:11px}.cd small{display:none}.card .cal{margin:-6px}}
 </style>
 </head>
 <body>
 <div class="wrap" id="app"></div>
 <script>
-// ⚠️ After deploying the backend on Render, put its URL here (no trailing slash)
-const API = "https://nas100.onrender.com";
+const API = location.hostname === "localhost" || location.protocol === "file:" ? "http://localhost:3000" : "https://nas100.onrender.com";
 
 const $ = (s) => document.querySelector(s);
-let S = { token: localStorage.token, user: JSON.parse(localStorage.user || "null"), trades: [], view: "dashboard", mode: "login", f: { dir: "", out: "", from: "", to: "" }, editing: null };
+let S = { token: localStorage.token, user: JSON.parse(localStorage.user || "null"), trades: [], view: "dashboard", mode: "login", f: { dir: "", out: "", from: "", to: "" }, editing: null, cal: { y: new Date().getFullYear(), m: new Date().getMonth() } };
 
 async function api(path, method = "GET", body) {
   const r = await fetch(API + path, { method, headers: { "Content-Type": "application/json", Authorization: "Bearer " + S.token }, body: body && JSON.stringify(body) });
@@ -126,6 +130,23 @@ function group(list, kf) {
 const bk = (title, rows) => `<div class="card"><div class="lbl" style="margin-bottom:6px">${title}</div><table><tr><th></th><th>Trades</th><th>Win</th><th>Points</th></tr>${rows.map((r) => `<tr><td>${r.k}</td><td>${r.n}</td><td>${r.w.toFixed(0)}%</td><td class="${cls(r.p)}">${sign(r.p)}</td></tr>`).join("")}</table></div>`;
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
+function calView() {
+  const { y, m } = S.cal, days = new Date(y, m + 1, 0).getDate(), off = (new Date(y, m, 1).getDay() + 6) % 7, pre = `${y}-${String(m + 1).padStart(2, "0")}`;
+  const by = {}; S.trades.forEach((t) => { if (t.trade_date.startsWith(pre)) { const o = (by[t.trade_date] = by[t.trade_date] || { p: 0, n: 0 }); o.p += t.points; o.n++; } });
+  const vals = Object.values(by), tot = vals.reduce((a, o) => a + o.p, 0), cnt = vals.reduce((a, o) => a + o.n, 0), gd = vals.filter((o) => o.p > 0).length, rd = vals.filter((o) => o.p < 0).length;
+  const arr = Array(off).fill(null); for (let d = 1; d <= days; d++) arr.push({ d, key: `${pre}-${String(d).padStart(2, "0")}` }); while (arr.length % 7) arr.push(null);
+  let grid = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun", "Week"].map((h) => `<div class="h ${h === "Week" ? "wk" : ""}">${h}</div>`).join("");
+  for (let w = 0; w < arr.length; w += 7) {
+    const wk = arr.slice(w, w + 7); let wp = 0, wn = 0;
+    grid += wk.map((c) => { if (!c) return `<div class="cd blank"></div>`; const x = by[c.key]; if (x) { wp += x.p; wn += x.n; }
+      return `<div class="cd ${x ? (x.p > 0 ? "win" : x.p < 0 ? "loss" : "be") : ""}" ${x ? `data-day="${c.key}"` : ""}><span class="dnum">${c.d}</span>${x ? `<b>${sign(x.p)}</b><small>${x.n} trade${x.n > 1 ? "s" : ""}</small>` : ""}</div>`; }).join("");
+    grid += `<div class="cd wk"><span class="dnum">Week ${w / 7 + 1}</span>${wn ? `<b class="${cls(wp)}">${sign(wp)}</b><small>${wn} trade${wn > 1 ? "s" : ""}</small>` : ""}</div>`;
+  }
+  const name = new Date(y, m, 1).toLocaleString("en", { month: "long", year: "numeric" });
+  return `<div style="display:flex;align-items:center;gap:12px;margin-bottom:6px"><button class="pill" id="cp">‹</button><h1 style="margin:0;font-size:28px">${name}</h1><button class="pill" id="cn">›</button></div>
+  <p class="sub">Total <b class="${cls(tot)}">${sign(tot)} pts</b> · ${cnt} trades · ${gd} green days · ${rd} red days. Tap a day to open its trades.</p><div class="card"><div class="cal">${grid}</div></div>`;
+}
+
 function authView() {
   const reg = S.mode === "register";
   $("#app").innerHTML = `<div class="auth card"><div class="logo" style="margin-bottom:18px"><i></i>NasLog</div><h1 style="font-size:28px">${reg ? "Create account" : "Welcome back"}</h1><p class="sub">NAS100 trading journal</p>
@@ -144,7 +165,7 @@ function authView() {
 function render() {
   if (!S.token) return authView();
   const list = filtered(), st = stats(S.view === "journal" ? list : S.trades);
-  const nav = ["dashboard", "journal"].map((v) => `<button class="pill ${S.view === v ? "on" : ""}" data-v="${v}">${v[0].toUpperCase() + v.slice(1)}</button>`).join("");
+  const nav = ["dashboard", "calendar", "journal"].map((v) => `<button class="pill ${S.view === v ? "on" : ""}" data-v="${v}">${v[0].toUpperCase() + v.slice(1)}</button>`).join("");
   const head = `<div class="top"><div class="logo"><i></i>NasLog</div><div class="nav">${nav}</div><button class="btn p" id="add">+ New trade</button><button class="pill" id="out">Log out</button></div>`;
   let body;
   if (S.view === "dashboard") {
@@ -173,7 +194,9 @@ function render() {
       <p><span class="up">TP ${st.tp}</span> &nbsp; <span style="color:var(--blue)">BE ${st.be}</span> &nbsp; <span class="dn">SL ${st.sl}</span></p>
       <div class="lbl" style="margin-top:18px">Avg win</div><div class="up">${sign(st.avgW)} pts</div>
       <div class="lbl" style="margin-top:10px">Avg loss</div><div class="dn">${sign(st.avgL)} pts</div></div></div>
-    <div class="grid bk">${bk("By session", group(S.trades, (t) => t.session))}${bk("By weekday", group(S.trades, (t) => DAYS[new Date(t.trade_date + "T00:00").getDay()]))}${bk("By setup", group(S.trades, (t) => t.setup))}${bk("By mistake", group(S.trades.filter((t) => t.mistake), (t) => t.mistake))}${bk("By timeframe", group(S.trades, (t) => t.timeframe))}${bk("By side", group(S.trades, (t) => t.direction))}</div>`;
+    <div class="grid bk">${bk("By NY phase", group(S.trades, (t) => t.session))}${bk("By weekday", group(S.trades, (t) => DAYS[new Date(t.trade_date + "T00:00").getDay()]))}${bk("By setup", group(S.trades, (t) => t.setup))}${bk("By mistake", group(S.trades.filter((t) => t.mistake), (t) => t.mistake))}${bk("By timeframe", group(S.trades, (t) => t.timeframe))}${bk("By side", group(S.trades, (t) => t.direction))}</div>`;
+  } else if (S.view === "calendar") {
+    body = calView();
   } else {
     const rows = list.map((t) => `<tr><td>${t.trade_date}</td><td><span class="tag ${t.direction}">${t.direction}</span></td><td><span class="tag ${t.outcome}">${t.outcome}</span></td>
       <td>${t.entry_price}</td><td>${t.exit_price}</td><td>${t.sl_price ?? "-"}</td><td>${t.tp_price ?? "-"}</td><td>${t.sl_points ?? "-"}</td><td>${t.tp_points ?? "-"}</td><td>${t.planned_rr ? "1:" + t.planned_rr : "-"}</td>
@@ -195,6 +218,8 @@ function render() {
   $("#app").innerHTML = head + body + modal();
   document.querySelectorAll("[data-v].pill").forEach((b) => (b.onclick = () => { S.view = b.dataset.v; render(); }));
   $("#out").onclick = logout; $("#add").onclick = () => openForm();
+  if ($("#cp")) { $("#cp").onclick = () => { if (--S.cal.m < 0) { S.cal.m = 11; S.cal.y--; } render(); }; $("#cn").onclick = () => { if (++S.cal.m > 11) { S.cal.m = 0; S.cal.y++; } render(); }; }
+  document.querySelectorAll("[data-day]").forEach((c) => (c.onclick = () => { S.f = { dir: "", out: "", from: c.dataset.day, to: c.dataset.day }; S.view = "journal"; render(); }));
   document.querySelectorAll("[data-e]").forEach((b) => (b.onclick = () => openForm(S.trades.find((t) => t.id == b.dataset.e))));
   document.querySelectorAll("[data-d]").forEach((b) => (b.onclick = async () => { if (confirm("Delete this trade?")) { await api("/api/trades/" + b.dataset.d, "DELETE"); load(); } }));
   if ($("#fd")) { const u = () => { S.f = { dir: $("#fd").value, out: $("#fo").value, from: $("#ff").value, to: $("#ft").value }; render(); }; ["#fd", "#fo", "#ff", "#ft"].forEach((s) => ($(s).onchange = u)); }
@@ -211,7 +236,7 @@ function modal() {
   <div><label>Setup</label><input id="su" placeholder="e.g. Breakout, FVG, NY open"></div>
   <div><label>Emotion</label><select id="em"><option value="">-</option><option>Calm</option><option>Confident</option><option>Fearful</option><option>Greedy</option><option>Revenge</option><option>FOMO</option></select></div>
   <div><label>Timeframe</label><select id="tf"><option value="">-</option><option>1m</option><option>3m</option><option>5m</option><option>15m</option><option>1h</option><option>4h</option></select></div>
-  <div><label>Session</label><select id="se"><option value="">-</option><option>Asia</option><option>London</option><option>New York</option><option>NY Open</option><option>Overlap</option></select></div>
+  <div><label>NY phase</label><select id="se"><option value="">-</option><option>NY Manipulation</option><option>NY Reversal</option><option>NY Continuation</option></select></div>
   <div><label>Max move in favour (MFE, pts)</label><input id="mf" type="number" step="0.01" placeholder="Best price reached after entry"></div><div><label>Max move against (MAE, pts)</label><input id="ma" type="number" step="0.01" placeholder="Worst drawdown after entry"></div>
   <div><label>Risk % of account</label><input id="rk" type="number" step="0.01"></div><div><label>Fees / commission ($)</label><input id="fe" type="number" step="0.01"></div>
   <div><label>Followed my plan?</label><select id="fp"><option value="">-</option><option>Yes</option><option>No</option></select></div>
