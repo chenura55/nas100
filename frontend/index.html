@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>NasLog · NAS100 Journal</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='16' fill='%237c3aed'/%3E%3Cpath d='M16 16V0A16 16 0 0 1 32 16Z' fill='%23e9e0ff'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap">
@@ -45,13 +45,29 @@ td{padding:12px 8px;border-top:1px solid var(--line);white-space:nowrap}
 .auth{max-width:380px;margin:12vh auto}.auth input{width:100%;margin:6px 0;background:var(--card2);border:1px solid var(--line);border-radius:14px;padding:12px}
 .err{color:var(--red);min-height:20px;font-size:13px}.empty{color:var(--mute);text-align:center;padding:40px 0}
 .x{background:none;border:0;color:var(--mute);cursor:pointer}
+.mc{display:none}.mcard{padding:16px}.mcard .r1{display:flex;justify-content:space-between;align-items:center;font-size:18px;margin-bottom:6px}
+.mcard .g2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0;font-size:14px}.mcard .lbl{font-size:12px}
+body{overflow-x:hidden}.bk{grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr))}
+@media(max-width:700px){
+  .wrap{padding:14px 14px 90px}
+  .top{gap:10px;margin-bottom:20px}.logo{order:1}#out{order:2;padding:8px 14px}.nav{order:3;width:100%}.nav .pill{flex:1;text-align:center}
+  #add{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom));z-index:5;box-shadow:0 6px 24px #7c3aedaa;padding:14px 22px;order:4}
+  h1{font-size:28px}.sub{margin-bottom:18px}
+  .stats{grid-template-columns:1fr 1fr;gap:10px}.card{padding:16px;border-radius:20px}.big{font-size:22px;word-break:break-word}.sm .big{font-size:17px}
+  .tbl{display:none}.mc{display:grid;gap:10px}
+  .filters{display:grid;grid-template-columns:1fr 1fr}.filters select,.filters input{width:100%}
+  input,select,textarea{font-size:16px!important}
+  .modal{padding:0}.modal .card{border-radius:0;max-width:none;min-height:100%;margin:0;padding:18px 16px 90px}
+  .f{grid-template-columns:1fr}.live>div{min-width:30%}
+  .auth{margin:6vh auto}
+}
 </style>
 </head>
 <body>
 <div class="wrap" id="app"></div>
 <script>
 // ⚠️ After deploying the backend on Render, put its URL here (no trailing slash)
-const API = "https://nas100.onrender.com";
+const API = "http://localhost:3000";
 
 const $ = (s) => document.querySelector(s);
 let S = { token: localStorage.token, user: JSON.parse(localStorage.user || "null"), trades: [], view: "dashboard", mode: "login", f: { dir: "", out: "", from: "", to: "" }, editing: null };
@@ -164,11 +180,17 @@ function render() {
       <td class="${cls(t.points)}">${sign(t.points)}</td><td>${t.r_multiple != null ? sign(t.r_multiple) + "R" : "-"}</td><td>${t.mfe ?? "-"}</td><td>${t.mae ?? "-"}</td>
       <td>${fmtT(t.entry_time)}</td><td>${fmtT(t.close_time)}</td><td>${dur(t.duration_min)}</td><td>${t.timeframe || ""}</td><td>${t.session || ""}</td><td>${t.setup || ""}</td><td>${t.followed_plan || ""}</td><td>${t.mistake || ""}</td><td>${t.emotion || ""}</td><td>${t.rating ? t.rating + "/5" : ""}</td>
       <td>${t.screenshot ? `<a href="${t.screenshot}" target="_blank" style="color:var(--p2)">View</a>` : ""}<button class="x" data-e="${t.id}">Edit</button><button class="x" data-d="${t.id}">Delete</button></td></tr>`).join("");
+    const mc = list.map((t) => `<div class="card mcard"><div class="r1"><span><span class="tag ${t.direction}">${t.direction}</span> <span class="tag ${t.outcome}">${t.outcome}</span></span><b class="${cls(t.points)}">${sign(t.points)} pts</b></div>
+      <div class="lbl">${t.trade_date} · ${fmtT(t.entry_time).slice(6)}–${fmtT(t.close_time).slice(6)} · ${dur(t.duration_min)}</div>
+      <div class="g2"><div><span class="lbl">Entry → Exit</span><br>${t.entry_price} → ${t.exit_price}</div><div><span class="lbl">SL / TP pts</span><br>${t.sl_points ?? "-"} / ${t.tp_points ?? "-"}</div>
+      <div><span class="lbl">Plan RR / R</span><br>${t.planned_rr ? "1:" + t.planned_rr : "-"} / ${t.r_multiple != null ? sign(t.r_multiple) + "R" : "-"}</div><div><span class="lbl">MFE / MAE</span><br>${t.mfe ?? "-"} / ${t.mae ?? "-"}</div></div>
+      <div class="lbl">${[t.session, t.timeframe, t.setup, t.followed_plan ? "Plan: " + t.followed_plan : "", t.mistake, t.emotion].filter(Boolean).join(" · ")}</div>
+      <div style="margin-top:8px">${t.screenshot ? `<a href="${t.screenshot}" target="_blank" style="color:var(--p2);margin-right:14px">Screenshot</a>` : ""}<button class="x" data-e="${t.id}">Edit</button> <button class="x" data-d="${t.id}">Delete</button></div></div>`).join("");
     body = `<h1>Journal</h1><p class="sub">${st.n} trades · ${sign(st.total)} pts · ${st.win.toFixed(0)}% win rate · avg ${dur(st.avgDur)}</p>
     <div class="filters"><select id="fd"><option value="">Buy & Sell</option><option ${S.f.dir === "BUY" ? "selected" : ""}>BUY</option><option ${S.f.dir === "SELL" ? "selected" : ""}>SELL</option></select>
     <select id="fo"><option value="">TP, SL & BE</option>${["TP", "SL", "BE"].map((o) => `<option ${S.f.out === o ? "selected" : ""}>${o}</option>`).join("")}</select>
     <input id="ff" type="date" value="${S.f.from}"><input id="ft" type="date" value="${S.f.to}"></div>
-    <div class="card scroll">${rows ? `<table><tr><th>Date</th><th>Side</th><th>Result</th><th>Entry</th><th>Exit</th><th>SL</th><th>TP</th><th>SL pts</th><th>TP pts</th><th>Plan RR</th><th>Points</th><th>R</th><th>MFE</th><th>MAE</th><th>Entry time</th><th>Close time</th><th>Duration</th><th>TF</th><th>Session</th><th>Setup</th><th>Plan?</th><th>Mistake</th><th>Emotion</th><th>Rating</th><th></th></tr>${rows}</table>` : `<div class="empty">No trades yet. Log your first NAS100 trade with “New trade”.</div>`}</div>`;
+    <div class="card scroll tbl">${rows ? `<table><tr><th>Date</th><th>Side</th><th>Result</th><th>Entry</th><th>Exit</th><th>SL</th><th>TP</th><th>SL pts</th><th>TP pts</th><th>Plan RR</th><th>Points</th><th>R</th><th>MFE</th><th>MAE</th><th>Entry time</th><th>Close time</th><th>Duration</th><th>TF</th><th>Session</th><th>Setup</th><th>Plan?</th><th>Mistake</th><th>Emotion</th><th>Rating</th><th></th></tr>${rows}</table>` : `<div class="empty">No trades yet. Log your first NAS100 trade with “New trade”.</div>`}</div><div class="mc">${mc}</div>`;
   }
   $("#app").innerHTML = head + body + modal();
   document.querySelectorAll("[data-v].pill").forEach((b) => (b.onclick = () => { S.view = b.dataset.v; render(); }));
