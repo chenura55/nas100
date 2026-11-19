@@ -39,6 +39,8 @@ await db.batch([
 const NEW = { sl_points: "REAL", tp_points: "REAL", planned_rr: "REAL", mfe: "REAL", mae: "REAL", session: "TEXT", timeframe: "TEXT", risk_pct: "REAL", fees: "REAL", followed_plan: "TEXT", mistake: "TEXT", rating: "INTEGER", screenshot: "TEXT" };
 for (const [c, t] of Object.entries(NEW)) { try { await db.execute(`ALTER TABLE trades ADD COLUMN ${c} ${t}`); } catch {} }
 
+try { await db.execute("ALTER TABLE routine_logs ADD COLUMN notes TEXT"); } catch {}
+
 const auth = (req, res, next) => {
   try {
     req.uid = jwt.verify((req.headers.authorization || "").replace("Bearer ", ""), SECRET).uid;
@@ -117,6 +119,11 @@ app.post("/api/routine", auth, async (req, res) => {
   const r = await db.execute({ sql: "INSERT INTO routine_items (user_id,title,position) VALUES (?,?,?)", args: [req.uid, title, p.rows[0].p] });
   res.json({ id: Number(r.lastInsertRowid), title });
 });
+app.post("/api/routine/reorder", auth, async (req, res) => {
+  const ids = (Array.isArray(req.body.ids) ? req.body.ids : []).map(Number).filter(Number.isInteger);
+  if (ids.length) await db.batch(ids.map((id, i) => ({ sql: "UPDATE routine_items SET position=? WHERE id=? AND user_id=?", args: [i + 1, id, req.uid] })));
+  res.json({ ok: true });
+});
 app.put("/api/routine/:id", auth, async (req, res) => {
   const title = cleanTitle(req.body.title);
   if (!title) return res.status(400).json({ error: "Type an activity name" });
@@ -135,15 +142,16 @@ app.get("/api/routine/logs", auth, async (req, res) => {
 app.post("/api/routine/logs", auth, async (req, res) => {
   const date = String(req.body.log_date || "").slice(0, 10);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return res.status(400).json({ error: "Pick a valid date" });
+  const notes = String(req.body.notes || "").trim().slice(0, 1000);
   const doneIds = new Set((Array.isArray(req.body.done_ids) ? req.body.done_ids : []).map(Number));
   const it = await db.execute({ sql: "SELECT id,title FROM routine_items WHERE user_id=? ORDER BY position,id", args: [req.uid] });
   if (!it.rows.length) return res.status(400).json({ error: "Add at least one activity first" });
   const snap = it.rows.map((r) => ({ id: r.id, title: r.title, done: doneIds.has(Number(r.id)) }));
   const done = snap.filter((x) => x.done).length, total = snap.length, score = +((done / total) * 100).toFixed(1);
   await db.execute({
-    sql: `INSERT INTO routine_logs (user_id,log_date,items,total,done,score) VALUES (?,?,?,?,?,?)
-          ON CONFLICT(user_id,log_date) DO UPDATE SET items=excluded.items,total=excluded.total,done=excluded.done,score=excluded.score`,
-    args: [req.uid, date, JSON.stringify(snap), total, done, score],
+    sql: `INSERT INTO routine_logs (user_id,log_date,items,total,done,score,notes) VALUES (?,?,?,?,?,?,?)
+          ON CONFLICT(user_id,log_date) DO UPDATE SET items=excluded.items,total=excluded.total,done=excluded.done,score=excluded.score,notes=excluded.notes`,
+    args: [req.uid, date, JSON.stringify(snap), total, done, score, notes],
   });
   res.json({ ok: true, done, total, score });
 });
