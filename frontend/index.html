@@ -66,6 +66,12 @@ body{overflow-x:hidden}.bk{grid-template-columns:repeat(auto-fit,minmax(min(100%
 .cd.blank{background:none}.cd.win{background:#c6f43226;color:var(--lime)}.cd.loss{background:#f0627a26;color:var(--red)}.cd.be{background:#38bdf826;color:var(--blue)}.cd[data-day]{cursor:pointer}
 .cd .dnum{color:var(--mute);font-size:12px}.cd b{font-size:15px}.cd small{color:var(--mute);font-size:11px}.cd.wk{background:var(--bg)}
 @media(max-width:700px){.cal{grid-template-columns:repeat(7,1fr);gap:4px}.cal .wk{display:none}.cd{min-height:58px;padding:5px;border-radius:10px}.cd b{font-size:11px}.cd small{display:none}.card .cal{margin:-6px}}
+.chk{display:flex;align-items:center;gap:12px;background:var(--card2);border-radius:14px;padding:12px 14px;margin-bottom:8px;cursor:pointer}
+.chk input{width:20px;height:20px;accent-color:var(--p);flex:none;margin:0}.chk span{flex:1;word-break:break-word}.chk.done span{color:var(--mute);text-decoration:line-through}.chk .x{font-size:16px;padding:0 4px}
+.add-row{display:flex;gap:8px;margin:14px 0 8px}.add-row input,.dt{background:var(--card2);border:1px solid var(--line);border-radius:14px;padding:10px 12px}.add-row input{flex:1;min-width:0}.dt{width:100%;margin-top:4px}
+.score{text-align:center;margin:16px 0}.score b{font-size:48px;font-weight:500}
+.hist{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--line);flex-wrap:wrap}.hist .bar{flex:1;min-width:80px;margin:0}
+.ph{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
 </style>
 </head>
 <body>
@@ -74,7 +80,7 @@ body{overflow-x:hidden}.bk{grid-template-columns:repeat(auto-fit,minmax(min(100%
 const API = location.hostname === "localhost" || location.protocol === "file:" ? "http://localhost:3000" : "https://nas100.onrender.com";
 
 const $ = (s) => document.querySelector(s);
-let S = { token: localStorage.token, user: JSON.parse(localStorage.user || "null"), trades: [], view: "dashboard", mode: "login", f: { dir: "", out: "", from: "", to: "" }, editing: null, cal: { y: new Date().getFullYear(), m: new Date().getMonth() } };
+let S = { token: localStorage.token, user: JSON.parse(localStorage.user || "null"), trades: [], routine: [], logs: [], pm: { done: new Set() }, view: "dashboard", mode: "login", f: { dir: "", out: "", from: "", to: "" }, editing: null, cal: { y: new Date().getFullYear(), m: new Date().getMonth() } };
 
 async function api(path, method = "GET", body) {
   const r = await fetch(API + path, { method, headers: { "Content-Type": "application/json", Authorization: "Bearer " + S.token }, body: body && JSON.stringify(body) });
@@ -89,7 +95,14 @@ const sign = (n) => (n > 0 ? "+" : "") + (+n).toFixed(2);
 const cls = (n) => (n > 0 ? "up" : n < 0 ? "dn" : "");
 const fmtT = (s) => (s || "").replace("T", " ").slice(5, 16);
 
-async function load() { S.trades = await api("/api/trades"); render(); }
+async function load() {
+  const [t, r, g] = await Promise.all([api("/api/trades"), api("/api/routine"), api("/api/routine/logs")]);
+  S.trades = t; S.routine = r; S.logs = g; render();
+}
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const today = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
+const scCls = (s) => (s >= 80 ? "up" : s < 50 ? "dn" : "");
+const scCol = (s) => (s >= 80 ? "var(--lime)" : s >= 50 ? "var(--blue)" : "var(--red)");
 
 function filtered() {
   const { dir, out, from, to } = S.f;
@@ -147,6 +160,62 @@ function calView() {
   <p class="sub">Total <b class="${cls(tot)}">${sign(tot)} pts</b> · ${cnt} trades · ${gd} green days · ${rd} red days. Tap a day to open its trades.</p><div class="card"><div class="cal">${grid}</div></div>`;
 }
 
+function preView() {
+  const L = S.logs, n = L.length, avg = n ? L.reduce((a, l) => a + l.score, 0) / n : 0, best = n ? Math.max(...L.map((l) => l.score)) : 0;
+  const td = L.find((l) => l.log_date === today());
+  const pts = {}; S.trades.forEach((t) => (pts[t.trade_date] = (pts[t.trade_date] || 0) + t.points));
+  const rows = L.map((l) => `<div class="hist"><b style="min-width:92px">${l.log_date}</b><span class="lbl" style="min-width:36px">${l.done}/${l.total}</span>
+    <div class="bar"><span style="width:${l.score}%;background:${scCol(l.score)}"></span></div><b class="${scCls(l.score)}" style="min-width:44px">${l.score.toFixed(0)}%</b>
+    <span class="lbl" style="min-width:84px">${pts[l.log_date] != null ? `<span class="${cls(pts[l.log_date])}">${sign(pts[l.log_date])} pts</span>` : "no trades"}</span>
+    <span><button class="x" data-pe="${l.log_date}">Edit</button><button class="x" data-pd="${l.id}">Delete</button></span></div>`).join("");
+  return `<div class="ph"><div><h1>Premarket <span>routine</span></h1><p class="sub">Tick your activities every day and track how disciplined you are</p></div><button class="btn p" id="np">+ New performance</button></div>
+  <div class="grid stats">
+    <div class="card"><div class="lbl">Today's score</div><div class="big ${td ? scCls(td.score) : ""}">${td ? td.score.toFixed(0) + "%" : "-"}</div></div>
+    <div class="card"><div class="lbl">Average score</div><div class="big ${scCls(avg)}">${n ? avg.toFixed(0) + "%" : "-"}</div></div>
+    <div class="card"><div class="lbl">Best day</div><div class="big">${n ? best.toFixed(0) + "%" : "-"}</div></div>
+    <div class="card"><div class="lbl">Days logged</div><div class="big">${n}</div></div>
+    <div class="card"><div class="lbl">Activities in routine</div><div class="big">${S.routine.length}</div></div></div>
+  <div class="card"><div class="lbl" style="margin-bottom:6px">History</div>${rows || `<div class="empty">No performance logged yet. Tap “New performance” to start.</div>`}</div>`;
+}
+
+function perfModal() {
+  return `<div class="modal" id="pm"><div class="card"><h1 style="font-size:24px">New performance</h1><p class="sub" style="margin:4px 0 14px">Tick the premarket activities you completed.</p>
+  <label class="lbl">Date</label><input class="dt" id="pdt" type="date"><div id="pb"></div><div class="err" id="pe"></div>
+  <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px"><button class="btn g" id="pcx">Cancel</button><button class="btn p" id="psv">Save performance</button></div></div></div>`;
+}
+
+function pbody() {
+  const items = S.routine, done = S.pm.done, d = items.filter((i) => done.has(i.id)).length, sc = items.length ? (d / items.length) * 100 : 0;
+  $("#pb").innerHTML = `<div class="score"><b class="${scCls(sc)}">${sc.toFixed(0)}%</b><div class="lbl">${d} of ${items.length} activities done</div></div>
+  ${items.length ? items.map((i) => `<label class="chk ${done.has(i.id) ? "done" : ""}"><input type="checkbox" data-c="${i.id}" ${done.has(i.id) ? "checked" : ""}><span>${esc(i.title)}</span><button type="button" class="x" data-rm="${i.id}" title="Remove from routine">✕</button></label>`).join("") : `<div class="empty" style="padding:20px 0">No activities yet. Add your first one below.</div>`}
+  <div class="add-row"><input id="na" placeholder="Add activity, e.g. Mark key levels" maxlength="120"><button type="button" class="btn g" id="aa">Add</button></div>
+  <div class="lbl">Activities you add here are saved in your routine template and show up every day.</div>`;
+  document.querySelectorAll("[data-c]").forEach((c) => (c.onchange = () => { const id = +c.dataset.c; c.checked ? done.add(id) : done.delete(id); pbody(); }));
+  document.querySelectorAll("[data-rm]").forEach((b) => (b.onclick = async (e) => {
+    e.preventDefault(); e.stopPropagation();
+    if (!confirm("Remove this activity from your routine? Past scores stay the same.")) return;
+    try { await api("/api/routine/" + b.dataset.rm, "DELETE"); S.routine = S.routine.filter((i) => i.id != b.dataset.rm); done.delete(+b.dataset.rm); pbody(); }
+    catch (er) { $("#pe").textContent = er.message; }
+  }));
+  const add = async () => {
+    const t = $("#na").value.trim(); if (!t) return;
+    try { S.routine.push(await api("/api/routine", "POST", { title: t })); $("#pe").textContent = ""; pbody(); $("#na").focus(); }
+    catch (er) { $("#pe").textContent = er.message; }
+  };
+  $("#aa").onclick = add; $("#na").onkeydown = (e) => { if (e.key === "Enter") add(); };
+}
+
+function openPerf(date = today()) {
+  const load1 = (dt) => { const l = S.logs.find((x) => x.log_date === dt); S.pm.done = new Set(l ? l.items.filter((i) => i.done).map((i) => i.id) : []); };
+  load1(date); $("#pdt").value = date; $("#pdt").onchange = () => { load1($("#pdt").value); pbody(); };
+  pbody(); $("#pe").textContent = ""; $("#pm").classList.add("on");
+  $("#pcx").onclick = () => $("#pm").classList.remove("on");
+  $("#psv").onclick = async () => {
+    try { await api("/api/routine/logs", "POST", { log_date: $("#pdt").value, done_ids: [...S.pm.done] }); S.logs = await api("/api/routine/logs"); render(); }
+    catch (er) { $("#pe").textContent = er.message; }
+  };
+}
+
 function authView() {
   const reg = S.mode === "register";
   $("#app").innerHTML = `<div class="auth card"><div class="logo" style="margin-bottom:18px"><i></i>NasLog</div><h1 style="font-size:28px">${reg ? "Create account" : "Welcome back"}</h1><p class="sub">NAS100 trading journal</p>
@@ -165,7 +234,7 @@ function authView() {
 function render() {
   if (!S.token) return authView();
   const list = filtered(), st = stats(S.view === "journal" ? list : S.trades);
-  const nav = ["dashboard", "calendar", "journal"].map((v) => `<button class="pill ${S.view === v ? "on" : ""}" data-v="${v}">${v[0].toUpperCase() + v.slice(1)}</button>`).join("");
+  const nav = ["dashboard", "calendar", "premarket", "journal"].map((v) => `<button class="pill ${S.view === v ? "on" : ""}" data-v="${v}">${v[0].toUpperCase() + v.slice(1)}</button>`).join("");
   const head = `<div class="top"><div class="logo"><i></i>NasLog</div><div class="nav">${nav}</div><button class="btn p" id="add">+ New trade</button><button class="pill" id="out">Log out</button></div>`;
   let body;
   if (S.view === "dashboard") {
@@ -197,6 +266,8 @@ function render() {
     <div class="grid bk">${bk("By NY phase", group(S.trades, (t) => t.session))}${bk("By weekday", group(S.trades, (t) => DAYS[new Date(t.trade_date + "T00:00").getDay()]))}${bk("By setup", group(S.trades, (t) => t.setup))}${bk("By mistake", group(S.trades.filter((t) => t.mistake), (t) => t.mistake))}${bk("By timeframe", group(S.trades, (t) => t.timeframe))}${bk("By side", group(S.trades, (t) => t.direction))}</div>`;
   } else if (S.view === "calendar") {
     body = calView();
+  } else if (S.view === "premarket") {
+    body = preView();
   } else {
     const rows = list.map((t) => `<tr><td>${t.trade_date}</td><td><span class="tag ${t.direction}">${t.direction}</span></td><td><span class="tag ${t.outcome}">${t.outcome}</span></td>
       <td>${t.entry_price}</td><td>${t.exit_price}</td><td>${t.sl_price ?? "-"}</td><td>${t.tp_price ?? "-"}</td><td>${t.sl_points ?? "-"}</td><td>${t.tp_points ?? "-"}</td><td>${t.planned_rr ? "1:" + t.planned_rr : "-"}</td>
@@ -215,9 +286,12 @@ function render() {
     <input id="ff" type="date" value="${S.f.from}"><input id="ft" type="date" value="${S.f.to}"></div>
     <div class="card scroll tbl">${rows ? `<table><tr><th>Date</th><th>Side</th><th>Result</th><th>Entry</th><th>Exit</th><th>SL</th><th>TP</th><th>SL pts</th><th>TP pts</th><th>Plan RR</th><th>Points</th><th>R</th><th>MFE</th><th>MAE</th><th>Entry time</th><th>Close time</th><th>Duration</th><th>TF</th><th>Session</th><th>Setup</th><th>Plan?</th><th>Mistake</th><th>Emotion</th><th>Rating</th><th></th></tr>${rows}</table>` : `<div class="empty">No trades yet. Log your first NAS100 trade with “New trade”.</div>`}</div><div class="mc">${mc}</div>`;
   }
-  $("#app").innerHTML = head + body + modal();
+  $("#app").innerHTML = head + body + modal() + perfModal();
   document.querySelectorAll("[data-v].pill").forEach((b) => (b.onclick = () => { S.view = b.dataset.v; render(); }));
   $("#out").onclick = logout; $("#add").onclick = () => openForm();
+  if ($("#np")) $("#np").onclick = () => openPerf();
+  document.querySelectorAll("[data-pe]").forEach((b) => (b.onclick = () => openPerf(b.dataset.pe)));
+  document.querySelectorAll("[data-pd]").forEach((b) => (b.onclick = async () => { if (confirm("Delete this day's performance?")) { await api("/api/routine/logs/" + b.dataset.pd, "DELETE"); S.logs = await api("/api/routine/logs"); render(); } }));
   if ($("#cp")) { $("#cp").onclick = () => { if (--S.cal.m < 0) { S.cal.m = 11; S.cal.y--; } render(); }; $("#cn").onclick = () => { if (++S.cal.m > 11) { S.cal.m = 0; S.cal.y++; } render(); }; }
   document.querySelectorAll("[data-day]").forEach((c) => (c.onclick = () => { S.f = { dir: "", out: "", from: c.dataset.day, to: c.dataset.day }; S.view = "journal"; render(); }));
   document.querySelectorAll("[data-e]").forEach((b) => (b.onclick = () => openForm(S.trades.find((t) => t.id == b.dataset.e))));
