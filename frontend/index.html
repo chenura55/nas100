@@ -6,6 +6,7 @@
 <title>NasLog · NAS100 Journal</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='16' fill='%237c3aed'/%3E%3Cpath d='M16 16V0A16 16 0 0 1 32 16Z' fill='%23e9e0ff'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11.14.5/dist/sweetalert2.min.css">
 <style>
 :root{--bg:#000;--card:#1a1a1c;--card2:#242427;--line:#2e2e33;--text:#f4f4f6;--mute:#8d8d96;--p:#7c3aed;--p2:#a78bfa;--lime:#c6f432;--red:#f0627a;--blue:#38bdf8}
 *{box-sizing:border-box}
@@ -74,10 +75,21 @@ body{overflow-x:hidden}.bk{grid-template-columns:repeat(auto-fit,minmax(min(100%
 .hist{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--line);flex-wrap:wrap}.hist .bar{flex:1;min-width:80px;margin:0}
 .chips{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}.chips .pill{padding:7px 14px;font-size:13px}.mini{display:flex;align-items:flex-end;gap:4px;height:90px}.mini>div{flex:1;border-radius:6px;min-height:4px}.rate{display:flex;align-items:center;gap:10px;padding:7px 0;font-size:14px}.rate span:first-child{flex:1;min-width:0;word-break:break-word}.rate .bar{width:70px;margin:0;flex:none}.hnote{flex-basis:100%;color:var(--mute);font-size:13px;margin-top:-4px}
 .ph{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.modal{backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.modal.on{animation:nlfade .2s ease}.modal.on .card{animation:nlpop .28s cubic-bezier(.2,.9,.3,1.15);box-shadow:0 20px 60px #7c3aed33;border:1px solid var(--line)}
+@keyframes nlfade{from{opacity:0}to{opacity:1}}@keyframes nlpop{from{opacity:0;transform:translateY(18px) scale(.96)}to{opacity:1;transform:none}}
+@media(max-width:700px){.modal.on .card{animation:nlup .3s ease;border:0;box-shadow:none}@keyframes nlup{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}}
+.nl-pop{border-radius:24px!important;border:1px solid var(--line)!important;font-family:"DM Sans",system-ui,sans-serif!important;box-shadow:0 20px 60px #000a!important}
+.nl-pop .swal2-title{font-weight:500!important;font-size:22px!important}.nl-pop .swal2-html-container{color:var(--mute)!important}
+.nl-ok,.nl-cancel{border-radius:999px!important;padding:10px 22px!important;font-weight:500!important;box-shadow:none!important}
+.nl-cancel{background:var(--card2)!important;color:var(--text)!important}.nl-ok{background:var(--p)!important;color:#fff!important}.nl-ok.danger{background:var(--red)!important;color:#000!important}
+.nl-pop .swal2-input{background:var(--card2)!important;border:1px solid var(--line)!important;border-radius:14px!important;color:var(--text)!important;box-shadow:none!important;font-size:16px!important}
+.nl-toast{border-radius:16px!important;border:1px solid var(--line)!important}
 </style>
 </head>
 <body>
 <div class="wrap" id="app"></div>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.14.5/dist/sweetalert2.min.js"></script>
 <script>
 const API = location.hostname === "localhost" || location.protocol === "file:" ? "http://localhost:3000" : "https://nas100.onrender.com";
 
@@ -107,6 +119,16 @@ const today = () => dstr(new Date());
 const nice = (k) => new Date(k + "T00:00").toLocaleDateString("en", { weekday: "long", day: "numeric", month: "short", year: "numeric" });
 const scCls = (s) => (s >= 80 ? "up" : s < 50 ? "dn" : "");
 const scCol = (s) => (s >= 80 ? "var(--lime)" : s >= 50 ? "var(--blue)" : "var(--red)");
+
+// Pretty popups (SweetAlert2). If the library can't load, it falls back to the normal browser dialogs.
+const SW = { background: "#1a1a1c", color: "#f4f4f6", buttonsStyling: false, reverseButtons: true, customClass: { popup: "nl-pop", confirmButton: "nl-ok", cancelButton: "nl-cancel" } };
+const ask = async (title, text, btn = "Delete") => window.Swal
+  ? (await Swal.fire({ ...SW, title, text, icon: "warning", iconColor: "#f0627a", showCancelButton: true, confirmButtonText: btn, cancelButtonText: "Cancel", focusCancel: true, customClass: { ...SW.customClass, confirmButton: "nl-ok danger" } })).isConfirmed
+  : confirm(title);
+const askText = async (title, value = "") => window.Swal
+  ? (await Swal.fire({ ...SW, title, input: "text", inputValue: value, inputAttributes: { maxlength: 120 }, showCancelButton: true, confirmButtonText: "Save", cancelButtonText: "Cancel" })).value
+  : prompt(title, value);
+const toast = (title, icon = "success") => window.Swal && Swal.fire({ toast: true, position: "top-end", icon, iconColor: icon === "success" ? "#c6f432" : "#f0627a", title, showConfirmButton: false, timer: 2200, timerProgressBar: true, background: "#242427", color: "#f4f4f6", customClass: { popup: "nl-toast" } });
 
 function filtered() {
   const { dir, out, from, to } = S.f;
@@ -250,12 +272,12 @@ function pbody() {
   document.querySelectorAll("[data-up]").forEach((b) => (b.onclick = () => mv(b.dataset.up, -1)));
   document.querySelectorAll("[data-dn]").forEach((b) => (b.onclick = () => mv(b.dataset.dn, 1)));
   document.querySelectorAll("[data-rn]").forEach((b) => (b.onclick = async () => {
-    const it = S.routine.find((x) => x.id == b.dataset.rn), t = prompt("Rename activity", it.title);
+    const it = S.routine.find((x) => x.id == b.dataset.rn), t = await askText("Rename activity", it.title);
     if (!t || !t.trim()) return;
     try { await api("/api/routine/" + it.id, "PUT", { title: t.trim() }); it.title = t.trim().slice(0, 120); pbody(); } catch (e) { err(e); }
   }));
   document.querySelectorAll("[data-rm]").forEach((b) => (b.onclick = async () => {
-    if (!confirm("Remove this activity from your routine? Past scores stay the same.")) return;
+    if (!(await ask("Remove this activity?", "It will be removed from your routine. Past scores stay the same.", "Remove"))) return;
     try { await api("/api/routine/" + b.dataset.rm, "DELETE"); S.routine = S.routine.filter((i) => i.id != b.dataset.rm); done.delete(+b.dataset.rm); pbody(); } catch (e) { err(e); }
   }));
   const add = async (title) => {
@@ -276,7 +298,7 @@ function openPerf(date = today()) {
   pbody(); $("#pm").classList.add("on");
   $("#pcx").onclick = () => $("#pm").classList.remove("on");
   $("#psv").onclick = async () => {
-    try { await api("/api/routine/logs", "POST", { log_date: S.pm.date, done_ids: [...S.pm.done], notes: $("#pn").value }); S.logs = await api("/api/routine/logs"); render(); }
+    try { await api("/api/routine/logs", "POST", { log_date: S.pm.date, done_ids: [...S.pm.done], notes: $("#pn").value }); S.logs = await api("/api/routine/logs"); render(); toast("Performance saved"); }
     catch (e) { $("#pe").textContent = e.message; }
   };
 }
@@ -357,11 +379,11 @@ function render() {
   if ($("#np")) $("#np").onclick = () => openPerf();
   if ($("#pk")) $("#pk").onclick = () => openPerf();
   document.querySelectorAll("[data-pe]").forEach((b) => (b.onclick = () => openPerf(b.dataset.pe)));
-  document.querySelectorAll("[data-pd]").forEach((b) => (b.onclick = async () => { if (confirm("Delete this day's performance?")) { await api("/api/routine/logs/" + b.dataset.pd, "DELETE"); S.logs = await api("/api/routine/logs"); render(); } }));
+  document.querySelectorAll("[data-pd]").forEach((b) => (b.onclick = async () => { if (await ask("Delete this day's performance?", "This can't be undone.")) { await api("/api/routine/logs/" + b.dataset.pd, "DELETE"); S.logs = await api("/api/routine/logs"); render(); toast("Performance deleted"); } }));
   if ($("#cp")) { $("#cp").onclick = () => { if (--S.cal.m < 0) { S.cal.m = 11; S.cal.y--; } render(); }; $("#cn").onclick = () => { if (++S.cal.m > 11) { S.cal.m = 0; S.cal.y++; } render(); }; }
   document.querySelectorAll("[data-day]").forEach((c) => (c.onclick = () => { S.f = { dir: "", out: "", from: c.dataset.day, to: c.dataset.day }; S.view = "journal"; render(); }));
   document.querySelectorAll("[data-e]").forEach((b) => (b.onclick = () => openForm(S.trades.find((t) => t.id == b.dataset.e))));
-  document.querySelectorAll("[data-d]").forEach((b) => (b.onclick = async () => { if (confirm("Delete this trade?")) { await api("/api/trades/" + b.dataset.d, "DELETE"); load(); } }));
+  document.querySelectorAll("[data-d]").forEach((b) => (b.onclick = async () => { if (await ask("Delete this trade?", "This can't be undone.")) { await api("/api/trades/" + b.dataset.d, "DELETE"); load(); toast("Trade deleted"); } }));
   if ($("#fd")) { const u = () => { S.f = { dir: $("#fd").value, out: $("#fo").value, from: $("#ff").value, to: $("#ft").value }; render(); }; ["#fd", "#fo", "#ff", "#ft"].forEach((s) => ($(s).onchange = u)); }
 }
 
@@ -406,7 +428,7 @@ function openForm(t) {
   $("#cx").onclick = () => $("#m").classList.remove("on");
   $("#sv").onclick = async () => {
     const body = { direction: v.d, outcome: v.o, entry_price: $("#ep").value, exit_price: $("#xp").value, sl_price: $("#sp").value, tp_price: $("#tp").value, entry_time: $("#et").value, close_time: $("#ct").value, lots: $("#lt").value, timeframe: $("#tf").value, session: $("#se").value, mfe: $("#mf").value, mae: $("#ma").value, risk_pct: $("#rk").value, fees: $("#fe").value, followed_plan: $("#fp").value, mistake: $("#mi").value, rating: $("#rt").value, screenshot: $("#sc").value, pnl: $("#pl").value, setup: $("#su").value, emotion: $("#em").value, notes: $("#nt").value };
-    try { await api("/api/trades" + (S.editing ? "/" + S.editing : ""), S.editing ? "PUT" : "POST", body); load(); }
+    try { await api("/api/trades" + (S.editing ? "/" + S.editing : ""), S.editing ? "PUT" : "POST", body); toast(S.editing ? "Trade updated" : "Trade saved"); load(); }
     catch (e) { $("#me").textContent = e.message; }
   };
 }
