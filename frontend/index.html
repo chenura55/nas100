@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#08080a">
+<title>NasLog · NAS100 Journal</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='16' fill='%237c3aed'/%3E%3Cpath d='M16 16V0A16 16 0 0 1 32 16Z' fill='%23e9e0ff'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11.14.5/dist/sweetalert2.min.css">
+<style>
+:root{--bg:#08080a;--card:#16161a;--card2:#212127;--line:#2b2b33;--text:#f4f4f6;--mute:#8e8e9a;--p:#7c3aed;--p2:#a78bfa;--lime:#c6f432;--red:#f0627a;--blue:#38bdf8}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{scroll-behavior:smooth}
+body{margin:0;color:var(--text);font:15px/1.45 "DM Sans",system-ui,sans-serif;min-height:100vh;overflow-x:hidden;
+  background:radial-gradient(90% 45% at 0% 0%,#3c2a6b 0,transparent 65%),radial-gradient(60% 35% at 100% 0%,#173a4d66 0,transparent 65%),var(--bg) fixed}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+svg.ic{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.wrap{max-width:1200px;margin:0 auto;padding:22px}
+
+/* top bar + nav */
+.top{display:flex;align-items:center;gap:14px;margin-bottom:26px}
+.logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:20px;margin-right:auto;letter-spacing:-.01em}
+.logo i{width:32px;height:32px;border-radius:50%;background:conic-gradient(#e9e0ff 0 25%,var(--p) 0)}
+.nav{display:flex;gap:6px;background:#ffffff0a;border:1px solid #ffffff0f;padding:4px;border-radius:999px}
+.nav .pill{border:0;background:none;padding:8px 18px}
+.pill{background:var(--card);border:1px solid var(--line);border-radius:999px;padding:9px 18px;color:var(--mute);transition:.15s}
+.pill:hover{color:var(--text)}
+.pill.on{background:#fff;color:#000;border-color:#fff}
+.pill.sm{padding:6px 14px;font-size:13px}
+.btn{background:#fff;color:#000;border:0;border-radius:999px;padding:10px 20px;font-weight:600;transition:transform .1s,opacity .15s}
+.btn:active{transform:scale(.97)}
+.btn.p{background:linear-gradient(135deg,#8b4dff,#6d28d9);color:#fff;box-shadow:0 6px 20px #7c3aed55}
+.btn.g{background:var(--card2);color:var(--text)}
+.outb{display:flex;align-items:center;gap:8px}.outb svg{width:18px;height:18px}
+
+/* type + cards */
+h1{font-size:38px;font-weight:600;margin:0 0 4px;letter-spacing:-.025em;line-height:1.1}h1 span{color:var(--mute)}
+.sub{color:var(--mute);margin:0 0 24px}
+.card{background:linear-gradient(180deg,#1a1a20,#141418);border:1px solid #ffffff0d;border-radius:24px;padding:20px}
+.lbl{color:var(--mute);font-size:13px}
+.big{font-size:28px;font-weight:600;margin-top:4px;letter-spacing:-.02em}
+.up{color:var(--lime)}.dn{color:var(--red)}
+.ct{font-size:14px;color:var(--mute);margin-bottom:12px;font-weight:500}
+.grid{display:grid;gap:16px}
+.two{grid-template-columns:2fr 1fr}
+.empty{color:var(--mute);text-align:center;padding:36px 0}.empty.sm{padding:18px 0;font-size:14px}
+.err{color:var(--red);min-height:20px;font-size:13px}
+.x{background:none;border:0;color:var(--mute);padding:4px 6px}.x:hover{color:var(--text)}.x.dng{color:var(--red);font-weight:600}.x.ok{color:var(--lime)}
+.tag{border-radius:999px;padding:3px 11px;font-size:12px;background:var(--card2)}
+.tag.BUY,.tag.TP{color:var(--lime)}.tag.SELL,.tag.SL{color:var(--red)}.tag.BE{color:var(--blue)}
+.bar{display:flex;height:10px;border-radius:9px;overflow:hidden;margin:12px 0;background:var(--card2)}.bar.slim{height:7px;margin:0}
+.ph{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+
+/* dashboard */
+.dash{display:grid;gap:16px;grid-template-columns:2fr 1fr;margin-bottom:16px}
+.hero{background:linear-gradient(135deg,#6a35e6 0%,#3a2282 52%,#18181d 100%);border:1px solid #ffffff1a;padding:24px;overflow:hidden;position:relative}
+.hero .lbl{color:#ffffffb3}
+.hero h1{font-size:32px;margin:2px 0}
+.hero-main{display:grid;grid-template-columns:1fr 1.1fr;gap:18px;align-items:end;margin-top:18px}
+.huge{font-size:58px;font-weight:700;letter-spacing:-.035em;line-height:1}
+.chip{display:inline-flex;gap:6px;align-items:center;background:#ffffff1c;border-radius:999px;padding:5px 12px;font-size:13px;backdrop-filter:blur(6px)}
+.hchips{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.rng{display:flex;gap:4px;background:#00000040;border-radius:999px;padding:3px}.rng button{border:0;background:none;color:#ffffffaa;padding:5px 12px;border-radius:999px;font-size:13px}.rng button.on{background:#fff;color:#000;font-weight:600}
+.spark{min-width:0}
+.pmc{display:flex;flex-direction:column}
+.pmr{display:flex;align-items:center;gap:16px;flex:1}
+.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:16px}
+.kpi{position:relative;overflow:hidden;padding:16px 18px}
+.kpi:before{content:"";position:absolute;left:0;top:14px;bottom:14px;width:3px;border-radius:3px;background:var(--a,var(--p))}
+.kpi .big{font-size:26px}.kpi .lbl:last-child{margin-top:2px;font-size:12px}
+.legend{display:flex;flex-direction:column;gap:8px;font-size:14px}.legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:8px}
+.kv{display:grid;grid-template-columns:1fr 1fr;gap:0 24px}.kv div{display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-top:1px solid var(--line);font-size:14px}.kv div span:first-child{color:var(--mute)}.kv div b{font-weight:500;text-align:right}
+.rt{display:flex;align-items:center;gap:10px;padding:11px 0;border-top:1px solid var(--line);font-size:14px}.rt:first-of-type{border-top:0}.rt .m{flex:1;min-width:0}.rt .m small{display:block;color:var(--mute);font-size:12px}
+.bkg{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:16px;margin-top:16px}
+.brow{display:grid;grid-template-columns:minmax(70px,1fr) 34px minmax(40px,80px) 40px 58px;align-items:center;gap:8px;padding:9px 0;border-top:1px solid var(--line);font-size:14px}
+.brow .bn{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.brow .bp{text-align:right}.brow b:nth-child(4){text-align:right}
+
+/* journal */
+table{width:100%;border-collapse:collapse;font-size:14px}th{color:var(--mute);font-weight:400;text-align:left;padding:10px 8px;white-space:nowrap}
+td{padding:12px 8px;border-top:1px solid var(--line);white-space:nowrap}
+.scroll{overflow-x:auto}
+.filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.filters select,.filters input,.f input,.f select,.f textarea,.add-row input,.dt,.auth input{background:var(--card2);border:1px solid var(--line);border-radius:14px;padding:10px 12px;width:100%;outline:none}
+.filters select,.filters input{width:auto}
+.f input:focus,.f select:focus,.f textarea:focus,.add-row input:focus,.auth input:focus{border-color:var(--p2)}
+.mc{display:none}.mcard{padding:16px}.mcard .r1{display:flex;justify-content:space-between;align-items:center;font-size:18px;margin-bottom:6px}
+.mcard .g2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0;font-size:14px}.mcard .lbl{font-size:12px}
+
+/* calendar */
+.cal{display:grid;grid-template-columns:repeat(7,1fr) 1.1fr;gap:6px}.cal .h{color:var(--mute);font-size:12px;text-align:center}
+.cd{background:var(--card2);border-radius:14px;min-height:82px;padding:8px;display:flex;flex-direction:column;justify-content:space-between;font-size:13px;min-width:0}
+.cd.blank{background:none}.cd.win{background:#c6f43226;color:var(--lime)}.cd.loss{background:#f0627a26;color:var(--red)}.cd.be{background:#38bdf826;color:var(--blue)}.cd[data-day]{cursor:pointer}
+.cd .dnum{color:var(--mute);font-size:12px}.cd b{font-size:15px}.cd small{color:var(--mute);font-size:11px}.cd.wk{background:var(--bg)}
+
+/* forms (inside popups) */
+.f{display:grid;grid-template-columns:1fr 1fr;gap:12px;text-align:left}.f label{font-size:13px;color:var(--mute);display:block;margin-bottom:4px}.f .full{grid-column:1/-1}
+.seg{display:flex;gap:6px}.seg button{flex:1;padding:10px;border-radius:14px;border:1px solid var(--line);background:var(--card2)}
+.seg button.on[data-v=BUY],.seg button.on[data-v=TP]{background:var(--lime);color:#000}.seg button.on[data-v=SELL],.seg button.on[data-v=SL]{background:var(--red);color:#000}.seg button.on[data-v=BE]{background:var(--blue);color:#000}
+.live{background:var(--card2);border-radius:16px;padding:12px;display:flex;justify-content:space-around;text-align:center;flex-wrap:wrap;gap:10px}
+.chk{display:flex;align-items:center;gap:12px;background:var(--card2);border-radius:14px;padding:12px 14px;margin-bottom:8px;cursor:pointer;text-align:left}
+.chk input[type=checkbox]{width:22px;height:22px;accent-color:var(--p);flex:none;margin:0}.chk span{flex:1;word-break:break-word}.chk.done span{color:var(--mute);text-decoration:line-through}.chk .x{font-size:16px;padding:6px 8px}
+.chk .re{flex:1;min-width:0;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:6px 8px}
+.add-row{display:flex;gap:8px;margin:14px 0 8px}.add-row input{flex:1;min-width:0}
+.score{text-align:center;margin:10px 0 14px}.score b{font-size:52px;font-weight:600}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}.chips .pill{padding:7px 14px;font-size:13px}
+.hist{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--line);flex-wrap:wrap}.hist .bar{flex:1;min-width:80px;margin:0}
+.mini{display:flex;align-items:flex-end;height:90px}.mini>div{flex:1;border-radius:6px;min-height:4px}
+.rate{display:flex;align-items:center;gap:10px;padding:7px 0;font-size:14px}.rate span:first-child{flex:1;min-width:0;word-break:break-word}.rate .bar{width:70px;margin:0;flex:none}.hnote{flex-basis:100%;color:var(--mute);font-size:13px;margin-top:-4px}
+
+/* confluence */
+.tfh{display:flex;align-items:center;gap:10px;width:100%;background:var(--card2);border:1px solid var(--line);border-radius:14px;padding:13px 14px;text-align:left;margin-bottom:8px;font-size:15px}
+.tfh b{flex:1;font-weight:600}.tfh .n{background:var(--p);color:#fff;border-radius:999px;font-size:12px;padding:2px 10px}.tfh.open{border-color:var(--p2)}
+.cchips{display:flex;flex-wrap:wrap;gap:8px;padding:2px 2px 14px}
+.cc{background:var(--card2);border:1px solid var(--line);border-radius:999px;padding:10px 18px;color:var(--text);transition:.15s}
+.cc.on{background:var(--p);border-color:var(--p2);color:#fff;font-weight:600}
+.cc.sm{padding:7px 14px;font-size:13px}.cc.tfa{font-weight:600;border-color:#ffffff22}
+.cfr{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:10px 0;border-top:1px solid var(--line)}.cfr:first-of-type{border-top:0}.cfr .cc.tfa{min-width:64px}
+.seg.m{width:150px}.seg.m button.on{background:#fff;color:#000}
+.tfl{display:flex;gap:6px;flex-wrap:wrap;flex-basis:100%}.tfl .tag b{color:var(--p2);font-weight:600;margin-right:4px}
+/* auth */
+.auth{max-width:400px;margin:12vh auto;padding:28px}.auth input{margin:6px 0;padding:13px}
+
+/* mobile bottom tab bar */
+.tabbar{display:none}
+.addbtn{order:5}
+
+/* SweetAlert2 theme */
+.swal2-container{backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.nl-pop{border-radius:26px!important;border:1px solid #ffffff14!important;font-family:"DM Sans",system-ui,sans-serif!important;box-shadow:0 24px 70px #000b!important;background:linear-gradient(180deg,#1b1b21,#141418)!important}
+.nl-pop .swal2-title{font-weight:600!important;font-size:22px!important;color:var(--text)!important}
+.nl-pop .swal2-html-container{color:var(--mute)!important}
+.nl-ok,.nl-cancel{border-radius:999px!important;padding:11px 24px!important;font-weight:600!important;box-shadow:none!important;border:0!important;font-size:15px!important}
+.nl-cancel{background:var(--card2)!important;color:var(--text)!important}.nl-ok{background:linear-gradient(135deg,#8b4dff,#6d28d9)!important;color:#fff!important}.nl-ok.danger{background:var(--red)!important;color:#000!important}
+.nl-pop .swal2-input{background:var(--card2)!important;border:1px solid var(--line)!important;border-radius:14px!important;color:var(--text)!important;box-shadow:none!important;font-size:16px!important}
+.nl-toast{border-radius:16px!important;border:1px solid var(--line)!important}
+.nl-form{width:min(700px,calc(100vw - 24px))!important;max-height:calc(100dvh - 24px);overflow-y:auto!important;padding:22px 22px 0!important;text-align:left}
+.nl-form .swal2-title{text-align:left!important;padding:0!important;margin:0!important;justify-content:flex-start!important;font-size:24px!important}
+.nl-form .nl-html{margin:16px 0 0!important;padding:0!important;text-align:left!important;overflow:visible!important;font-size:15px!important}
+.nl-form .swal2-actions{position:sticky;bottom:0;z-index:5;background:#161619;margin:18px -22px 0!important;padding:14px 22px calc(14px + env(safe-area-inset-bottom))!important;border-top:1px solid var(--line);width:auto!important;justify-content:flex-end!important}
+.nl-form .swal2-validation-message{background:#f0627a22!important;color:var(--red)!important;margin:14px 0 0!important}
+.nl-form .nl-close{color:var(--mute)!important;font-size:34px!important;top:8px;right:8px}
+.nl-up{animation:nlup .32s cubic-bezier(.2,.9,.3,1)}.nl-down{animation:nldown .22s ease forwards}
+@keyframes nlup{from{transform:translateY(100%)}to{transform:none}}@keyframes nldown{to{transform:translateY(100%)}}
+
+/* ---------- tablet ---------- */
+@media(max-width:1000px){
+  .kpis{grid-template-columns:repeat(3,1fr)}
+  .dash,.two{grid-template-columns:1fr}
+}
+/* ---------- mobile ---------- */
+@media(max-width:700px){
+  .wrap{padding:14px 14px calc(92px + env(safe-area-inset-bottom))}
+  .top{margin-bottom:18px;gap:10px}.nav{display:none}.outb span{display:none}.outb{padding:9px 11px}
+  h1{font-size:28px}.sub{margin-bottom:16px}
+  .card{padding:16px;border-radius:20px}
+  .big{font-size:22px;word-break:break-word}
+  .hero{padding:18px}.hero h1{font-size:26px}.hero-main{grid-template-columns:1fr;gap:12px}.huge{font-size:46px}
+  .kpis{grid-template-columns:1fr 1fr;gap:10px}.kpi{padding:14px 14px 14px 16px}.kpi .big{font-size:21px}.kpi.wide{grid-column:1/-1}
+  .kv{grid-template-columns:1fr}
+  .brow{grid-template-columns:minmax(60px,1fr) 30px 56px 38px 54px;gap:6px;font-size:13px}
+  .tbl{display:none}.mc{display:grid;gap:10px}
+  .filters{display:grid;grid-template-columns:1fr 1fr}.filters select,.filters input{width:100%}
+  input,select,textarea{font-size:16px!important}
+  .cal{grid-template-columns:repeat(7,1fr);gap:4px}.cal .wk{display:none}.cd{min-height:58px;padding:5px;border-radius:10px}.cd b{font-size:11px}.cd small{display:none}.card .cal{margin:-6px}
+  .nomob{display:none!important}
+  .addbtn{position:fixed;right:16px;bottom:calc(78px + env(safe-area-inset-bottom));z-index:15;padding:14px 22px;box-shadow:0 8px 28px #7c3aedcc}
+  .tabbar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:20;background:#101013ee;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-top:1px solid var(--line);padding:6px 8px calc(6px + env(safe-area-inset-bottom))}
+  .tabbar button{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:0;color:var(--mute);font-size:11px;font-weight:500;padding:7px 0;border-radius:14px;transition:.15s}
+  .tabbar button.on{color:#fff;background:#ffffff12}.tabbar button.on svg{color:var(--p2)}
+  .f{grid-template-columns:1fr}.live>div{min-width:30%}
+  .auth{margin:6vh auto;padding:22px}
+  .nl-form{width:100%!important;max-width:none!important;margin:0!important;border-radius:26px 26px 0 0!important;max-height:92dvh;padding:18px 16px 0!important}
+  .nl-form .swal2-actions{margin:16px -16px 0!important;padding:12px 16px calc(12px + env(safe-area-inset-bottom))!important}
+  .nl-form .swal2-actions button{flex:1}
+  .swal2-container.swal2-bottom{padding:0!important}
+}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.14.5/dist/sweetalert2.min.js"></script>
+<script>
+const API = location.hostname === "localhost" || location.protocol === "file:" ? "http://localhost:3000" : "https://nas100.onrender.com";
+
+const $ = (s) => document.querySelector(s);
+let S = { token: localStorage.token, user: JSON.parse(localStorage.user || "null"), trades: [], routine: [], logs: [], cfs: [], cf: { mode: "all", sel: new Set(), from: "", to: "" }, cfm: null, pm: { done: new Set() }, view: "dashboard", range: "all", mode: "login", f: { dir: "", out: "", from: "", to: "" }, editing: null, cal: { y: new Date().getFullYear(), m: new Date().getMonth() } };
+
+async function api(path, method = "GET", body) {
+  const r = await fetch(API + path, { method, headers: { "Content-Type": "application/json", Authorization: "Bearer " + S.token }, body: body && JSON.stringify(body) });
+  const d = await r.json();
+  if (r.status === 401 && S.token) logout();
+  if (!r.ok) throw new Error(d.error || "Something went wrong");
+  return d;
+}
+const logout = () => { localStorage.clear(); S.token = null; render(); };
+const dur = (m) => (m == null ? "-" : m >= 60 ? `${Math.floor(m / 60)}h ${m % 60}m` : `${m}m`);
+const sign = (n) => (n > 0 ? "+" : "") + (+n).toFixed(2);
+const cls = (n) => (n > 0 ? "up" : n < 0 ? "dn" : "");
+const fmtT = (s) => (s || "").replace("T", " ").slice(5, 16);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const safeUrl = (u) => (/^https?:\/\//i.test(u || "") ? esc(u) : "");
+const dstr = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const today = () => dstr(new Date());
+const nice = (k) => new Date(k + "T00:00").toLocaleDateString("en", { weekday: "long", day: "numeric", month: "short", year: "numeric" });
+const scCls = (s) => (s >= 80 ? "up" : s < 50 ? "dn" : "");
+const scCol = (s) => (s >= 80 ? "var(--lime)" : s >= 50 ? "var(--blue)" : "var(--red)");
+const wCol = (w) => (w >= 50 ? "var(--lime)" : "var(--red)");
+const isMob = () => innerWidth <= 700;
+
+const ICON = {
+  dashboard: `<svg class="ic" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="2"/><rect x="14" y="3" width="7" height="5" rx="2"/><rect x="14" y="12" width="7" height="9" rx="2"/><rect x="3" y="16" width="7" height="5" rx="2"/></svg>`,
+  calendar: `<svg class="ic" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="3"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>`,
+  premarket: `<svg class="ic" viewBox="0 0 24 24"><path d="M12 3v3M4.9 6.9l2.1 2.1M19.1 6.9L17 9M2 16h2M20 16h2M7 16a5 5 0 0110 0M3 20h18"/></svg>`,
+  journal: `<svg class="ic" viewBox="0 0 24 24"><path d="M4 4h12a4 4 0 014 4v12H8a4 4 0 01-4-4z"/><path d="M8 9h8M8 13h6"/></svg>`,
+  confluence: `<svg class="ic" viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>`,
+  out: `<svg class="ic" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>`,
+};
+
+async function load() {
+  const [t, r, g, c] = await Promise.all([api("/api/trades"), api("/api/routine"), api("/api/routine/logs"), api("/api/confluence")]);
+  S.trades = t; S.routine = r; S.logs = g; S.cfs = c; render();
+}
+
+/* ---------- popups (SweetAlert2) ---------- */
+const SW = { background: "#1a1a1c", color: "#f4f4f6", buttonsStyling: false, reverseButtons: true, heightAuto: false, scrollbarPadding: false };
+const noSwal = () => { alert("The popup library could not load. Check your internet connection and refresh the page."); };
+const pop = (extra = "") => ({
+  ...SW, position: isMob() ? "bottom" : "center", allowOutsideClick: false, focusConfirm: false, showCancelButton: true, showCloseButton: true, cancelButtonText: "Cancel",
+  customClass: { popup: "nl-pop " + extra, confirmButton: "nl-ok", cancelButton: "nl-cancel", htmlContainer: "nl-html", closeButton: "nl-close" },
+  showClass: isMob() ? { popup: "nl-up", backdrop: "swal2-backdrop-show" } : { popup: "swal2-show", backdrop: "swal2-backdrop-show" },
+  hideClass: isMob() ? { popup: "nl-down", backdrop: "swal2-backdrop-hide" } : { popup: "swal2-hide", backdrop: "swal2-backdrop-hide" },
+});
+const ask = async (title, text, btn = "Delete") => window.Swal
+  ? (await Swal.fire({ ...SW, title, text, icon: "warning", iconColor: "#f0627a", showCancelButton: true, confirmButtonText: btn, cancelButtonText: "Cancel", focusCancel: true, customClass: { popup: "nl-pop", confirmButton: "nl-ok danger", cancelButton: "nl-cancel" } })).isConfirmed
+  : confirm(title);
+const toast = (title, icon = "success") => window.Swal && Swal.fire({ toast: true, position: isMob() ? "top" : "top-end", icon, iconColor: icon === "success" ? "#c6f432" : "#f0627a", title, showConfirmButton: false, timer: 2200, timerProgressBar: true, background: "#242427", color: "#f4f4f6", customClass: { popup: "nl-toast" } });
+
+/* ---------- maths + charts ---------- */
+function filtered() {
+  const { dir, out, from, to } = S.f;
+  return S.trades.filter((t) => (!dir || t.direction === dir) && (!out || t.outcome === out) && (!from || t.trade_date >= from) && (!to || t.trade_date <= to));
+}
+function rangeTrades() {
+  if (S.range === "all") return S.trades;
+  const c = new Date(); c.setDate(c.getDate() - +S.range); const k = dstr(c);
+  return S.trades.filter((t) => t.trade_date >= k);
+}
+
+function stats(list) {
+  const n = list.length, w = list.filter((t) => t.points > 0), l = list.filter((t) => t.points < 0);
+  const total = list.reduce((a, t) => a + t.points, 0), gp = w.reduce((a, t) => a + t.points, 0), gl = Math.abs(l.reduce((a, t) => a + t.points, 0));
+  const rs = list.filter((t) => t.r_multiple != null);
+  const ch = [...list].reverse(); let c = 0, pk = 0, dd = 0, ws = 0, ls = 0, cw = 0, cl = 0;
+  ch.forEach((t) => { c += t.points; pk = Math.max(pk, c); dd = Math.max(dd, pk - c); if (t.points > 0) { cw++; cl = 0; } else if (t.points < 0) { cl++; cw = 0; } else { cw = 0; cl = 0; } ws = Math.max(ws, cw); ls = Math.max(ls, cl); });
+  const avg = (a) => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : 0), pl = list.filter((t) => t.followed_plan), cap = w.filter((t) => t.mfe > 0).map((t) => (t.points / t.mfe) * 100);
+  const ex = { dd, ws, ls, exp: n ? total / n : 0, best: Math.max(0, ...list.map((t) => t.points)), worst: Math.min(0, ...list.map((t) => t.points)), adh: pl.length ? (pl.filter((t) => t.followed_plan === "Yes").length / pl.length) * 100 : null, prr: avg(list.filter((t) => t.planned_rr).map((t) => t.planned_rr)), wDur: Math.round(avg(w.map((t) => t.duration_min))), lDur: Math.round(avg(l.map((t) => t.duration_min))), cap: cap.length ? avg(cap) : null, avgSL: avg(list.filter((t) => t.sl_points).map((t) => t.sl_points)), avgTP: avg(list.filter((t) => t.tp_points).map((t) => t.tp_points)), avgMae: avg(list.filter((t) => t.mae != null).map((t) => t.mae)) };
+  return {
+    ...ex, n, total, win: n ? (w.length / n) * 100 : 0, pf: gl ? gp / gl : gp ? Infinity : 0,
+    avgW: w.length ? gp / w.length : 0, avgL: l.length ? -gl / l.length : 0,
+    avgDur: n ? Math.round(list.reduce((a, t) => a + t.duration_min, 0) / n) : 0,
+    avgR: rs.length ? rs.reduce((a, t) => a + t.r_multiple, 0) / rs.length : 0,
+    tp: list.filter((t) => t.outcome === "TP").length, sl: list.filter((t) => t.outcome === "SL").length, be: list.filter((t) => t.outcome === "BE").length,
+  };
+}
+
+let gid = 0;
+function curve(list, o = {}) {
+  const pts = [...list].reverse(); let c = 0; const ys = [0, ...pts.map((t) => (c += t.points))];
+  if (ys.length < 2) return `<div class="empty sm" style="color:inherit;opacity:.7">Log a trade to see your curve</div>`;
+  const W = 600, H = o.mini ? 90 : 230, pad = o.mini ? 8 : 16, min = Math.min(0, ...ys), max = Math.max(0, ...ys), r = max - min || 1, id = "g" + ++gid;
+  const X = (i) => (i / (ys.length - 1)) * W, Y = (v) => H - pad - ((v - min) / r) * (H - pad * 2);
+  const d = ys.map((v, i) => `${i ? "L" : "M"}${X(i).toFixed(1)},${Y(v).toFixed(1)}`).join(" ");
+  const col = o.mini ? "#fff" : ys[ys.length - 1] >= 0 ? "#c6f432" : "#f0627a";
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block"><defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${col}" stop-opacity=".35"/><stop offset="1" stop-color="${col}" stop-opacity="0"/></linearGradient></defs>
+  ${o.mini ? "" : `<line x1="0" x2="${W}" y1="${Y(0)}" y2="${Y(0)}" stroke="#555" stroke-dasharray="4" vector-effect="non-scaling-stroke"/>`}<path d="${d} L${W},${H} L0,${H}Z" fill="url(#${id})"/><path d="${d}" fill="none" stroke="${col}" stroke-width="${o.mini ? 2 : 2.5}" stroke-linejoin="round" vector-effect="non-scaling-stroke"/></svg>`;
+}
+
+function donut(parts, center, sub, size = 120) {
+  const R = 44, C = 2 * Math.PI * R; let off = 0;
+  const segs = parts.filter((p) => p.v > 0).map((p) => { const len = Math.min(1, p.v) * C, s = `<circle cx="60" cy="60" r="${R}" fill="none" stroke="${p.c}" stroke-width="12" stroke-dasharray="${len.toFixed(2)} ${(C - len).toFixed(2)}" stroke-dashoffset="${(-off).toFixed(2)}" transform="rotate(-90 60 60)"/>`; off += len; return s; }).join("");
+  return `<svg viewBox="0 0 120 120" width="${size}" height="${size}" style="flex:none"><circle cx="60" cy="60" r="${R}" fill="none" stroke="var(--card2)" stroke-width="12"/>${segs}<text x="60" y="${sub ? 60 : 66}" text-anchor="middle" fill="#f4f4f6" font-size="22" font-weight="600">${center}</text>${sub ? `<text x="60" y="77" text-anchor="middle" fill="#8e8e9a" font-size="10">${sub}</text>` : ""}</svg>`;
+}
+
+function group(list, kf) {
+  const m = {}; list.forEach((t) => { const k = kf(t) || "-"; (m[k] = m[k] || []).push(t); });
+  return Object.entries(m).map(([k, a]) => ({ k, n: a.length, w: (a.filter((t) => t.points > 0).length / a.length) * 100, p: a.reduce((s, t) => s + t.points, 0) })).sort((a, b) => b.p - a.p);
+}
+const bk = (title, rows) => `<div class="card"><div class="ct">${title}</div>${rows.length ? rows.map((r) => `<div class="brow"><span class="bn">${esc(r.k)}</span><span class="lbl">${r.n}×</span><div class="bar slim"><span style="width:${r.w}%;background:${wCol(r.w)}"></span></div><b>${r.w.toFixed(0)}%</b><b class="${cls(r.p)} bp">${sign(r.p)}</b></div>`).join("") : `<div class="empty sm">No data yet</div>`}</div>`;
+const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+/* ---------- views ---------- */
+function dash() {
+  const L = rangeTrades(), st = stats(L), tot = st.n || 1;
+  const td = S.trades.filter((t) => t.trade_date === today()), tp = td.reduce((a, t) => a + t.points, 0);
+  const hr = new Date().getHours(), greet = hr < 12 ? "Good morning" : hr < 18 ? "Good afternoon" : "Good evening";
+  const pm = S.logs.find((l) => l.log_date === today()), sk = streaks(), nm = esc(S.user?.name || "trader");
+  const rng = [["all", "All"], ["90", "90D"], ["30", "30D"], ["7", "7D"]].map(([k, l]) => `<button class="${S.range === k ? "on" : ""}" data-rg="${k}">${l}</button>`).join("");
+  const wins = L.filter((t) => t.points > 0).length, loss = L.filter((t) => t.points < 0).length;
+  const recent = S.trades.slice(0, 5).map((t) => `<div class="rt"><span class="tag ${t.direction}">${t.direction}</span><div class="m"><b>${t.entry_price} → ${t.exit_price}</b><small>${t.trade_date} · ${dur(t.duration_min)}${t.setup ? " · " + esc(t.setup) : ""}</small></div><span class="tag ${t.outcome}">${t.outcome}</span><b class="${cls(t.points)}" style="min-width:64px;text-align:right">${sign(t.points)}</b></div>`).join("");
+  const kv = (a, b) => `<div><span>${a}</span><b>${b}</b></div>`;
+  return `<div class="dash">
+    <div class="card hero"><div class="ph" style="align-items:center"><div><div class="lbl">${greet}</div><h1>${nm}</h1></div><div class="rng">${rng}</div></div>
+      <div class="hero-main"><div><div class="lbl">Total points</div><div class="huge ${st.total > 0 ? "up" : st.total < 0 ? "dn" : ""}">${sign(st.total)}</div>
+        <div class="hchips"><span class="chip">${st.n} trades</span><span class="chip">Today <b class="${cls(tp)}">${sign(tp)}</b></span><span class="chip">${st.win.toFixed(0)}% win</span></div></div>
+        <div class="spark">${curve(L, { mini: true })}</div></div></div>
+    <div class="card pmc"><div class="ct">Premarket routine · ${nice(today()).split(",")[0]}</div><div class="pmr">${donut([{ v: pm ? pm.score / 100 : 0, c: pm ? (pm.score >= 80 ? "#c6f432" : pm.score >= 50 ? "#38bdf8" : "#f0627a") : "#7c3aed" }], pm ? pm.score.toFixed(0) + "%" : "–", pm ? `${pm.done}/${pm.total} done` : "not done", 112)}
+      <div style="min-width:0"><div class="lbl">${S.routine.length ? (pm ? "Today's checklist is logged" : "Start your day right") : "Create your routine"}</div><div style="margin:4px 0 12px"><b>${sk.cur}</b> <span class="lbl">day streak (80%+)</span></div><button class="btn p" id="pk">${pm ? "Update" : "Start"}</button></div></div></div></div>
+  <div class="kpis">
+    <div class="card kpi" style="--a:var(--lime)"><div class="lbl">Win rate</div><div class="big">${st.win.toFixed(1)}%</div><div class="lbl">${wins} wins · ${loss} losses</div></div>
+    <div class="card kpi" style="--a:var(--p2)"><div class="lbl">Profit factor</div><div class="big">${st.pf === Infinity ? "∞" : st.pf.toFixed(2)}</div><div class="lbl">${sign(st.avgW)} / ${sign(st.avgL)}</div></div>
+    <div class="card kpi" style="--a:var(--blue)"><div class="lbl">Average R</div><div class="big ${cls(st.avgR)}">${sign(st.avgR)}R</div><div class="lbl">Plan RR ${st.prr ? "1:" + st.prr.toFixed(2) : "-"}</div></div>
+    <div class="card kpi" style="--a:var(--lime)"><div class="lbl">Expectancy / trade</div><div class="big ${cls(st.exp)}">${sign(st.exp)}</div><div class="lbl">Avg ${dur(st.avgDur)}</div></div>
+    <div class="card kpi wide" style="--a:var(--red)"><div class="lbl">Max drawdown</div><div class="big dn">-${st.dd.toFixed(1)}</div><div class="lbl">Worst ${sign(st.worst)} pts</div></div></div>
+  <div class="grid two" style="margin-bottom:16px">
+    <div class="card"><div class="ph" style="align-items:center;margin-bottom:10px"><div class="ct" style="margin:0">Equity curve (points)</div><span class="lbl">Now <b class="${cls(st.total)}">${sign(st.total)}</b></span></div>${curve(L)}</div>
+    <div class="card"><div class="ct">Outcomes</div><div style="display:flex;align-items:center;gap:18px;flex-wrap:wrap">${donut([{ v: st.tp / tot, c: "#c6f432" }, { v: st.be / tot, c: "#38bdf8" }, { v: st.sl / tot, c: "#f0627a" }], st.n, "trades")}
+      <div class="legend"><span><i style="background:var(--lime)"></i>TP ${st.tp}</span><span><i style="background:var(--blue)"></i>BE ${st.be}</span><span><i style="background:var(--red)"></i>SL ${st.sl}</span></div></div>
+      <div class="kv" style="grid-template-columns:1fr;margin-top:12px">${kv("Avg win", `<span class="up">${sign(st.avgW)} pts</span>`)}${kv("Avg loss", `<span class="dn">${sign(st.avgL)} pts</span>`)}</div></div></div>
+  <div class="grid two" style="margin-bottom:0">
+    <div class="card"><div class="ph" style="align-items:center"><div class="ct">Recent trades</div><button class="pill sm" data-nav="journal">View all</button></div>${recent || `<div class="empty sm">No trades yet. Log your first one.</div>`}</div>
+    <div class="card"><div class="ct">More insights</div><div class="kv" style="grid-template-columns:1fr">
+      ${kv("Best / worst trade", `<span class="up">${sign(st.best)}</span> / <span class="dn">${sign(st.worst)}</span>`)}${kv("Max win / loss streak", `<span class="up">${st.ws}</span> / <span class="dn">${st.ls}</span>`)}
+      ${kv("Avg SL / TP distance", `${st.avgSL.toFixed(1)} / ${st.avgTP.toFixed(1)} pts`)}${kv("Avg win / loss duration", `${dur(st.wDur)} / ${dur(st.lDur)}`)}
+      ${kv("Avg MAE (heat taken)", `${st.avgMae.toFixed(1)} pts`)}${kv("Move captured (winners)", st.cap != null ? st.cap.toFixed(0) + "%" : "-")}
+      ${kv("Plan adherence", `<span class="${st.adh >= 80 ? "up" : ""}">${st.adh != null ? st.adh.toFixed(0) + "%" : "-"}</span>`)}</div></div></div>
+  <div class="bkg">${bk("By NY phase", group(L, (t) => t.session))}${bk("By weekday", group(L, (t) => DAYS[new Date(t.trade_date + "T00:00").getDay()]))}${bk("By setup", group(L, (t) => t.setup))}${bk("By mistake", group(L.filter((t) => t.mistake), (t) => t.mistake))}${bk("By timeframe", group(L, (t) => t.timeframe))}${bk("By side", group(L, (t) => t.direction))}</div>`;
+}
+
+function calView() {
+  const { y, m } = S.cal, days = new Date(y, m + 1, 0).getDate(), off = (new Date(y, m, 1).getDay() + 6) % 7, pre = `${y}-${String(m + 1).padStart(2, "0")}`;
+  const by = {}; S.trades.forEach((t) => { if (t.trade_date.startsWith(pre)) { const o = (by[t.trade_date] = by[t.trade_date] || { p: 0, n: 0 }); o.p += t.points; o.n++; } });
+  const vals = Object.values(by), tot = vals.reduce((a, o) => a + o.p, 0), cnt = vals.reduce((a, o) => a + o.n, 0), gd = vals.filter((o) => o.p > 0).length, rd = vals.filter((o) => o.p < 0).length;
+  const arr = Array(off).fill(null); for (let d = 1; d <= days; d++) arr.push({ d, key: `${pre}-${String(d).padStart(2, "0")}` }); while (arr.length % 7) arr.push(null);
+  let grid = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun", "Week"].map((h) => `<div class="h ${h === "Week" ? "wk" : ""}">${h}</div>`).join("");
+  for (let w = 0; w < arr.length; w += 7) {
+    const wk = arr.slice(w, w + 7); let wp = 0, wn = 0;
+    grid += wk.map((c) => { if (!c) return `<div class="cd blank"></div>`; const x = by[c.key]; if (x) { wp += x.p; wn += x.n; }
+      return `<div class="cd ${x ? (x.p > 0 ? "win" : x.p < 0 ? "loss" : "be") : ""}" ${x ? `data-day="${c.key}"` : ""}><span class="dnum">${c.d}</span>${x ? `<b>${sign(x.p)}</b><small>${x.n} trade${x.n > 1 ? "s" : ""}</small>` : ""}</div>`; }).join("");
+    grid += `<div class="cd wk"><span class="dnum">Week ${w / 7 + 1}</span>${wn ? `<b class="${cls(wp)}">${sign(wp)}</b><small>${wn} trade${wn > 1 ? "s" : ""}</small>` : ""}</div>`;
+  }
+  const name = new Date(y, m, 1).toLocaleString("en", { month: "long", year: "numeric" });
+  return `<div style="display:flex;align-items:center;gap:12px;margin-bottom:6px"><button class="pill" id="cp">‹</button><h1 style="margin:0;font-size:28px;flex:1;text-align:center">${name}</h1><button class="pill" id="cn">›</button></div>
+  <p class="sub" style="text-align:center">Total <b class="${cls(tot)}">${sign(tot)} pts</b> · ${cnt} trades · ${gd} green · ${rd} red. Tap a day to open its trades.</p><div class="card"><div class="cal">${grid}</div></div>`;
+}
+
+// Streak = consecutive days with score >= 80%. Weekends are skipped, a missed weekday breaks it.
+function streaks() {
+  const ok = new Set(S.logs.filter((l) => l.score >= 80).map((l) => l.log_date));
+  const wkend = (d) => d.getDay() === 0 || d.getDay() === 6;
+  let cur = 0, d = new Date(), first = true;
+  for (let i = 0; i < 4000; i++, d.setDate(d.getDate() - 1)) {
+    if (ok.has(dstr(d))) cur++;
+    else if (wkend(d) || (first && cur === 0)) { /* skip */ }
+    else break;
+    first = false;
+  }
+  let best = 0, run = 0;
+  if (S.logs.length) {
+    const ds = S.logs.map((l) => l.log_date).sort(), e = new Date(ds[ds.length - 1] + "T00:00");
+    for (let x = new Date(ds[0] + "T00:00"); x <= e; x.setDate(x.getDate() + 1)) {
+      if (ok.has(dstr(x))) { run++; best = Math.max(best, run); } else if (!wkend(x)) run = 0;
+    }
+  }
+  return { cur, best };
+}
+
+function preView() {
+  const L = S.logs, n = L.length, avg = n ? L.reduce((a, l) => a + l.score, 0) / n : 0, td = L.find((l) => l.log_date === today()), sk = streaks();
+  const byDay = {}; S.trades.forEach((t) => (byDay[t.trade_date] = byDay[t.trade_date] || []).push(t));
+  const pts = (k) => (byDay[k] ? byDay[k].reduce((a, t) => a + t.points, 0) : null);
+  const rows = L.map((l) => `<div class="hist"><b style="min-width:92px">${l.log_date}</b><span class="lbl" style="min-width:36px">${l.done}/${l.total}</span>
+    <div class="bar"><span style="width:${l.score}%;background:${scCol(l.score)}"></span></div><b class="${scCls(l.score)}" style="min-width:44px">${l.score.toFixed(0)}%</b>
+    <span class="lbl" style="min-width:84px">${pts(l.log_date) != null ? `<span class="${cls(pts(l.log_date))}">${sign(pts(l.log_date))} pts</span>` : "no trades"}</span>
+    <span><button class="x" data-pe="${l.log_date}">Edit</button><button class="x" data-pd="${l.id}">Delete</button></span>${l.notes ? `<div class="hnote">${esc(l.notes)}</div>` : ""}</div>`).join("");
+  let cols = "";
+  for (let i = 13; i >= 0; i--) {
+    const d = new Date(); d.setDate(d.getDate() - i); const k = dstr(d), l = L.find((x) => x.log_date === k);
+    cols += `<div style="flex:1;min-width:0;text-align:center"><div class="mini"><div style="margin:0 2px;height:${l ? Math.max(l.score, 4) : 4}%;background:${l ? scCol(l.score) : "var(--card2)"}" title="${k}: ${l ? l.score.toFixed(0) + "%" : "not logged"}"></div></div><div class="lbl" style="font-size:10px;margin-top:4px">${d.getDate()}</div></div>`;
+  }
+  const rate = S.routine.map((i) => { let a = 0, dn = 0; L.forEach((l) => { const x = l.items.find((y) => y.id === i.id); if (x) { a++; if (x.done) dn++; } }); return { t: i.title, a, p: a ? (dn / a) * 100 : null }; }).filter((r) => r.a).sort((x, y) => x.p - y.p);
+  const grp = (f) => { const days = L.filter((l) => f(l.score) && byDay[l.log_date]), tr = days.flatMap((l) => byDay[l.log_date]), p = tr.reduce((a, t) => a + t.points, 0); return { d: days.length, avg: days.length ? p / days.length : null, win: tr.length ? (tr.filter((t) => t.points > 0).length / tr.length) * 100 : null }; };
+  const hi = grp((s) => s >= 80), lo = grp((s) => s < 80);
+  const cmp = (title, g) => `<div class="card"><div class="lbl">${title}</div><div class="big ${g.avg != null ? cls(g.avg) : ""}">${g.avg != null ? sign(g.avg) + " pts/day" : "-"}</div><p class="lbl" style="margin:8px 0 0">${g.d} traded day${g.d === 1 ? "" : "s"} · win rate ${g.win != null ? g.win.toFixed(0) + "%" : "-"}</p></div>`;
+  const kp = (a, b, c, col) => `<div class="card kpi" style="--a:${col}"><div class="lbl">${a}</div><div class="big">${b}</div><div class="lbl">${c}</div></div>`;
+  return `<div class="ph"><div><h1>Premarket <span>routine</span></h1><p class="sub">${nice(today())}</p></div><button class="btn p" id="np">+ New performance</button></div>
+  <div class="kpis">
+    ${kp("Today's score", `<span class="${td ? scCls(td.score) : ""}">${td ? td.score.toFixed(0) + "%" : "-"}</span>`, td ? `${td.done}/${td.total} done` : "not logged", "var(--lime)")}
+    ${kp("Average score", `<span class="${scCls(avg)}">${n ? avg.toFixed(0) + "%" : "-"}</span>`, `${n} day${n === 1 ? "" : "s"} logged`, "var(--blue)")}
+    ${kp("Current streak", `${sk.cur} <span class="lbl">day${sk.cur === 1 ? "" : "s"}</span>`, "80%+ days", "var(--p2)")}
+    ${kp("Best streak", `${sk.best} <span class="lbl">day${sk.best === 1 ? "" : "s"}</span>`, "all time", "var(--p2)")}
+    <div class="kpi wide card" style="--a:var(--blue)"><div class="lbl">Activities</div><div class="big">${S.routine.length}</div><div class="lbl">in your routine</div></div></div>
+  <div class="grid two" style="margin-bottom:16px"><div class="card"><div class="ct">Last 14 days</div><div style="display:flex">${cols}</div></div>
+    <div class="card"><div class="ct">Consistency · weakest first</div>${rate.length ? rate.map((r) => `<div class="rate"><span>${esc(r.t)}</span><div class="bar"><span style="width:${r.p}%;background:${scCol(r.p)}"></span></div><b style="min-width:38px;text-align:right">${r.p.toFixed(0)}%</b></div>`).join("") : `<div class="empty sm">Log a day to see this</div>`}</div></div>
+  ${hi.d + lo.d ? `<div class="bkg" style="margin:0 0 16px"><div class="lbl" style="grid-column:1/-1;margin-bottom:-6px">Does routine discipline affect your trading? (days with both a routine log and trades)</div>${cmp("Routine 80%+ days", hi)}${cmp("Routine under 80% days", lo)}</div>` : ""}
+  <div class="card"><div class="ct">History</div>${rows || `<div class="empty">No performance logged yet. Tap “New performance” to start.</div>`}</div>`;
+}
+
+function journalView(list, st) {
+  const rows = list.map((t) => `<tr><td>${t.trade_date}</td><td><span class="tag ${t.direction}">${t.direction}</span></td><td><span class="tag ${t.outcome}">${t.outcome}</span></td>
+      <td>${t.entry_price}</td><td>${t.exit_price}</td><td>${t.sl_price ?? "-"}</td><td>${t.tp_price ?? "-"}</td><td>${t.sl_points ?? "-"}</td><td>${t.tp_points ?? "-"}</td><td>${t.planned_rr ? "1:" + t.planned_rr : "-"}</td>
+      <td class="${cls(t.points)}">${sign(t.points)}</td><td>${t.r_multiple != null ? sign(t.r_multiple) + "R" : "-"}</td><td>${t.mfe ?? "-"}</td><td>${t.mae ?? "-"}</td>
+      <td>${fmtT(t.entry_time)}</td><td>${fmtT(t.close_time)}</td><td>${dur(t.duration_min)}</td><td>${esc(t.timeframe)}</td><td>${esc(t.session)}</td><td>${esc(t.setup)}</td><td>${esc(t.followed_plan)}</td><td>${esc(t.mistake)}</td><td>${esc(t.emotion)}</td><td>${t.rating ? t.rating + "/5" : ""}</td>
+      <td>${safeUrl(t.screenshot) ? `<a href="${safeUrl(t.screenshot)}" target="_blank" rel="noopener" style="color:var(--p2)">View</a>` : ""}<button class="x" data-e="${t.id}">Edit</button><button class="x" data-d="${t.id}">Delete</button></td></tr>`).join("");
+  const mc = list.map((t) => `<div class="card mcard"><div class="r1"><span><span class="tag ${t.direction}">${t.direction}</span> <span class="tag ${t.outcome}">${t.outcome}</span></span><b class="${cls(t.points)}">${sign(t.points)} pts</b></div>
+      <div class="lbl">${t.trade_date} · ${fmtT(t.entry_time).slice(6)}–${fmtT(t.close_time).slice(6)} · ${dur(t.duration_min)}</div>
+      <div class="g2"><div><span class="lbl">Entry → Exit</span><br>${t.entry_price} → ${t.exit_price}</div><div><span class="lbl">SL / TP pts</span><br>${t.sl_points ?? "-"} / ${t.tp_points ?? "-"}</div>
+      <div><span class="lbl">Plan RR / R</span><br>${t.planned_rr ? "1:" + t.planned_rr : "-"} / ${t.r_multiple != null ? sign(t.r_multiple) + "R" : "-"}</div><div><span class="lbl">MFE / MAE</span><br>${t.mfe ?? "-"} / ${t.mae ?? "-"}</div></div>
+      <div class="lbl">${[t.session, t.timeframe, t.setup, t.followed_plan ? "Plan: " + t.followed_plan : "", t.mistake, t.emotion].filter(Boolean).map(esc).join(" · ")}</div>
+      <div style="margin-top:8px">${safeUrl(t.screenshot) ? `<a href="${safeUrl(t.screenshot)}" target="_blank" rel="noopener" style="color:var(--p2);margin-right:14px">Screenshot</a>` : ""}<button class="x" data-e="${t.id}">Edit</button> <button class="x" data-d="${t.id}">Delete</button></div></div>`).join("");
+  return `<h1>Journal</h1><p class="sub">${st.n} trades · <b class="${cls(st.total)}">${sign(st.total)} pts</b> · ${st.win.toFixed(0)}% win rate · avg ${dur(st.avgDur)}</p>
+    <div class="filters"><select id="fd"><option value="">Buy & Sell</option><option ${S.f.dir === "BUY" ? "selected" : ""}>BUY</option><option ${S.f.dir === "SELL" ? "selected" : ""}>SELL</option></select>
+    <select id="fo"><option value="">TP, SL & BE</option>${["TP", "SL", "BE"].map((o) => `<option ${S.f.out === o ? "selected" : ""}>${o}</option>`).join("")}</select>
+    <input id="ff" type="date" value="${S.f.from}"><input id="ft" type="date" value="${S.f.to}"></div>
+    <div class="card scroll tbl">${rows ? `<table><tr><th>Date</th><th>Side</th><th>Result</th><th>Entry</th><th>Exit</th><th>SL</th><th>TP</th><th>SL pts</th><th>TP pts</th><th>Plan RR</th><th>Points</th><th>R</th><th>MFE</th><th>MAE</th><th>Entry time</th><th>Close time</th><th>Duration</th><th>TF</th><th>Session</th><th>Setup</th><th>Plan?</th><th>Mistake</th><th>Emotion</th><th>Rating</th><th></th></tr>${rows}</table>` : `<div class="empty">No trades yet. Log your first NAS100 trade with “New trade”.</div>`}</div><div class="mc">${mc || `<div class="card empty">No trades yet. Tap “New trade”.</div>`}</div>`;
+}
+
+/* ---------- premarket popup ---------- */
+const SUGGEST = ["Check economic calendar", "Mark key levels", "Mark HTF bias", "Review last trades", "Set max daily loss", "Read my trading rules", "Breathing / meditation"];
+
+function pbody() {
+  const P = S.pm, items = S.routine, done = P.done, mg = P.manage, d = items.filter((i) => done.has(i.id)).length, sc = items.length ? (d / items.length) * 100 : 0, keep = $("#na")?.value || "";
+  $("#pmg").textContent = mg ? "Done" : "Edit routine";
+  const row = (i) => {
+    if (!mg) return `<label class="chk ${done.has(i.id) ? "done" : ""}"><input type="checkbox" data-c="${i.id}" ${done.has(i.id) ? "checked" : ""}><span>${esc(i.title)}</span></label>`;
+    const left = P.edit === i.id ? `<input class="re" id="re" value="${esc(i.title)}" maxlength="120">` : `<span>${esc(i.title)}</span>`;
+    const ed = P.edit === i.id ? `<button type="button" class="x ok" data-rs="${i.id}">✓</button>` : `<button type="button" class="x" data-rn="${i.id}">✎</button>`;
+    const rm = P.rm === i.id ? `<button type="button" class="x dng" data-rm="${i.id}">Remove?</button>` : `<button type="button" class="x" data-rm="${i.id}">✕</button>`;
+    return `<div class="chk" style="cursor:default">${left}<button type="button" class="x" data-up="${i.id}">▲</button><button type="button" class="x" data-dn="${i.id}">▼</button>${ed}${rm}</div>`;
+  };
+  $("#pb").innerHTML = `<div class="score"><b class="${scCls(sc)}">${sc.toFixed(0)}%</b><div class="lbl">${d} of ${items.length} activities done</div></div>
+  ${items.length ? items.map(row).join("") : `<div class="lbl">No activities yet. Add your own below, or tap a suggestion:</div><div class="chips">${SUGGEST.map((x) => `<button type="button" class="pill" data-sg="${esc(x)}">+ ${esc(x)}</button>`).join("")}</div>`}
+  <div class="add-row"><input id="na" placeholder="Add activity, e.g. Mark key levels" maxlength="120" value="${esc(keep)}"><button type="button" class="btn g" id="aa">Add</button></div>
+  <div class="lbl">Activities you add are saved in your routine template and show up every day.</div>`;
+  const err = (e) => ($("#pe").textContent = e.message);
+  document.querySelectorAll("[data-c]").forEach((c) => (c.onchange = () => { const id = +c.dataset.c; c.checked ? done.add(id) : done.delete(id); pbody(); }));
+  const mv = async (id, dir) => {
+    const i = S.routine.findIndex((x) => x.id == id), j = i + dir; if (j < 0 || j >= S.routine.length) return;
+    [S.routine[i], S.routine[j]] = [S.routine[j], S.routine[i]]; pbody();
+    try { await api("/api/routine/reorder", "POST", { ids: S.routine.map((x) => x.id) }); } catch (e) { err(e); }
+  };
+  document.querySelectorAll("[data-up]").forEach((b) => (b.onclick = () => mv(b.dataset.up, -1)));
+  document.querySelectorAll("[data-dn]").forEach((b) => (b.onclick = () => mv(b.dataset.dn, 1)));
+  const saveRename = async (id) => {
+    const t = $("#re").value.trim(), it = S.routine.find((x) => x.id == id); if (!t) return;
+    try { await api("/api/routine/" + id, "PUT", { title: t }); it.title = t.slice(0, 120); P.edit = null; pbody(); } catch (e) { err(e); }
+  };
+  document.querySelectorAll("[data-rn]").forEach((b) => (b.onclick = () => { P.edit = +b.dataset.rn; P.rm = null; pbody(); $("#re").focus(); }));
+  document.querySelectorAll("[data-rs]").forEach((b) => (b.onclick = () => saveRename(b.dataset.rs)));
+  if ($("#re")) $("#re").onkeydown = (e) => { if (e.key === "Enter") saveRename(P.edit); if (e.key === "Escape") { P.edit = null; pbody(); } };
+  document.querySelectorAll("[data-rm]").forEach((b) => (b.onclick = async () => {
+    const id = +b.dataset.rm;
+    if (P.rm !== id) { P.rm = id; pbody(); setTimeout(() => { if (P.rm === id && $("#pb")) { P.rm = null; pbody(); } }, 3000); return; }
+    try { await api("/api/routine/" + id, "DELETE"); S.routine = S.routine.filter((i) => i.id !== id); done.delete(id); P.rm = null; pbody(); } catch (e) { err(e); }
+  }));
+  const add = async (title) => {
+    const t = (title || $("#na").value).trim(); if (!t) return;
+    try { S.routine.push(await api("/api/routine", "POST", { title: t })); if (!title) $("#na").value = ""; $("#pe").textContent = ""; pbody(); if (!title) $("#na").focus(); } catch (e) { err(e); }
+  };
+  document.querySelectorAll("[data-sg]").forEach((b) => (b.onclick = () => add(b.dataset.sg)));
+  $("#aa").onclick = () => add(); $("#na").onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); add(); } };
+}
+
+// The date is set automatically to today. Only the Edit button in History opens an older day.
+async function openPerf(date = today()) {
+  if (!window.Swal) return noSwal();
+  const l = S.logs.find((x) => x.log_date === date);
+  S.pm = { date, manage: false, edit: null, rm: null, done: new Set(l ? l.items.filter((i) => i.done).map((i) => i.id) : []) };
+  const res = await Swal.fire({
+    ...pop("nl-form"), title: "Premarket performance", confirmButtonText: "Save performance",
+    html: `<div class="ph" style="align-items:center"><div id="pdl" style="font-size:14px"></div><button type="button" class="pill sm" id="pmg">Edit routine</button></div><div id="pb"></div>
+      <div class="f" style="margin-top:14px"><div class="full"><label>Notes (optional)</label><textarea id="pn" rows="2" placeholder="Bias for today, key levels, how you feel…"></textarea></div></div><div class="err" id="pe"></div>`,
+    didOpen: () => {
+      $("#pdl").innerHTML = `${nice(date)} ${date === today() ? `<span class="tag" style="color:var(--lime)">Today</span>` : `<span class="tag">Editing past day</span>`}`;
+      $("#pn").value = l?.notes || "";
+      $("#pmg").onclick = () => { S.pm.manage = !S.pm.manage; S.pm.edit = S.pm.rm = null; pbody(); };
+      pbody();
+    },
+    preConfirm: async () => {
+      try { await api("/api/routine/logs", "POST", { log_date: S.pm.date, done_ids: [...S.pm.done], notes: $("#pn").value }); S.logs = await api("/api/routine/logs"); return true; }
+      catch (e) { Swal.showValidationMessage(e.message); return false; }
+    },
+  });
+  if (res.isConfirmed) { render(); toast("Performance saved"); } else render();
+}
+
+/* ---------- entry confluences ---------- */
+const CONF = { "1D": ["SCB", "PDH/PDL taken"], "1H": ["SCB", "I.SMT", "E.SMT"], "15min": ["SCB", "I.SMT", "E.SMT"], "5min": ["SCB", "I.SMT", "E.SMT", "SMT", "IFVG"], "1min": ["I.SMT", "SMT", "MSS", "IFVG"] };
+const TFS = Object.keys(CONF);
+// filter key = "timeframe|confluence". "15min|*" means: any confluence ticked on 15min
+const cfHas = (r, k) => { const i = k.indexOf("|"), tf = k.slice(0, i), c = k.slice(i + 1), a = r.data?.[tf] || []; return c === "*" ? a.length > 0 : a.includes(c); };
+function cfFiltered() {
+  const { mode, sel, from, to } = S.cf, keys = [...sel];
+  return S.cfs.filter((r) => (!from || r.log_date >= from) && (!to || r.log_date <= to) && (!keys.length || (mode === "all" ? keys.every((k) => cfHas(r, k)) : keys.some((k) => cfHas(r, k)))));
+}
+
+function confView() {
+  const L = cfFiltered(), keys = [...S.cf.sel], td = S.cfs.filter((r) => r.log_date === today()).length;
+  const byDay = {}; S.trades.forEach((t) => (byDay[t.trade_date] = byDay[t.trade_date] || []).push(t));
+  const pts = (k) => (byDay[k] ? byDay[k].reduce((a, t) => a + t.points, 0) : null);
+  const tr = [...new Set(L.map((r) => r.log_date))].flatMap((d) => byDay[d] || []), tp = tr.reduce((a, t) => a + t.points, 0), win = tr.length ? (tr.filter((t) => t.points > 0).length / tr.length) * 100 : null;
+  const kp = (a, b, c, col) => `<div class="card kpi" style="--a:${col}"><div class="lbl">${a}</div><div class="big">${b}</div><div class="lbl">${c}</div></div>`;
+  const on = (k) => (S.cf.sel.has(k) ? "on" : "");
+  const frows = TFS.map((tf) => `<div class="cfr"><button class="cc tfa sm ${on(tf + "|*")}" data-fk="${tf}|*">${tf}</button>${CONF[tf].map((c) => `<button class="cc sm ${on(tf + "|" + c)}" data-fk="${tf}|${esc(c)}">${esc(c)}</button>`).join("")}</div>`).join("");
+  const freq = TFS.map((tf) => `<div class="card"><div class="ct">${tf} · how often</div>${CONF[tf].map((c) => { const n = L.filter((r) => (r.data?.[tf] || []).includes(c)).length, p = L.length ? (n / L.length) * 100 : 0; return `<div class="rate"><span>${esc(c)}</span><div class="bar"><span style="width:${p}%;background:var(--p2)"></span></div><b style="min-width:64px;text-align:right">${n} · ${p.toFixed(0)}%</b></div>`; }).join("")}</div>`).join("");
+  const rows = L.map((r) => {
+    const p = pts(r.log_date);
+    const tags = TFS.filter((tf) => (r.data?.[tf] || []).length).map((tf) => `<span class="tag"><b>${tf}</b>${r.data[tf].map(esc).join(" · ")}</span>`).join("");
+    return `<div class="hist"><b style="min-width:92px">${r.log_date}</b><span class="lbl" style="flex:1">${nice(r.log_date).split(",")[0]} · ${p != null ? `<span class="${cls(p)}">${sign(p)} pts that day</span>` : "no trades"}</span>
+      <span><button class="x" data-ce="${r.id}">Edit</button><button class="x" data-cd="${r.id}">Delete</button></span><div class="tfl">${tags}</div>${r.notes ? `<div class="hnote">${esc(r.notes)}</div>` : ""}</div>`;
+  }).join("");
+  const f = S.cf;
+  return `<div class="ph"><div><h1>Entry <span>confluence</span></h1><p class="sub">${nice(today())}</p></div><button class="btn p" id="nc">+ New entry</button></div>
+  <div class="kpis">${kp("Entries logged", S.cfs.length, "all time", "var(--p2)")}${kp("Today", td, td === 1 ? "entry" : "entries", "var(--lime)")}${kp("Matching filter", L.length, `of ${S.cfs.length}`, "var(--blue)")}
+    ${kp("Points on those days", `<span class="${cls(tp)}">${tr.length ? sign(tp) : "-"}</span>`, `${tr.length} trade${tr.length === 1 ? "" : "s"}`, "var(--lime)")}
+    <div class="kpi wide card" style="--a:var(--blue)"><div class="lbl">Win rate on those days</div><div class="big">${win != null ? win.toFixed(0) + "%" : "-"}</div><div class="lbl">all trades that day</div></div></div>
+  <div class="card" style="margin-bottom:16px"><div class="ph" style="align-items:center"><div class="ct" style="margin:0">Filter by confluence</div>
+    <div class="seg m"><button type="button" class="${f.mode === "all" ? "on" : ""}" data-fm="all">All</button><button type="button" class="${f.mode === "any" ? "on" : ""}" data-fm="any">Any</button></div></div>
+    <p class="lbl" style="margin:8px 0 6px">Tap confluences. <b>All</b> = every selected one was present (e.g. 15min SCB + 1H SCB). <b>Any</b> = at least one. Tapping a timeframe name = any confluence on that timeframe.</p>
+    ${frows}
+    <div class="filters" style="margin:12px 0 0"><input id="cff" type="date" value="${f.from}"><input id="cft" type="date" value="${f.to}"><button class="pill sm" id="ccl">Clear filters</button></div></div>
+  <div class="bkg" style="margin:0 0 16px">${freq}</div>
+  <div class="card"><div class="ct">History${keys.length || f.from || f.to ? ` · ${L.length} match${L.length === 1 ? "" : "es"}` : ""}</div>${rows || `<div class="empty">${S.cfs.length ? "No entries match this filter." : "No confluences logged yet. Tap “New entry” to start."}</div>`}</div>`;
+}
+
+function cbody() {
+  const M = S.cfm;
+  $("#cb").innerHTML = TFS.map((tf) => { const n = M.data[tf].size, open = M.open === tf;
+    return `<button type="button" class="tfh ${open ? "open" : ""}" data-ot="${tf}"><b>${tf}</b>${n ? `<span class="n">${n} ticked</span>` : ""}<span class="lbl">${open ? "▲" : "▼"}</span></button>${open ? `<div class="cchips">${CONF[tf].map((c) => `<button type="button" class="cc ${M.data[tf].has(c) ? "on" : ""}" data-cc="${tf}|${esc(c)}">${esc(c)}</button>`).join("")}</div>` : ""}`; }).join("");
+  document.querySelectorAll("[data-ot]").forEach((b) => (b.onclick = () => { M.open = M.open === b.dataset.ot ? null : b.dataset.ot; cbody(); }));
+  document.querySelectorAll("[data-cc]").forEach((b) => (b.onclick = () => { const i = b.dataset.cc.indexOf("|"), tf = b.dataset.cc.slice(0, i), c = b.dataset.cc.slice(i + 1), set = M.data[tf]; set.has(c) ? set.delete(c) : set.add(c); cbody(); }));
+}
+
+// Date is set to today automatically (you can still change it). Pick a timeframe, tick what you had before entry, save.
+async function openConf(rec) {
+  if (!window.Swal) return noSwal();
+  S.cfm = { id: rec?.id || null, open: rec ? TFS.find((tf) => (rec.data?.[tf] || []).length) || "1D" : "1D", data: Object.fromEntries(TFS.map((tf) => [tf, new Set(rec?.data?.[tf] || [])])) };
+  const res = await Swal.fire({
+    ...pop("nl-form"), title: rec ? "Edit confluences" : "Entry confluences", confirmButtonText: "Save entry",
+    html: `<div class="f"><div class="full"><label>Date</label><input id="cdt" type="date"></div></div>
+      <div class="lbl" style="margin:14px 0 8px">Tap a timeframe, then tick the confluences you had before entry.</div><div id="cb"></div>
+      <div class="f" style="margin-top:6px"><div class="full"><label>Notes (optional)</label><textarea id="cn" rows="2" placeholder="Anything about this setup…"></textarea></div></div><div class="err" id="ce"></div>`,
+    didOpen: () => { $("#cdt").value = rec?.log_date || today(); $("#cn").value = rec?.notes || ""; cbody(); },
+    preConfirm: async () => {
+      const data = Object.fromEntries(TFS.map((tf) => [tf, [...S.cfm.data[tf]]]));
+      try { await api("/api/confluence" + (S.cfm.id ? "/" + S.cfm.id : ""), S.cfm.id ? "PUT" : "POST", { log_date: $("#cdt").value, data, notes: $("#cn").value }); S.cfs = await api("/api/confluence"); return true; }
+      catch (e) { Swal.showValidationMessage(e.message); return false; }
+    },
+  });
+  if (res.isConfirmed) { render(); toast(rec ? "Entry updated" : "Entry saved"); }
+}
+
+/* ---------- trade popup ---------- */
+function formHtml() {
+  return `<div class="f">
+  <div><label>Side</label><div class="seg" id="sd"><button type="button" data-v="BUY">Buy</button><button type="button" data-v="SELL">Sell</button></div></div>
+  <div><label>Result</label><div class="seg" id="oc"><button type="button" data-v="TP">TP</button><button type="button" data-v="SL">SL</button><button type="button" data-v="BE">BE</button></div></div>
+  <div><label>Entry price</label><input id="ep" type="number" step="0.01" inputmode="decimal"></div><div><label>Exit price</label><input id="xp" type="number" step="0.01" inputmode="decimal"></div>
+  <div><label>Stop loss (SL) price</label><input id="sp" type="number" step="0.01" inputmode="decimal"></div><div><label>Take profit (TP) price</label><input id="tp" type="number" step="0.01" inputmode="decimal"></div>
+  <div><label>Entry time</label><input id="et" type="datetime-local"></div><div><label>Close time</label><input id="ct" type="datetime-local"></div>
+  <div><label>Lots</label><input id="lt" type="number" step="0.01" inputmode="decimal"></div><div><label>Profit / loss ($)</label><input id="pl" type="number" step="0.01" inputmode="decimal"></div>
+  <div><label>Setup</label><input id="su" placeholder="e.g. Breakout, FVG, NY open"></div>
+  <div><label>Emotion</label><select id="em"><option value="">-</option><option>Calm</option><option>Confident</option><option>Fearful</option><option>Greedy</option><option>Revenge</option><option>FOMO</option></select></div>
+  <div><label>Timeframe</label><select id="tf"><option value="">-</option><option>1m</option><option>3m</option><option>5m</option><option>15m</option><option>1h</option><option>4h</option></select></div>
+  <div><label>NY phase</label><select id="se"><option value="">-</option><option>NY Manipulation</option><option>NY Reversal</option><option>NY Continuation</option></select></div>
+  <div><label>Max move in favour (MFE, pts)</label><input id="mf" type="number" step="0.01" inputmode="decimal" placeholder="Best price reached after entry"></div><div><label>Max move against (MAE, pts)</label><input id="ma" type="number" step="0.01" inputmode="decimal" placeholder="Worst drawdown after entry"></div>
+  <div><label>Risk % of account</label><input id="rk" type="number" step="0.01" inputmode="decimal"></div><div><label>Fees / commission ($)</label><input id="fe" type="number" step="0.01" inputmode="decimal"></div>
+  <div><label>Followed my plan?</label><select id="fp"><option value="">-</option><option>Yes</option><option>No</option></select></div>
+  <div><label>Mistake</label><select id="mi"><option value="">None</option><option>Early entry</option><option>Late entry</option><option>Moved SL</option><option>Cut winner early</option><option>Over-risked</option><option>Overtrading</option><option>No setup</option><option>Revenge trade</option></select></div>
+  <div><label>Execution rating</label><select id="rt"><option value="">-</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div><div><label>Screenshot link</label><input id="sc" placeholder="TradingView / image URL"></div>
+  <div class="full"><label>Notes</label><textarea id="nt" rows="3" placeholder="Why did you take it? What would you change?"></textarea></div>
+  <div class="full live" id="lv"></div></div>`;
+}
+
+async function openForm(t) {
+  if (!window.Swal) return noSwal();
+  S.editing = t?.id || null;
+  const v = { d: t?.direction || "BUY", o: t?.outcome || "TP" };
+  const res = await Swal.fire({
+    ...pop("nl-form"), title: t ? "Edit trade" : "New trade", html: formHtml(), confirmButtonText: "Save trade",
+    didOpen: () => {
+      const set = (id, val) => ($("#" + id).value = val ?? "");
+      set("ep", t?.entry_price); set("xp", t?.exit_price); set("sp", t?.sl_price); set("tp", t?.tp_price); set("et", t?.entry_time); set("ct", t?.close_time);
+      set("lt", t?.lots); set("tf", t?.timeframe); set("se", t?.session); set("mf", t?.mfe); set("ma", t?.mae); set("rk", t?.risk_pct); set("fe", t?.fees); set("fp", t?.followed_plan); set("mi", t?.mistake); set("rt", t?.rating); set("sc", t?.screenshot); set("pl", t?.pnl); set("su", t?.setup); set("em", t?.emotion); set("nt", t?.notes);
+      const live = () => {
+        const e = +$("#ep").value, x = +$("#xp").value, s = $("#sp").value, p = (v.d === "BUY" ? x - e : e - x), m = (new Date($("#ct").value) - new Date($("#et").value)) / 60000;
+        const ok = $("#ep").value && $("#xp").value, sl = +s, tpv = $("#tp").value, slp = s ? Math.abs(e - sl) : null, tpp = tpv ? Math.abs(+tpv - e) : null;
+        $("#lv").innerHTML = `<div><div class="lbl">Points</div><b class="${cls(p)}">${ok ? sign(p) : "-"}</b></div><div><div class="lbl">Entry → SL</div><b>${slp != null ? slp.toFixed(1) + " pts" : "-"}</b></div><div><div class="lbl">Entry → TP</div><b>${tpp != null ? tpp.toFixed(1) + " pts" : "-"}</b></div><div><div class="lbl">Planned RR</div><b>${slp && tpp ? "1:" + (tpp / slp).toFixed(2) : "-"}</b></div><div><div class="lbl">R result</div><b>${ok && s && slp ? sign(p / slp) + "R" : "-"}</b></div><div><div class="lbl">Duration</div><b>${m >= 0 ? dur(Math.round(m)) : "-"}</b></div>`;
+      };
+      const seg = (id, key) => { const el = $("#" + id), paint = () => el.querySelectorAll("button").forEach((b) => b.classList.toggle("on", b.dataset.v === v[key])); el.querySelectorAll("button").forEach((b) => (b.onclick = () => { v[key] = b.dataset.v; paint(); live(); })); paint(); };
+      seg("sd", "d"); seg("oc", "o"); ["ep", "xp", "sp", "tp", "et", "ct"].forEach((i) => ($("#" + i).oninput = live)); live();
+    },
+    preConfirm: async () => {
+      const g = (id) => $("#" + id).value;
+      const body = { direction: v.d, outcome: v.o, entry_price: g("ep"), exit_price: g("xp"), sl_price: g("sp"), tp_price: g("tp"), entry_time: g("et"), close_time: g("ct"), lots: g("lt"), timeframe: g("tf"), session: g("se"), mfe: g("mf"), mae: g("ma"), risk_pct: g("rk"), fees: g("fe"), followed_plan: g("fp"), mistake: g("mi"), rating: g("rt"), screenshot: g("sc"), pnl: g("pl"), setup: g("su"), emotion: g("em"), notes: g("nt") };
+      try { await api("/api/trades" + (S.editing ? "/" + S.editing : ""), S.editing ? "PUT" : "POST", body); return true; }
+      catch (e) { Swal.showValidationMessage(e.message); return false; }
+    },
+  });
+  if (res.isConfirmed) { await load(); toast(S.editing ? "Trade updated" : "Trade saved"); }
+}
+
+/* ---------- auth + shell ---------- */
+function authView() {
+  const reg = S.mode === "register";
+  $("#app").innerHTML = `<div class="auth card"><div class="logo" style="margin-bottom:18px"><i></i>NasLog</div><h1 style="font-size:28px">${reg ? "Create account" : "Welcome back"}</h1><p class="sub">NAS100 trading journal</p>
+  ${reg ? `<input id="nm" placeholder="Name" autocomplete="name">` : ""}<input id="em" type="email" placeholder="Email" autocomplete="email"><input id="pw" type="password" placeholder="Password (6+ characters)" autocomplete="${reg ? "new-password" : "current-password"}">
+  <div class="err" id="err"></div><button class="btn p" style="width:100%;padding:13px" id="go">${reg ? "Sign up" : "Log in"}</button>
+  <p class="sub" style="margin:14px 0 0;text-align:center"><a href="#" id="sw" style="color:var(--p2)">${reg ? "Have an account? Log in" : "New here? Create an account"}</a></p></div>`;
+  $("#sw").onclick = (e) => { e.preventDefault(); S.mode = reg ? "login" : "register"; authView(); };
+  const go = async () => {
+    try {
+      const d = await api("/api/auth/" + S.mode, "POST", { name: $("#nm")?.value, email: $("#em").value, password: $("#pw").value });
+      S.token = localStorage.token = d.token; S.user = d.user; localStorage.user = JSON.stringify(d.user); load();
+    } catch (e) { $("#err").textContent = e.message; }
+  };
+  $("#go").onclick = go; $("#pw").onkeydown = (e) => { if (e.key === "Enter") go(); };
+}
+
+const VIEWS = ["dashboard", "calendar", "premarket", "confluence", "journal"], vlabel = (v) => v[0].toUpperCase() + v.slice(1);
+const go = (v) => { S.view = v; render(); scrollTo(0, 0); };
+
+function render() {
+  if (!S.token) return authView();
+  const list = filtered(), st = stats(list);
+  const nav = VIEWS.map((v) => `<button class="pill ${S.view === v ? "on" : ""}" data-nav="${v}">${vlabel(v)}</button>`).join("");
+  const tabs = VIEWS.map((v) => `<button class="${S.view === v ? "on" : ""}" data-nav="${v}">${ICON[v]}<span>${vlabel(v)}</span></button>`).join("");
+  const head = `<div class="top"><div class="logo"><i></i>NasLog</div><div class="nav">${nav}</div><button class="btn p addbtn ${S.view === "dashboard" || S.view === "premarket" || S.view === "confluence" ? "nomob" : ""}" id="add">+ New trade</button><button class="pill outb" id="out" title="Log out">${ICON.out}<span>Log out</span></button></div>`;
+  const body = S.view === "dashboard" ? dash() : S.view === "calendar" ? calView() : S.view === "premarket" ? preView() : S.view === "confluence" ? confView() : journalView(list, st);
+  $("#app").innerHTML = head + body + `<nav class="tabbar">${tabs}</nav>`;
+  document.querySelectorAll("[data-nav]").forEach((b) => (b.onclick = () => go(b.dataset.nav)));
+  document.querySelectorAll("[data-rg]").forEach((b) => (b.onclick = () => { S.range = b.dataset.rg; render(); }));
+  $("#out").onclick = logout; $("#add").onclick = () => openForm();
+  if ($("#np")) $("#np").onclick = () => openPerf();
+  if ($("#pk")) $("#pk").onclick = () => openPerf();
+  if ($("#nc")) $("#nc").onclick = () => openConf();
+  document.querySelectorAll("[data-ce]").forEach((b) => (b.onclick = () => openConf(S.cfs.find((r) => r.id == b.dataset.ce))));
+  document.querySelectorAll("[data-cd]").forEach((b) => (b.onclick = async () => { if (await ask("Delete this entry?", "This can't be undone.")) { await api("/api/confluence/" + b.dataset.cd, "DELETE"); S.cfs = await api("/api/confluence"); render(); toast("Entry deleted"); } }));
+  document.querySelectorAll("[data-fk]").forEach((b) => (b.onclick = () => { const k = b.dataset.fk; S.cf.sel.has(k) ? S.cf.sel.delete(k) : S.cf.sel.add(k); render(); }));
+  document.querySelectorAll("[data-fm]").forEach((b) => (b.onclick = () => { S.cf.mode = b.dataset.fm; render(); }));
+  if ($("#cff")) { $("#cff").onchange = () => { S.cf.from = $("#cff").value; render(); }; $("#cft").onchange = () => { S.cf.to = $("#cft").value; render(); }; $("#ccl").onclick = () => { S.cf = { mode: "all", sel: new Set(), from: "", to: "" }; render(); }; }
+  document.querySelectorAll("[data-pe]").forEach((b) => (b.onclick = () => openPerf(b.dataset.pe)));
+  document.querySelectorAll("[data-pd]").forEach((b) => (b.onclick = async () => { if (await ask("Delete this day's performance?", "This can't be undone.")) { await api("/api/routine/logs/" + b.dataset.pd, "DELETE"); S.logs = await api("/api/routine/logs"); render(); toast("Performance deleted"); } }));
+  if ($("#cp")) { $("#cp").onclick = () => { if (--S.cal.m < 0) { S.cal.m = 11; S.cal.y--; } render(); }; $("#cn").onclick = () => { if (++S.cal.m > 11) { S.cal.m = 0; S.cal.y++; } render(); }; }
+  document.querySelectorAll("[data-day]").forEach((c) => (c.onclick = () => { S.f = { dir: "", out: "", from: c.dataset.day, to: c.dataset.day }; go("journal"); }));
+  document.querySelectorAll("[data-e]").forEach((b) => (b.onclick = () => openForm(S.trades.find((t) => t.id == b.dataset.e))));
+  document.querySelectorAll("[data-d]").forEach((b) => (b.onclick = async () => { if (await ask("Delete this trade?", "This can't be undone.")) { await api("/api/trades/" + b.dataset.d, "DELETE"); await load(); toast("Trade deleted"); } }));
+  if ($("#fd")) { const u = () => { S.f = { dir: $("#fd").value, out: $("#fo").value, from: $("#ff").value, to: $("#ft").value }; render(); }; ["#fd", "#fo", "#ff", "#ft"].forEach((s) => ($(s).onchange = u)); }
+}
+
+S.token ? load().catch(authView) : authView();
+</script>
+</body>
+</html>
