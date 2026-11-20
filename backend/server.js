@@ -33,6 +33,10 @@ await db.batch([
     id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, log_date TEXT NOT NULL,
     items TEXT, total INTEGER, done INTEGER, score REAL, created_at TEXT DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(user_id, log_date))`,
+  `CREATE TABLE IF NOT EXISTS confluence_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, log_date TEXT NOT NULL,
+    data TEXT, notes TEXT, created_at TEXT DEFAULT CURRENT_TIMESTAMP)`,
+  `CREATE INDEX IF NOT EXISTS idx_confluence_user ON confluence_logs(user_id, log_date)`,
 ]);
 
 // Auto-migrate: adds new columns to an existing database without losing data
@@ -157,6 +161,54 @@ app.post("/api/routine/logs", auth, async (req, res) => {
 });
 app.delete("/api/routine/logs/:id", auth, async (req, res) => {
   await db.execute({ sql: "DELETE FROM routine_logs WHERE id=? AND user_id=?", args: [req.params.id, req.uid] });
+  res.json({ ok: true });
+});
+
+// ---------- Entry confluences ----------
+// Each record = one entry idea: a date + the confluences ticked on every timeframe BEFORE entering.
+const CONF = {
+  "1D": ["SCB", "PDH/PDL taken"],
+  "1H": ["SCB", "I.SMT", "E.SMT"],
+  "15min": ["SCB", "I.SMT", "E.SMT"],
+  "5min": ["SCB", "I.SMT", "E.SMT", "SMT", "IFVG"],
+  "1min": ["I.SMT", "SMT", "MSS", "IFVG"],
+};
+// Keeps only known timeframes / confluences, so bad data never gets saved
+const cleanConf = (raw) => {
+  const out = {};
+  for (const [tf, list] of Object.entries(CONF)) {
+    const got = raw && Array.isArray(raw[tf]) ? raw[tf] : [];
+    const keep = list.filter((c) => got.includes(c));
+    if (keep.length) out[tf] = keep;
+  }
+  return out;
+};
+const confArgs = (b) => {
+  const date = String(b.log_date || "").slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return { error: "Pick a valid date" };
+  const data = cleanConf(b.data);
+  if (!Object.keys(data).length) return { error: "Tick at least one confluence" };
+  return { args: [date, JSON.stringify(data), String(b.notes || "").trim().slice(0, 1000)] };
+};
+
+app.get("/api/confluence", auth, async (req, res) => {
+  const r = await db.execute({ sql: "SELECT * FROM confluence_logs WHERE user_id=? ORDER BY log_date DESC, id DESC", args: [req.uid] });
+  res.json(r.rows.map((l) => ({ ...l, data: JSON.parse(l.data || "{}") })));
+});
+app.post("/api/confluence", auth, async (req, res) => {
+  const c = confArgs(req.body);
+  if (c.error) return res.status(400).json({ error: c.error });
+  await db.execute({ sql: "INSERT INTO confluence_logs (user_id,log_date,data,notes) VALUES (?,?,?,?)", args: [req.uid, ...c.args] });
+  res.json({ ok: true });
+});
+app.put("/api/confluence/:id", auth, async (req, res) => {
+  const c = confArgs(req.body);
+  if (c.error) return res.status(400).json({ error: c.error });
+  await db.execute({ sql: "UPDATE confluence_logs SET log_date=?,data=?,notes=? WHERE id=? AND user_id=?", args: [...c.args, req.params.id, req.uid] });
+  res.json({ ok: true });
+});
+app.delete("/api/confluence/:id", auth, async (req, res) => {
+  await db.execute({ sql: "DELETE FROM confluence_logs WHERE id=? AND user_id=?", args: [req.params.id, req.uid] });
   res.json({ ok: true });
 });
 
