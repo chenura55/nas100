@@ -8,6 +8,8 @@
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='16' fill='%237c3aed'/%3E%3Cpath d='M16 16V0A16 16 0 0 1 32 16Z' fill='%23e9e0ff'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11.14.5/dist/sweetalert2.min.css">
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.4/dist/jspdf.plugin.autotable.min.js"></script>
 <style>
 :root{--bg:#08080a;--card:#16161a;--card2:#212127;--line:#2b2b33;--text:#f4f4f6;--mute:#8e8e9a;--p:#7c3aed;--p2:#a78bfa;--lime:#c6f432;--red:#f0627a;--blue:#38bdf8}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -409,10 +411,12 @@ function journalView(list, st) {
       <div><span class="lbl">Plan RR / R</span><br>${t.planned_rr ? "1:" + t.planned_rr : "-"} / ${t.r_multiple != null ? sign(t.r_multiple) + "R" : "-"}</div><div><span class="lbl">MFE / MAE</span><br>${t.mfe ?? "-"} / ${t.mae ?? "-"}</div></div>
       <div class="lbl">${[t.session, t.timeframe, t.setup, t.followed_plan ? "Plan: " + t.followed_plan : "", t.mistake, t.emotion].filter(Boolean).map(esc).join(" · ")}</div>
       <div style="margin-top:8px">${safeUrl(t.screenshot) ? `<a href="${safeUrl(t.screenshot)}" target="_blank" rel="noopener" style="color:var(--p2);margin-right:14px">Screenshot</a>` : ""}<button class="x" data-e="${t.id}">Edit</button> <button class="x" data-d="${t.id}">Delete</button></div></div>`).join("");
-  return `<h1>Journal</h1><p class="sub">${st.n} trades · <b class="${cls(st.total)}">${sign(st.total)} pts</b> · ${st.win.toFixed(0)}% win rate · avg ${dur(st.avgDur)}</p>
+  return `<div class="ph"><div><h1>Journal</h1><p class="sub">${st.n} trades · <b class="${cls(st.total)}">${sign(st.total)} pts</b> · ${st.win.toFixed(0)}% win rate · avg ${dur(st.avgDur)}</p></div>
+    <button class="btn g" id="exportPdf" ${list.length ? "" : "disabled"} title="Export filtered trades to PDF">Export PDF</button></div>
     <div class="filters"><select id="fd"><option value="">Buy & Sell</option><option ${S.f.dir === "BUY" ? "selected" : ""}>BUY</option><option ${S.f.dir === "SELL" ? "selected" : ""}>SELL</option></select>
     <select id="fo"><option value="">TP, SL & BE</option>${["TP", "SL", "BE"].map((o) => `<option ${S.f.out === o ? "selected" : ""}>${o}</option>`).join("")}</select>
-    <input id="ff" type="date" value="${S.f.from}"><input id="ft" type="date" value="${S.f.to}"></div>
+    <input id="ff" type="date" value="${S.f.from}" title="From date"><input id="ft" type="date" value="${S.f.to}" title="To date">
+    <button class="pill sm" id="clearF" title="Clear all filters">Clear</button></div>
     <div class="card scroll tbl">${rows ? `<table><tr><th>Date</th><th>Side</th><th>Result</th><th>Entry</th><th>Exit</th><th>SL</th><th>TP</th><th>SL pts</th><th>TP pts</th><th>Plan RR</th><th>Points</th><th>R</th><th>MFE</th><th>MAE</th><th>Entry time</th><th>Close time</th><th>Duration</th><th>TF</th><th>Session</th><th>Setup</th><th>Plan?</th><th>Mistake</th><th>Emotion</th><th>Rating</th><th></th></tr>${rows}</table>` : `<div class="empty">No trades yet. Log your first NAS100 trade with “New trade”.</div>`}</div><div class="mc">${mc || `<div class="card empty">No trades yet. Tap “New trade”.</div>`}</div>`;
 }
 
@@ -621,6 +625,126 @@ function authView() {
 const VIEWS = ["dashboard", "calendar", "premarket", "confluence", "journal"], vlabel = (v) => v[0].toUpperCase() + v.slice(1);
 const go = (v) => { S.view = v; render(); scrollTo(0, 0); };
 
+function exportPdf(list, st) {
+  if (!window.jspdf) { toast("PDF library failed to load. Check internet and refresh.", "error"); return; }
+  if (!list.length) { toast("No trades to export", "error"); return; }
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+  const pageW = doc.internal.pageSize.getWidth();
+  const margin = 12;
+  const nm = S.user?.name || "Trader";
+  const from = S.f.from || (list.length ? list[list.length - 1].trade_date : "");
+  const to = S.f.to || (list.length ? list[0].trade_date : "");
+  const rangeTxt = from && to ? `${from}  →  ${to}` : from || to || "All dates";
+  const filt = [S.f.dir, S.f.out].filter(Boolean).join(" · ") || "All sides & outcomes";
+
+  // Header bar
+  doc.setFillColor(124, 58, 237);
+  doc.rect(0, 0, pageW, 22, "F");
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(16);
+  doc.setFont("helvetica", "bold");
+  doc.text("NasLog  ·  NAS100 Journal", margin, 10);
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "normal");
+  doc.text(`Exported ${new Date().toLocaleString("en", { dateStyle: "medium", timeStyle: "short" })}`, pageW - margin, 10, { align: "right" });
+  doc.text(`${nm}`, pageW - margin, 16, { align: "right" });
+
+  // Title + filters
+  doc.setTextColor(30, 30, 35);
+  doc.setFontSize(13);
+  doc.setFont("helvetica", "bold");
+  doc.text("Trade Journal Export", margin, 32);
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(100, 100, 110);
+  doc.text(`Period: ${rangeTxt}   ·   Filter: ${filt}`, margin, 38);
+
+  // Summary strip
+  const y0 = 44;
+  doc.setFillColor(245, 245, 248);
+  doc.roundedRect(margin, y0, pageW - margin * 2, 14, 2, 2, "F");
+  doc.setTextColor(30, 30, 35);
+  doc.setFontSize(9);
+  const summary = [
+    `${st.n} trades`,
+    `Total ${sign(st.total)} pts`,
+    `Win rate ${st.win.toFixed(1)}%`,
+    `PF ${st.pf === Infinity ? "∞" : st.pf.toFixed(2)}`,
+    `Avg R ${sign(st.avgR)}R`,
+    `Expectancy ${sign(st.exp)}`,
+    `Max DD -${st.dd.toFixed(1)}`,
+  ];
+  let sx = margin + 4;
+  summary.forEach((s, i) => {
+    doc.setFont("helvetica", i === 1 ? "bold" : "normal");
+    doc.setTextColor(i === 1 ? (st.total >= 0 ? 40 : 180) : 30, i === 1 ? (st.total >= 0 ? 140 : 60) : 30, i === 1 ? (st.total >= 0 ? 40 : 80) : 35);
+    doc.text(s, sx, y0 + 9);
+    sx += doc.getTextWidth(s) + 10;
+  });
+
+  // Table
+  const head = [["Date", "Side", "Result", "Entry", "Exit", "Points", "R", "Dur", "TF", "Session", "Setup", "Plan", "Mistake"]];
+  const body = list.map((t) => [
+    t.trade_date,
+    t.direction,
+    t.outcome,
+    t.entry_price,
+    t.exit_price,
+    sign(t.points),
+    t.r_multiple != null ? sign(t.r_multiple) + "R" : "-",
+    dur(t.duration_min),
+    t.timeframe || "-",
+    t.session || "-",
+    (t.setup || "-").slice(0, 18),
+    t.followed_plan || "-",
+    (t.mistake || "-").slice(0, 14),
+  ]);
+
+  doc.autoTable({
+    startY: y0 + 18,
+    head,
+    body,
+    margin: { left: margin, right: margin },
+    styles: { fontSize: 7.5, cellPadding: 1.8, overflow: "linebreak", textColor: [40, 40, 48], lineColor: [220, 220, 228], lineWidth: 0.2 },
+    headStyles: { fillColor: [124, 58, 237], textColor: 255, fontStyle: "bold", fontSize: 8 },
+    alternateRowStyles: { fillColor: [250, 250, 252] },
+    columnStyles: {
+      0: { cellWidth: 22 },
+      1: { cellWidth: 14 },
+      2: { cellWidth: 14 },
+      5: { halign: "right", fontStyle: "bold" },
+      6: {halign: "right" },
+    },
+    didParseCell: (data) => {
+      if (data.section === "body" && data.column.index === 5) {
+        const v = parseFloat(String(data.cell.raw).replace("+", ""));
+        if (v > 0) data.cell.styles.textColor = [34, 160, 60];
+        else if (v < 0) data.cell.styles.textColor = [200, 50, 70];
+      }
+      if (data.section === "body" && data.column.index === 1) {
+        if (data.cell.raw === "BUY") data.cell.styles.textColor = [34, 160, 60];
+        if (data.cell.raw === "SELL") data.cell.styles.textColor = [200, 50, 70];
+      }
+      if (data.section === "body" && data.column.index === 2) {
+        if (data.cell.raw === "TP") data.cell.styles.textColor = [34, 160, 60];
+        if (data.cell.raw === "SL") data.cell.styles.textColor = [200, 50, 70];
+        if (data.cell.raw === "BE") data.cell.styles.textColor = [30, 140, 200];
+      }
+    },
+    didDrawPage: (data) => {
+      doc.setFontSize(8);
+      doc.setTextColor(140, 140, 150);
+      doc.text("NasLog · Confidential trading journal", margin, doc.internal.pageSize.getHeight() - 6);
+      doc.text(`Page ${data.pageNumber}`, pageW - margin, doc.internal.pageSize.getHeight() - 6, { align: "right" });
+    },
+  });
+
+  const fname = `NasLog_Journal_${from || "all"}_${to || "all"}.pdf`.replace(/\s+/g, "_");
+  doc.save(fname);
+  toast("PDF downloaded");
+}
+
 function render() {
   if (!S.token) return authView();
   const list = filtered(), st = stats(list);
@@ -646,7 +770,12 @@ function render() {
   document.querySelectorAll("[data-day]").forEach((c) => (c.onclick = () => { S.f = { dir: "", out: "", from: c.dataset.day, to: c.dataset.day }; go("journal"); }));
   document.querySelectorAll("[data-e]").forEach((b) => (b.onclick = () => openForm(S.trades.find((t) => t.id == b.dataset.e))));
   document.querySelectorAll("[data-d]").forEach((b) => (b.onclick = async () => { if (await ask("Delete this trade?", "This can't be undone.")) { await api("/api/trades/" + b.dataset.d, "DELETE"); await load(); toast("Trade deleted"); } }));
-  if ($("#fd")) { const u = () => { S.f = { dir: $("#fd").value, out: $("#fo").value, from: $("#ff").value, to: $("#ft").value }; render(); }; ["#fd", "#fo", "#ff", "#ft"].forEach((s) => ($(s).onchange = u)); }
+  if ($("#fd")) {
+    const u = () => { S.f = { dir: $("#fd").value, out: $("#fo").value, from: $("#ff").value, to: $("#ft").value }; render(); };
+    ["#fd", "#fo", "#ff", "#ft"].forEach((s) => ($(s).onchange = u));
+    if ($("#clearF")) $("#clearF").onclick = () => { S.f = { dir: "", out: "", from: "", to: "" }; render(); };
+  }
+  if ($("#exportPdf")) $("#exportPdf").onclick = () => exportPdf(list, st);
 }
 
 S.token ? load().catch(authView) : authView();
