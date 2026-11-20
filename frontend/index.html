@@ -13,7 +13,7 @@
 <style>
 :root{--bg:#08080a;--card:#16161a;--card2:#212127;--line:#2b2b33;--text:#f4f4f6;--mute:#8e8e9a;--p:#7c3aed;--p2:#a78bfa;--lime:#c6f432;--red:#f0627a;--blue:#38bdf8}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html{scroll-behavior:smooth}
+html{scroll-behavior:smooth;overflow-y:scroll}
 body{margin:0;color:var(--text);font:15px/1.45 "DM Sans",system-ui,sans-serif;min-height:100vh;overflow-x:hidden;
   background:radial-gradient(90% 45% at 0% 0%,#3c2a6b 0,transparent 65%),radial-gradient(60% 35% at 100% 0%,#173a4d66 0,transparent 65%),var(--bg) fixed}
 button,input,select,textarea{font:inherit;color:inherit}
@@ -515,7 +515,8 @@ function confView() {
       <span><button class="x" data-ce="${r.id}">Edit</button><button class="x" data-cd="${r.id}">Delete</button></span><div class="tfl">${tags}</div>${r.notes ? `<div class="hnote">${esc(r.notes)}</div>` : ""}</div>`;
   }).join("");
   const f = S.cf;
-  return `<div class="ph"><div><h1>Entry <span>confluence</span></h1><p class="sub">${nice(today())}</p></div><button class="btn p" id="nc">+ New entry</button></div>
+  return `<div class="ph"><div><h1>Entry <span>confluence</span></h1><p class="sub">${nice(today())}</p></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn g" id="exportCf" ${L.length ? "" : "disabled"} title="Export filtered confluence entries to PDF">Export PDF</button><button class="btn p" id="nc">+ New entry</button></div></div>
   <div class="kpis">${kp("Entries logged", S.cfs.length, "all time", "var(--p2)")}${kp("Today", td, td === 1 ? "entry" : "entries", "var(--lime)")}${kp("Matching filter", L.length, `of ${S.cfs.length}`, "var(--blue)")}
     ${kp("Points on those days", `<span class="${cls(tp)}">${tr.length ? sign(tp) : "-"}</span>`, `${tr.length} trade${tr.length === 1 ? "" : "s"}`, "var(--lime)")}
     <div class="kpi wide card" style="--a:var(--blue)"><div class="lbl">Win rate on those days</div><div class="big">${win != null ? win.toFixed(0) + "%" : "-"}</div><div class="lbl">all trades that day</div></div></div>
@@ -638,7 +639,6 @@ function exportPdf(list, st) {
   const rangeTxt = from && to ? `${from}  →  ${to}` : from || to || "All dates";
   const filt = [S.f.dir, S.f.out].filter(Boolean).join(" · ") || "All sides & outcomes";
 
-  // Header bar
   doc.setFillColor(124, 58, 237);
   doc.rect(0, 0, pageW, 22, "F");
   doc.setTextColor(255, 255, 255);
@@ -650,7 +650,6 @@ function exportPdf(list, st) {
   doc.text(`Exported ${new Date().toLocaleString("en", { dateStyle: "medium", timeStyle: "short" })}`, pageW - margin, 10, { align: "right" });
   doc.text(`${nm}`, pageW - margin, 16, { align: "right" });
 
-  // Title + filters
   doc.setTextColor(30, 30, 35);
   doc.setFontSize(13);
   doc.setFont("helvetica", "bold");
@@ -660,7 +659,6 @@ function exportPdf(list, st) {
   doc.setTextColor(100, 100, 110);
   doc.text(`Period: ${rangeTxt}   ·   Filter: ${filt}`, margin, 38);
 
-  // Summary strip
   const y0 = 44;
   doc.setFillColor(245, 245, 248);
   doc.roundedRect(margin, y0, pageW - margin * 2, 14, 2, 2, "F");
@@ -683,39 +681,19 @@ function exportPdf(list, st) {
     sx += doc.getTextWidth(s) + 10;
   });
 
-  // Table
   const head = [["Date", "Side", "Result", "Entry", "Exit", "Points", "R", "Dur", "TF", "Session", "Setup", "Plan", "Mistake"]];
   const body = list.map((t) => [
-    t.trade_date,
-    t.direction,
-    t.outcome,
-    t.entry_price,
-    t.exit_price,
-    sign(t.points),
-    t.r_multiple != null ? sign(t.r_multiple) + "R" : "-",
-    dur(t.duration_min),
-    t.timeframe || "-",
-    t.session || "-",
-    (t.setup || "-").slice(0, 18),
-    t.followed_plan || "-",
-    (t.mistake || "-").slice(0, 14),
+    t.trade_date, t.direction, t.outcome, t.entry_price, t.exit_price, sign(t.points),
+    t.r_multiple != null ? sign(t.r_multiple) + "R" : "-", dur(t.duration_min),
+    t.timeframe || "-", t.session || "-", (t.setup || "-").slice(0, 18), t.followed_plan || "-", (t.mistake || "-").slice(0, 14),
   ]);
 
   doc.autoTable({
-    startY: y0 + 18,
-    head,
-    body,
-    margin: { left: margin, right: margin },
+    startY: y0 + 18, head, body, margin: { left: margin, right: margin },
     styles: { fontSize: 7.5, cellPadding: 1.8, overflow: "linebreak", textColor: [40, 40, 48], lineColor: [220, 220, 228], lineWidth: 0.2 },
     headStyles: { fillColor: [124, 58, 237], textColor: 255, fontStyle: "bold", fontSize: 8 },
     alternateRowStyles: { fillColor: [250, 250, 252] },
-    columnStyles: {
-      0: { cellWidth: 22 },
-      1: { cellWidth: 14 },
-      2: { cellWidth: 14 },
-      5: { halign: "right", fontStyle: "bold" },
-      6: {halign: "right" },
-    },
+    columnStyles: { 0: { cellWidth: 22 }, 1: { cellWidth: 14 }, 2: { cellWidth: 14 }, 5: { halign: "right", fontStyle: "bold" }, 6: { halign: "right" } },
     didParseCell: (data) => {
       if (data.section === "body" && data.column.index === 5) {
         const v = parseFloat(String(data.cell.raw).replace("+", ""));
@@ -740,8 +718,80 @@ function exportPdf(list, st) {
     },
   });
 
-  const fname = `NasLog_Journal_${from || "all"}_${to || "all"}.pdf`.replace(/\s+/g, "_");
-  doc.save(fname);
+  doc.save(`NasLog_Journal_${from || "all"}_${to || "all"}.pdf`.replace(/\s+/g, "_"));
+  toast("PDF downloaded");
+}
+
+function exportConfPdf() {
+  if (!window.jspdf) { toast("PDF library failed to load. Check internet and refresh.", "error"); return; }
+  const L = cfFiltered();
+  if (!L.length) { toast("No confluence entries to export", "error"); return; }
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+  const pageW = doc.internal.pageSize.getWidth();
+  const margin = 14;
+  const nm = S.user?.name || "Trader";
+  const f = S.cf;
+  const from = f.from || (L.length ? L[L.length - 1].log_date : "");
+  const to = f.to || (L.length ? L[0].log_date : "");
+  const rangeTxt = from && to ? `${from}  →  ${to}` : from || to || "All dates";
+  const keys = [...f.sel];
+  const filt = keys.length ? (f.mode === "all" ? "ALL of: " : "ANY of: ") + keys.map((k) => k.replace("|", " ")).join(", ") : "No confluence filter";
+
+  doc.setFillColor(124, 58, 237);
+  doc.rect(0, 0, pageW, 22, "F");
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(16);
+  doc.setFont("helvetica", "bold");
+  doc.text("NasLog  ·  Entry Confluence", margin, 10);
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "normal");
+  doc.text(`Exported ${new Date().toLocaleString("en", { dateStyle: "medium", timeStyle: "short" })}`, pageW - margin, 10, { align: "right" });
+  doc.text(`${nm}`, pageW - margin, 16, { align: "right" });
+
+  doc.setTextColor(30, 30, 35);
+  doc.setFontSize(13);
+  doc.setFont("helvetica", "bold");
+  doc.text("Confluence Log Export", margin, 32);
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(100, 100, 110);
+  doc.text(`Period: ${rangeTxt}`, margin, 38);
+  doc.text(filt, margin, 43, { maxWidth: pageW - margin * 2 });
+
+  const byDay = {};
+  S.trades.forEach((t) => (byDay[t.trade_date] = byDay[t.trade_date] || []).push(t));
+  const pts = (k) => (byDay[k] ? byDay[k].reduce((a, t) => a + t.points, 0) : null);
+
+  const head = [["Date", "Confluences (by TF)", "Day points", "Notes"]];
+  const body = L.map((r) => {
+    const tags = TFS.filter((tf) => (r.data?.[tf] || []).length).map((tf) => `${tf}: ${(r.data[tf] || []).join(", ")}`).join("  |  ");
+    const p = pts(r.log_date);
+    return [r.log_date, tags || "-", p != null ? sign(p) : "-", (r.notes || "").slice(0, 80)];
+  });
+
+  doc.autoTable({
+    startY: 50, head, body, margin: { left: margin, right: margin },
+    styles: { fontSize: 8, cellPadding: 2.2, overflow: "linebreak", textColor: [40, 40, 48], lineColor: [220, 220, 228], lineWidth: 0.2 },
+    headStyles: { fillColor: [124, 58, 237], textColor: 255, fontStyle: "bold", fontSize: 9 },
+    alternateRowStyles: { fillColor: [250, 250, 252] },
+    columnStyles: { 0: { cellWidth: 24 }, 2: { cellWidth: 22, halign: "right", fontStyle: "bold" }, 3: { cellWidth: 40 } },
+    didParseCell: (data) => {
+      if (data.section === "body" && data.column.index === 2) {
+        const v = parseFloat(String(data.cell.raw).replace("+", ""));
+        if (v > 0) data.cell.styles.textColor = [34, 160, 60];
+        else if (v < 0) data.cell.styles.textColor = [200, 50, 70];
+      }
+    },
+    didDrawPage: (data) => {
+      doc.setFontSize(8);
+      doc.setTextColor(140, 140, 150);
+      doc.text("NasLog · Confidential trading journal", margin, doc.internal.pageSize.getHeight() - 6);
+      doc.text(`Page ${data.pageNumber}`, pageW - margin, doc.internal.pageSize.getHeight() - 6, { align: "right" });
+    },
+  });
+
+  doc.save(`NasLog_Confluence_${from || "all"}_${to || "all"}.pdf`.replace(/\s+/g, "_"));
   toast("PDF downloaded");
 }
 
@@ -776,6 +826,7 @@ function render() {
     if ($("#clearF")) $("#clearF").onclick = () => { S.f = { dir: "", out: "", from: "", to: "" }; render(); };
   }
   if ($("#exportPdf")) $("#exportPdf").onclick = () => exportPdf(list, st);
+  if ($("#exportCf")) $("#exportCf").onclick = () => exportConfPdf();
 }
 
 S.token ? load().catch(authView) : authView();
