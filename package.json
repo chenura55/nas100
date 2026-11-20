@@ -1,0 +1,29 @@
+{
+  "name": "naslog",
+  "version": "1.0.0",
+  "description": "NasLog — NAS100 trading journal with premarket routine, confluence tracking, analytics & PDF export",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@libsql/client": "^0.14.0",
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "express": "^4.21.0",
+    "jsonwebtoken": "^9.0.2"
+  },
+  "keywords": [
+    "trading-journal",
+    "nas100",
+    "nasdaq",
+    "forex",
+    "trading"
+  ],
+  "license": "MIT"
+}
