@@ -637,7 +637,7 @@ function exportPdf(list, st) {
   const nm = S.user?.name || "Trader";
   const from = S.f.from || (list.length ? list[list.length - 1].trade_date : "");
   const to = S.f.to || (list.length ? list[0].trade_date : "");
-  const rangeTxt = from && to ? `${from}  →  ${to}` : from || to || "All dates";
+  const rangeTxt = from && to ? (from + "  to  " + to) : from || to || "All dates";
   const filt = [S.f.dir, S.f.out].filter(Boolean).join(" · ") || "All sides & outcomes";
   const exported = new Date().toLocaleString("en", { dateStyle: "medium", timeStyle: "short" });
 
@@ -792,7 +792,7 @@ function exportConfPdf() {
   const f = S.cf;
   const from = f.from || (L.length ? L[L.length - 1].log_date : "");
   const to = f.to || (L.length ? L[0].log_date : "");
-  const rangeTxt = from && to ? `${from}  →  ${to}` : from || to || "All dates";
+  const rangeTxt = from && to ? (from + "  to  " + to) : from || to || "All dates";
   const keys = [...f.sel];
   const filt = keys.length ? (f.mode === "all" ? "ALL of: " : "ANY of: ") + keys.map((k) => k.replace("|", " ")).join(", ") : "No confluence filter";
   const exported = new Date().toLocaleString("en", { dateStyle: "medium", timeStyle: "short" });
@@ -887,26 +887,52 @@ function exportConfPdf() {
     doc.text(b.val, x + bw / 2, sumY + 14, { align: "center" });
   });
 
-  // Table
-  const head = [["Date", "Confluences (by timeframe)", "Day pts", "Notes"]];
+  // Table – confluences always in order: 1D, 1H, 15min, 5min, 1min (each on new line)
+  const head = [["Date", "Confluences", "Day pts", "Notes"]];
   const body = L.map((r) => {
-    const tags = TFS.filter((tf) => (r.data?.[tf] || []).length).map((tf) => `${tf}: ${(r.data[tf] || []).join(", ")}`).join("  ·  ");
+    const lines = TFS.map((tf) => {
+      const list = r.data?.[tf] || [];
+      return list.length ? (tf + ": " + list.join(", ")) : null;
+    }).filter(Boolean);
+    const tags = lines.length ? lines.join("\n") : "-";
     const p = pts(r.log_date);
-    return [r.log_date, tags || "-", p != null ? sign(p) : "-", (r.notes || "").slice(0, 60)];
+    return [r.log_date, tags, p != null ? sign(p) : "-", (r.notes || "").slice(0, 55)];
   });
 
   doc.autoTable({
     startY: sumY + 24, head, body, margin: { left: margin, right: margin },
-    styles: { fontSize: 8, cellPadding: 2.5, overflow: "linebreak", textColor: [45, 45, 55], lineColor: [235, 232, 245], lineWidth: 0.2, font: "helvetica" },
-    headStyles: { fillColor: [124, 58, 237], textColor: 255, fontStyle: "bold", fontSize: 8.5, cellPadding: 3 },
+    theme: "grid",
+    styles: {
+      fontSize: 8, cellPadding: { top: 3, bottom: 3, left: 3, right: 3 },
+      overflow: "linebreak", textColor: [45, 45, 55],
+      lineColor: [230, 226, 245], lineWidth: 0.25, font: "helvetica",
+      minCellHeight: 10,
+    },
+    headStyles: {
+      fillColor: [124, 58, 237], textColor: 255, fontStyle: "bold",
+      fontSize: 8.5, cellPadding: 4, halign: "left",
+    },
     alternateRowStyles: { fillColor: [255, 255, 255] },
     bodyStyles: { fillColor: [252, 251, 255] },
-    columnStyles: { 0: { cellWidth: 24 }, 2: { cellWidth: 20, halign: "right", fontStyle: "bold" }, 3: { cellWidth: 38 } },
+    columnStyles: {
+      0: { cellWidth: 24, valign: "top" },
+      1: { cellWidth: 95, valign: "top" },
+      2: { cellWidth: 20, halign: "right", fontStyle: "bold", valign: "top" },
+      3: { cellWidth: 35, valign: "top" },
+    },
     didParseCell: (data) => {
       if (data.section === "body" && data.column.index === 2) {
         const v = parseFloat(String(data.cell.raw).replace("+", ""));
         if (v > 0) data.cell.styles.textColor = [34, 160, 60];
         else if (v < 0) data.cell.styles.textColor = [200, 50, 70];
+      }
+    },
+    // Soft rounded look: draw rounded rect behind table area on first page
+    willDrawPage: (data) => {
+      if (data.pageNumber === 1) {
+        const y = sumY + 22;
+        doc.setFillColor(255, 255, 255);
+        doc.roundedRect(margin - 1, y, pageW - margin * 2 + 2, pageH - y - 18, 5, 5, "F");
       }
     },
     didDrawPage: (data) => {
@@ -916,11 +942,11 @@ function exportConfPdf() {
       doc.setTextColor(255, 255, 255);
       doc.setFont("helvetica", "normal");
       doc.text("NasLog  ·  Confidential trading journal", margin, pageH - 5);
-      doc.text(`Page ${data.pageNumber}`, pageW - margin, pageH - 5, { align: "right" });
+      doc.text("Page " + data.pageNumber, pageW - margin, pageH - 5, { align: "right" });
     },
   });
 
-  doc.save(`NasLog_Confluence_${from || "all"}_${to || "all"}.pdf`.replace(/\s+/g, "_"));
+  doc.save(("NasLog_Confluence_" + (from || "all") + "_" + (to || "all") + ".pdf").replace(/\s+/g, "_"));
   toast("PDF downloaded");
 }
 
