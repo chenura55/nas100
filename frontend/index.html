@@ -515,7 +515,7 @@ function confView() {
       <span><button class="x" data-ce="${r.id}">Edit</button><button class="x" data-cd="${r.id}">Delete</button></span><div class="tfl">${tags}</div>${r.notes ? `<div class="hnote">${esc(r.notes)}</div>` : ""}</div>`;
   }).join("");
   const f = S.cf;
-  return `<div class="ph"><div><h1>Entry <span>confluence</span></h1><p class="sub">${nice(today())}</p></div>
+  return `<div class="ph"><div><h1>Clear Entry <span>confluence</span></h1><p class="sub">${nice(today())}</p></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn g" id="exportCf" ${L.length ? "" : "disabled"} title="Export filtered confluence entries to PDF">Export PDF</button><button class="btn p" id="nc">+ New entry</button></div></div>
   <div class="kpis">${kp("Entries logged", S.cfs.length, "all time", "var(--p2)")}${kp("Today", td, td === 1 ? "entry" : "entries", "var(--lime)")}${kp("Matching filter", L.length, `of ${S.cfs.length}`, "var(--blue)")}
     ${kp("Points on those days", `<span class="${cls(tp)}">${tr.length ? sign(tp) : "-"}</span>`, `${tr.length} trade${tr.length === 1 ? "" : "s"}`, "var(--lime)")}
@@ -632,68 +632,121 @@ function exportPdf(list, st) {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
   const pageW = doc.internal.pageSize.getWidth();
-  const margin = 12;
+  const pageH = doc.internal.pageSize.getHeight();
+  const margin = 14;
   const nm = S.user?.name || "Trader";
   const from = S.f.from || (list.length ? list[list.length - 1].trade_date : "");
   const to = S.f.to || (list.length ? list[0].trade_date : "");
   const rangeTxt = from && to ? `${from}  →  ${to}` : from || to || "All dates";
   const filt = [S.f.dir, S.f.out].filter(Boolean).join(" · ") || "All sides & outcomes";
+  const exported = new Date().toLocaleString("en", { dateStyle: "medium", timeStyle: "short" });
 
+  // Background
+  doc.setFillColor(248, 247, 252);
+  doc.rect(0, 0, pageW, pageH, "F");
+
+  // Purple header with soft curve
   doc.setFillColor(124, 58, 237);
-  doc.rect(0, 0, pageW, 22, "F");
+  doc.rect(0, 0, pageW, 48, "F");
+  doc.setFillColor(109, 40, 217);
+  doc.ellipse(pageW * 0.75, 48, pageW * 0.55, 18, "F");
+  doc.setFillColor(248, 247, 252);
+  doc.ellipse(pageW * 0.25, 52, pageW * 0.5, 16, "F");
+
+  // Logo + brand
+  doc.setFillColor(233, 224, 255);
+  doc.circle(margin + 5, 16, 5, "F");
+  doc.setFillColor(124, 58, 237);
+  doc.circle(margin + 5, 16, 5, "S");
   doc.setTextColor(255, 255, 255);
-  doc.setFontSize(16);
+  doc.setFontSize(18);
   doc.setFont("helvetica", "bold");
-  doc.text("NasLog  ·  NAS100 Journal", margin, 10);
+  doc.text("NasLog", margin + 14, 14);
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
-  doc.text(`Exported ${new Date().toLocaleString("en", { dateStyle: "medium", timeStyle: "short" })}`, pageW - margin, 10, { align: "right" });
-  doc.text(`${nm}`, pageW - margin, 16, { align: "right" });
+  doc.setTextColor(233, 224, 255);
+  doc.text("NAS100 Trading Journal", margin + 14, 20);
 
-  doc.setTextColor(30, 30, 35);
-  doc.setFontSize(13);
+  // Right side title
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(22);
   doc.setFont("helvetica", "bold");
-  doc.text("Trade Journal Export", margin, 32);
+  doc.text("Trade Report", pageW - margin, 16, { align: "right" });
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
-  doc.setTextColor(100, 100, 110);
-  doc.text(`Period: ${rangeTxt}   ·   Filter: ${filt}`, margin, 38);
+  doc.setTextColor(233, 224, 255);
+  doc.text(exported, pageW - margin, 23, { align: "right" });
 
-  const y0 = 44;
-  doc.setFillColor(245, 245, 248);
-  doc.roundedRect(margin, y0, pageW - margin * 2, 14, 2, 2, "F");
-  doc.setTextColor(30, 30, 35);
+  // Info card (white rounded)
+  const cardY = 42;
+  doc.setFillColor(255, 255, 255);
+  doc.roundedRect(margin, cardY, pageW - margin * 2, 28, 4, 4, "F");
+  // subtle shadow line
+  doc.setDrawColor(230, 226, 245);
+  doc.setLineWidth(0.3);
+  doc.roundedRect(margin, cardY, pageW - margin * 2, 28, 4, 4, "S");
+
+  doc.setTextColor(100, 100, 115);
+  doc.setFontSize(8);
+  doc.setFont("helvetica", "normal");
+  doc.text("TRADER", margin + 6, cardY + 8);
+  doc.text("PERIOD", margin + 55, cardY + 8);
+  doc.text("FILTER", margin + 120, cardY + 8);
+  doc.setTextColor(30, 30, 40);
+  doc.setFontSize(11);
+  doc.setFont("helvetica", "bold");
+  doc.text(nm, margin + 6, cardY + 16);
+  doc.setFontSize(10);
+  doc.text(rangeTxt, margin + 55, cardY + 16);
+  doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
-  const summary = [
-    `${st.n} trades`,
-    `Total ${sign(st.total)} pts`,
-    `Win rate ${st.win.toFixed(1)}%`,
-    `PF ${st.pf === Infinity ? "∞" : st.pf.toFixed(2)}`,
-    `Avg R ${sign(st.avgR)}R`,
-    `Expectancy ${sign(st.exp)}`,
-    `Max DD -${st.dd.toFixed(1)}`,
+  doc.setTextColor(80, 80, 95);
+  doc.text(filt, margin + 120, cardY + 16);
+
+  // Summary KPI pills
+  const kpis = [
+    { label: "Trades", val: String(st.n) },
+    { label: "Total pts", val: sign(st.total), color: st.total >= 0 ? [34, 160, 60] : [200, 50, 70] },
+    { label: "Win rate", val: st.win.toFixed(1) + "%" },
+    { label: "Profit factor", val: st.pf === Infinity ? "∞" : st.pf.toFixed(2) },
+    { label: "Avg R", val: sign(st.avgR) + "R" },
+    { label: "Expectancy", val: sign(st.exp) },
+    { label: "Max DD", val: "-" + st.dd.toFixed(1) },
   ];
-  let sx = margin + 4;
-  summary.forEach((s, i) => {
-    doc.setFont("helvetica", i === 1 ? "bold" : "normal");
-    doc.setTextColor(i === 1 ? (st.total >= 0 ? 40 : 180) : 30, i === 1 ? (st.total >= 0 ? 140 : 60) : 30, i === 1 ? (st.total >= 0 ? 40 : 80) : 35);
-    doc.text(s, sx, y0 + 9);
-    sx += doc.getTextWidth(s) + 10;
+  const pillW = (pageW - margin * 2 - 6 * 4) / 7;
+  let px = margin;
+  kpis.forEach((k) => {
+    doc.setFillColor(255, 255, 255);
+    doc.roundedRect(px, cardY + 34, pillW, 16, 3, 3, "F");
+    doc.setDrawColor(230, 226, 245);
+    doc.roundedRect(px, cardY + 34, pillW, 16, 3, 3, "S");
+    doc.setTextColor(120, 120, 135);
+    doc.setFontSize(7);
+    doc.setFont("helvetica", "normal");
+    doc.text(k.label, px + pillW / 2, cardY + 40, { align: "center" });
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "bold");
+    if (k.color) doc.setTextColor(...k.color);
+    else doc.setTextColor(30, 30, 40);
+    doc.text(k.val, px + pillW / 2, cardY + 46.5, { align: "center" });
+    px += pillW + 4;
   });
 
+  // Table
   const head = [["Date", "Side", "Result", "Entry", "Exit", "Points", "R", "Dur", "TF", "Session", "Setup", "Plan", "Mistake"]];
   const body = list.map((t) => [
     t.trade_date, t.direction, t.outcome, t.entry_price, t.exit_price, sign(t.points),
     t.r_multiple != null ? sign(t.r_multiple) + "R" : "-", dur(t.duration_min),
-    t.timeframe || "-", t.session || "-", (t.setup || "-").slice(0, 18), t.followed_plan || "-", (t.mistake || "-").slice(0, 14),
+    t.timeframe || "-", t.session || "-", (t.setup || "-").slice(0, 16), t.followed_plan || "-", (t.mistake || "-").slice(0, 12),
   ]);
 
   doc.autoTable({
-    startY: y0 + 18, head, body, margin: { left: margin, right: margin },
-    styles: { fontSize: 7.5, cellPadding: 1.8, overflow: "linebreak", textColor: [40, 40, 48], lineColor: [220, 220, 228], lineWidth: 0.2 },
-    headStyles: { fillColor: [124, 58, 237], textColor: 255, fontStyle: "bold", fontSize: 8 },
-    alternateRowStyles: { fillColor: [250, 250, 252] },
-    columnStyles: { 0: { cellWidth: 22 }, 1: { cellWidth: 14 }, 2: { cellWidth: 14 }, 5: { halign: "right", fontStyle: "bold" }, 6: { halign: "right" } },
+    startY: cardY + 56, head, body, margin: { left: margin, right: margin },
+    styles: { fontSize: 7.5, cellPadding: 2.2, overflow: "linebreak", textColor: [45, 45, 55], lineColor: [235, 232, 245], lineWidth: 0.2, font: "helvetica" },
+    headStyles: { fillColor: [124, 58, 237], textColor: 255, fontStyle: "bold", fontSize: 8, cellPadding: 2.5 },
+    alternateRowStyles: { fillColor: [255, 255, 255] },
+    bodyStyles: { fillColor: [252, 251, 255] },
+    columnStyles: { 0: { cellWidth: 22 }, 1: { cellWidth: 14 }, 2: { cellWidth: 14 }, 5: { halign: "right", fontStyle: "bold" }, 6: {halign: "right" } },
     didParseCell: (data) => {
       if (data.section === "body" && data.column.index === 5) {
         const v = parseFloat(String(data.cell.raw).replace("+", ""));
@@ -711,10 +764,14 @@ function exportPdf(list, st) {
       }
     },
     didDrawPage: (data) => {
+      // Footer bar
+      doc.setFillColor(124, 58, 237);
+      doc.rect(0, pageH - 12, pageW, 12, "F");
       doc.setFontSize(8);
-      doc.setTextColor(140, 140, 150);
-      doc.text("NasLog · Confidential trading journal", margin, doc.internal.pageSize.getHeight() - 6);
-      doc.text(`Page ${data.pageNumber}`, pageW - margin, doc.internal.pageSize.getHeight() - 6, { align: "right" });
+      doc.setTextColor(255, 255, 255);
+      doc.setFont("helvetica", "normal");
+      doc.text("NasLog  ·  Confidential trading journal", margin, pageH - 5);
+      doc.text(`Page ${data.pageNumber}`, pageW - margin, pageH - 5, { align: "right" });
     },
   });
 
@@ -729,7 +786,8 @@ function exportConfPdf() {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
   const pageW = doc.internal.pageSize.getWidth();
-  const margin = 14;
+  const pageH = doc.internal.pageSize.getHeight();
+  const margin = 16;
   const nm = S.user?.name || "Trader";
   const f = S.cf;
   const from = f.from || (L.length ? L[L.length - 1].log_date : "");
@@ -737,45 +795,113 @@ function exportConfPdf() {
   const rangeTxt = from && to ? `${from}  →  ${to}` : from || to || "All dates";
   const keys = [...f.sel];
   const filt = keys.length ? (f.mode === "all" ? "ALL of: " : "ANY of: ") + keys.map((k) => k.replace("|", " ")).join(", ") : "No confluence filter";
+  const exported = new Date().toLocaleString("en", { dateStyle: "medium", timeStyle: "short" });
 
+  // Soft background
+  doc.setFillColor(248, 247, 252);
+  doc.rect(0, 0, pageW, pageH, "F");
+
+  // Purple header with curve
   doc.setFillColor(124, 58, 237);
-  doc.rect(0, 0, pageW, 22, "F");
+  doc.rect(0, 0, pageW, 52, "F");
+  doc.setFillColor(109, 40, 217);
+  doc.ellipse(pageW * 0.8, 52, pageW * 0.6, 20, "F");
+  doc.setFillColor(248, 247, 252);
+  doc.ellipse(pageW * 0.2, 56, pageW * 0.55, 18, "F");
+
+  // Brand
+  doc.setFillColor(233, 224, 255);
+  doc.circle(margin + 5, 18, 5.5, "F");
   doc.setTextColor(255, 255, 255);
-  doc.setFontSize(16);
+  doc.setFontSize(18);
   doc.setFont("helvetica", "bold");
-  doc.text("NasLog  ·  Entry Confluence", margin, 10);
+  doc.text("NasLog", margin + 15, 16);
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
-  doc.text(`Exported ${new Date().toLocaleString("en", { dateStyle: "medium", timeStyle: "short" })}`, pageW - margin, 10, { align: "right" });
-  doc.text(`${nm}`, pageW - margin, 16, { align: "right" });
+  doc.setTextColor(233, 224, 255);
+  doc.text("Entry Confluence Log", margin + 15, 22);
 
-  doc.setTextColor(30, 30, 35);
-  doc.setFontSize(13);
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(20);
   doc.setFont("helvetica", "bold");
-  doc.text("Confluence Log Export", margin, 32);
+  doc.text("Confluence Report", pageW - margin, 18, { align: "right" });
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
-  doc.setTextColor(100, 100, 110);
-  doc.text(`Period: ${rangeTxt}`, margin, 38);
-  doc.text(filt, margin, 43, { maxWidth: pageW - margin * 2 });
+  doc.setTextColor(233, 224, 255);
+  doc.text(exported, pageW - margin, 25, { align: "right" });
 
+  // White info card
+  const cardY = 46;
+  doc.setFillColor(255, 255, 255);
+  doc.roundedRect(margin, cardY, pageW - margin * 2, 26, 4, 4, "F");
+  doc.setDrawColor(230, 226, 245);
+  doc.setLineWidth(0.3);
+  doc.roundedRect(margin, cardY, pageW - margin * 2, 26, 4, 4, "S");
+
+  doc.setTextColor(110, 110, 125);
+  doc.setFontSize(7.5);
+  doc.setFont("helvetica", "normal");
+  doc.text("TRADER", margin + 6, cardY + 8);
+  doc.text("PERIOD", margin + 55, cardY + 8);
+  doc.text("FILTER", margin + 6, cardY + 17);
+  doc.setTextColor(30, 30, 40);
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "bold");
+  doc.text(nm, margin + 6, cardY + 13.5);
+  doc.text(rangeTxt, margin + 55, cardY + 13.5);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8.5);
+  doc.setTextColor(70, 70, 85);
+  doc.text(filt, margin + 6, cardY + 22, { maxWidth: pageW - margin * 2 - 12 });
+
+  // Summary strip
   const byDay = {};
   S.trades.forEach((t) => (byDay[t.trade_date] = byDay[t.trade_date] || []).push(t));
   const pts = (k) => (byDay[k] ? byDay[k].reduce((a, t) => a + t.points, 0) : null);
+  const tr = [...new Set(L.map((r) => r.log_date))].flatMap((d) => byDay[d] || []);
+  const tp = tr.reduce((a, t) => a + t.points, 0);
+  const win = tr.length ? (tr.filter((t) => t.points > 0).length / tr.length) * 100 : null;
 
-  const head = [["Date", "Confluences (by TF)", "Day points", "Notes"]];
+  const sumY = cardY + 32;
+  const boxes = [
+    { label: "Entries", val: String(L.length) },
+    { label: "Day points", val: tr.length ? sign(tp) : "-", color: tp >= 0 ? [34, 160, 60] : [200, 50, 70] },
+    { label: "Win rate", val: win != null ? win.toFixed(0) + "%" : "-" },
+    { label: "Trades linked", val: String(tr.length) },
+  ];
+  const bw = (pageW - margin * 2 - 9) / 4;
+  boxes.forEach((b, i) => {
+    const x = margin + i * (bw + 3);
+    doc.setFillColor(255, 255, 255);
+    doc.roundedRect(x, sumY, bw, 18, 3, 3, "F");
+    doc.setDrawColor(230, 226, 245);
+    doc.roundedRect(x, sumY, bw, 18, 3, 3, "S");
+    doc.setTextColor(120, 120, 135);
+    doc.setFontSize(7);
+    doc.setFont("helvetica", "normal");
+    doc.text(b.label, x + bw / 2, sumY + 7, { align: "center" });
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "bold");
+    if (b.color) doc.setTextColor(...b.color);
+    else doc.setTextColor(30, 30, 40);
+    doc.text(b.val, x + bw / 2, sumY + 14, { align: "center" });
+  });
+
+  // Table
+  const head = [["Date", "Confluences (by timeframe)", "Day pts", "Notes"]];
   const body = L.map((r) => {
-    const tags = TFS.filter((tf) => (r.data?.[tf] || []).length).map((tf) => `${tf}: ${(r.data[tf] || []).join(", ")}`).join("  |  ");
+    const tags = TFS.filter((tf) => (r.data?.[tf] || []).length).map((tf) => `${tf}: ${(r.data[tf] || []).join(", ")}`).join("  ·  ");
     const p = pts(r.log_date);
-    return [r.log_date, tags || "-", p != null ? sign(p) : "-", (r.notes || "").slice(0, 80)];
+    return [r.log_date, tags || "-", p != null ? sign(p) : "-", (r.notes || "").slice(0, 60)];
   });
 
   doc.autoTable({
-    startY: 50, head, body, margin: { left: margin, right: margin },
-    styles: { fontSize: 8, cellPadding: 2.2, overflow: "linebreak", textColor: [40, 40, 48], lineColor: [220, 220, 228], lineWidth: 0.2 },
-    headStyles: { fillColor: [124, 58, 237], textColor: 255, fontStyle: "bold", fontSize: 9 },
-    alternateRowStyles: { fillColor: [250, 250, 252] },
-    columnStyles: { 0: { cellWidth: 24 }, 2: { cellWidth: 22, halign: "right", fontStyle: "bold" }, 3: { cellWidth: 40 } },
+    startY: sumY + 24, head, body, margin: { left: margin, right: margin },
+    styles: { fontSize: 8, cellPadding: 2.5, overflow: "linebreak", textColor: [45, 45, 55], lineColor: [235, 232, 245], lineWidth: 0.2, font: "helvetica" },
+    headStyles: { fillColor: [124, 58, 237], textColor: 255, fontStyle: "bold", fontSize: 8.5, cellPadding: 3 },
+    alternateRowStyles: { fillColor: [255, 255, 255] },
+    bodyStyles: { fillColor: [252, 251, 255] },
+    columnStyles: { 0: { cellWidth: 24 }, 2: { cellWidth: 20, halign: "right", fontStyle: "bold" }, 3: { cellWidth: 38 } },
     didParseCell: (data) => {
       if (data.section === "body" && data.column.index === 2) {
         const v = parseFloat(String(data.cell.raw).replace("+", ""));
@@ -784,10 +910,13 @@ function exportConfPdf() {
       }
     },
     didDrawPage: (data) => {
+      doc.setFillColor(124, 58, 237);
+      doc.rect(0, pageH - 12, pageW, 12, "F");
       doc.setFontSize(8);
-      doc.setTextColor(140, 140, 150);
-      doc.text("NasLog · Confidential trading journal", margin, doc.internal.pageSize.getHeight() - 6);
-      doc.text(`Page ${data.pageNumber}`, pageW - margin, doc.internal.pageSize.getHeight() - 6, { align: "right" });
+      doc.setTextColor(255, 255, 255);
+      doc.setFont("helvetica", "normal");
+      doc.text("NasLog  ·  Confidential trading journal", margin, pageH - 5);
+      doc.text(`Page ${data.pageNumber}`, pageW - margin, pageH - 5, { align: "right" });
     },
   });
 
@@ -833,5 +962,3 @@ S.token ? load().catch(authView) : authView();
 </script>
 </body>
 </html>
-
-
