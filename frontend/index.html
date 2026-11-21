@@ -122,6 +122,13 @@ td{padding:12px 8px;border-top:1px solid var(--line);white-space:nowrap}
 .cfr{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:10px 0;border-top:1px solid var(--line)}.cfr:first-of-type{border-top:0}.cfr .cc.tfa{min-width:64px}
 .seg.m{width:150px}.seg.m button.on,.seg.ty button.on{background:#fff;color:#000}
 .tfl{display:flex;gap:6px;flex-wrap:wrap;flex-basis:100%}.tfl .tag b{color:var(--p2);font-weight:600;margin-right:4px}
+/* tick chips */
+.tk{display:flex;align-items:center;gap:10px;background:var(--card2);border:1px solid var(--line);border-radius:14px;padding:11px 14px;text-align:left;font-size:14px;transition:.15s}
+.tk i{width:20px;height:20px;border-radius:6px;border:1.5px solid #5a5a66;display:grid;place-items:center;font-style:normal;font-size:13px;color:transparent;flex:none}
+.tk.on{border-color:var(--p2)}.tk.on i{background:var(--p);border-color:var(--p2);color:#fff}
+.tks{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.sec{border:1px solid var(--line);border-radius:16px;padding:12px;display:grid;gap:10px;margin-bottom:10px}.sec>.lbl:first-child{font-weight:600;color:var(--text)}
+.sub2{margin-left:12px;padding-left:12px;border-left:2px solid var(--p);display:grid;gap:8px}
 /* auth */
 .auth{max-width:400px;margin:12vh auto;padding:28px}.auth input{margin:6px 0;padding:13px}
 
@@ -180,7 +187,7 @@ td{padding:12px 8px;border-top:1px solid var(--line);white-space:nowrap}
   .x{padding:9px 11px}
   .hist{gap:6px 12px}.hist .bar{flex:1 1 100%;order:10}.hist .hnote{order:11}
   .chips{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;margin-left:-2px}.chips::-webkit-scrollbar{display:none}.chips .pill{white-space:nowrap;flex:none}
-  .cfr{gap:6px}.cc.sm{padding:8px 13px}
+  .cfr{gap:6px}.cc.sm{padding:8px 13px}.tks{grid-template-columns:1fr}
   .seg.m{width:100%}
   .filters .pill{padding:10px 14px}
   .rate .bar{width:56px}
@@ -199,7 +206,8 @@ td{padding:12px 8px;border-top:1px solid var(--line);white-space:nowrap}
 const API = location.hostname === "localhost" || location.protocol === "file:" ? "http://localhost:3000" : "https://nas100.onrender.com";
 
 const $ = (s) => document.querySelector(s);
-let S = { token: localStorage.token, user: JSON.parse(localStorage.user || "null"), trades: [], routine: [], logs: [], jt: "all", jc: { mode: "all", sel: new Set(), open: false }, cfm: null, pm: { done: new Set() }, view: "dashboard", range: "all", mode: "login", f: { dir: "", out: "", from: "", to: "" }, editing: null, cal: { y: new Date().getFullYear(), m: new Date().getMonth() } };
+function F0() { return { dir: "", out: "", from: "", to: "", pat: "", ph: "", emo: "", ath: "", ib: "", ibtf: "", ibb: "", inv: "", rr: new Set() }; }
+let S = { token: localStorage.token, user: JSON.parse(localStorage.user || "null"), trades: [], routine: [], logs: [], jt: "all", jc: { mode: "all", sel: new Set(), open: false }, cfm: null, pm: { done: new Set() }, view: "dashboard", range: "all", mode: "login", f: F0(), mf: false, xs: null, editing: null, cal: { y: new Date().getFullYear(), m: new Date().getMonth() } };
 
 async function api(path, method = "GET", body) {
   const r = await fetch(API + path, { method, headers: { "Content-Type": "application/json", Authorization: "Bearer " + S.token }, body: body && JSON.stringify(body) });
@@ -255,12 +263,26 @@ const rv = (t) => t.r_multiple ?? 0, rs = (n) => sign(n) + "R";
 const isFwd = (t) => (t.trade_type || "forward") === "forward", fwd = () => S.trades.filter(isFwd);
 const CONF = { "1D": ["SCB", "PDH/PDL taken"], "1H": ["SCB", "I.SMT", "E.SMT"], "15min": ["SCB", "I.SMT", "E.SMT"], "5min": ["SCB", "I.SMT", "E.SMT", "SMT", "IFVG"], "1min": ["I.SMT", "SMT", "MSS", "IFVG"] };
 const TFS = Object.keys(CONF);
+const PATTERNS = ["Perfect Man", "Late Guest", "Ghost Shadow", "Left Over Eater"], PHASES = ["NY Manipulation", "NY Reversal", "NY Continuation"], EMO = ["Neutral", "Over confident", "Fearful", "Greedy", "Revenge", "FOMO"];
+const PD = ["FVG", "IFVG", "OB", "Breaker", "Mitigation Block", "Rejection Block", "Propulsion Block", "Liquidity", "Premium / Discount", "Old High / Low", "Other"];
+const RRB = [["1", "1:1"], ["2", "1:2"], ["3", "1:3"], ["4", "1:4"], ["5+", "1:5+"], ["none", "No R:R"]];
+const rrBucket = (t) => { const r = t.planned_rr; if (!r) return "none"; const n = Math.round(r); return n < 1 ? "1" : n >= 5 ? "5+" : String(n); };
+const rrLabel = (t) => RRB.find((x) => x[0] === rrBucket(t))[1];
+const lagBucket = (t) => { const m = t.reversal_gap_min; return m < 0 ? "Before reversal" : m <= 5 ? "0-5 min" : m <= 15 ? "5-15 min" : m <= 30 ? "15-30 min" : m <= 60 ? "30-60 min" : "60+ min"; };
+const lagTxt = (t) => (t.reversal_gap_min == null ? "-" : `${dur(Math.abs(t.reversal_gap_min))} ${t.reversal_gap_min >= 0 ? "after" : "before"}`);
+const flagList = (t) => [t.ath ? "ATH" : "", t.inside_bar ? `Inside bar${t.inside_bar_tf ? " " + t.inside_bar_tf : ""}${t.inside_bar_bias ? (t.inside_bar_bias === "Yes" ? " ✓ bias" : " ✗ bias") : ""}` : "", t.invalidation ? `Invalidation${(t.invalidation_types || []).length ? " " + t.invalidation_types.join("/") : ""}` : ""].filter(Boolean);
+const flags = (t) => flagList(t).map((x) => `<span class="tag">${esc(x)}</span>`).join("");
+const ppRange = (k) => { const d = new Date(); if (k === "today") return [today(), today()]; if (k === "month") return [dstr(new Date(d.getFullYear(), d.getMonth(), 1)), ""]; if (k === "all") return ["", ""]; d.setDate(d.getDate() - +k); return [dstr(d), ""]; };
+const ppOn = (k) => { const [a, b] = ppRange(k); return S.f.from === a && S.f.to === b; };
+const rf = (v) => (v === Infinity ? "∞" : v.toFixed(2));
 // filter key = "timeframe|confluence". "15min|*" means: any confluence ticked on 15min
 const cfHas = (r, k) => { const i = k.indexOf("|"), tf = k.slice(0, i), c = k.slice(i + 1), a = r.confluences?.[tf] || []; return c === "*" ? a.length > 0 : a.includes(c); };
 // Journal filter: trade type tab + side + result + dates + confluences
-function filtered() {
-  const { dir, out, from, to } = S.f, { mode, sel } = S.jc, keys = [...sel];
+function filtered(skipRR = false) {
+  const { dir, out, from, to, pat, ph, emo, ath, ib, ibtf, ibb, inv, rr } = S.f, { mode, sel } = S.jc, keys = [...sel], yn = (v, x) => !v || (v === "1" ? !!x : !x);
   return S.trades.filter((t) => (S.jt === "all" || (t.trade_type || "forward") === S.jt) && (!dir || t.direction === dir) && (!out || t.outcome === out) && (!from || t.trade_date >= from) && (!to || t.trade_date <= to)
+    && (!pat || t.entry_pattern === pat) && (!ph || t.session === ph) && (!emo || t.emotion === emo) && yn(ath, t.ath) && yn(ib, t.inside_bar) && (!ibtf || t.inside_bar_tf === ibtf) && (!ibb || t.inside_bar_bias === ibb) && yn(inv, t.invalidation)
+    && (skipRR || !rr.size || rr.has(rrBucket(t)))
     && (!keys.length || (mode === "all" ? keys.every((k) => cfHas(t, k)) : keys.some((k) => cfHas(t, k)))));
 }
 // Dashboard + calendar only count forward-testing trades, so backtests never mix with live results
@@ -277,7 +299,11 @@ function stats(list) {
   const ch = [...list].reverse(); let c = 0, pk = 0, dd = 0, ws = 0, ls = 0, cw = 0, cl = 0;
   ch.forEach((t) => { c += rv(t); pk = Math.max(pk, c); dd = Math.max(dd, pk - c); if (t.outcome === "TP") { cw++; cl = 0; } else if (t.outcome === "SL") { cl++; cw = 0; } else { cw = 0; cl = 0; } ws = Math.max(ws, cw); ls = Math.max(ls, cl); });
   const avg = (a) => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : 0), pl = list.filter((t) => t.followed_plan), rl = list.filter((t) => t.r_multiple != null);
+  const rrs = (a) => a.filter((t) => t.planned_rr).map((t) => t.planned_rr), sum = (a) => a.reduce((x, y) => x + y, 0);
+  const aW = avg(w.filter((t) => t.r_multiple != null).map(rv)), aL = avg(l.filter((t) => t.r_multiple != null).map(rv)), sW = sum(rrs(w)), sL = sum(rrs(l)), lag = list.filter((t) => t.reversal_gap_min != null).map((t) => t.reversal_gap_min);
   return {
+    exp: n ? (w.length / n) * aW + (l.length / n) * aL : 0, avgWRR: avg(rrs(w)), rrf: sL ? sW / sL : sW ? Infinity : 0, avgLag: lag.length ? avg(lag) : null,
+    buys: list.filter((t) => t.direction === "BUY").length, sells: list.filter((t) => t.direction === "SELL").length,
     n, total, dd, ws, ls, best: Math.max(0, ...list.map(rv)), worst: Math.min(0, ...list.map(rv)),
     adh: pl.length ? (pl.filter((t) => t.followed_plan === "Yes").length / pl.length) * 100 : null, prr: avg(list.filter((t) => t.planned_rr).map((t) => t.planned_rr)),
     wDur: Math.round(avg(w.map((t) => t.duration_min))), lDur: Math.round(avg(l.map((t) => t.duration_min))),
@@ -315,6 +341,16 @@ const bk = (title, rows) => `<div class="card"><div class="ct">${title}</div>${r
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 /* ---------- views ---------- */
+function periodCard(L, st, label, margin) {
+  const kv = (a, b) => `<div><span>${a}</span><b>${b}</b></div>`;
+  return `<div class="card" style="margin:${margin}"><div class="ct">Period summary · ${label}</div><div class="kv">
+    ${kv("Win rate", `<span class="${st.n ? (st.win >= 50 ? "up" : "dn") : ""}">${st.n ? st.win.toFixed(1) + "%" : "-"}</span>`)}${kv("Total trades", st.n)}
+    ${kv("Buy trades", st.buys)}${kv("Sell trades", st.sells)}
+    ${kv("Avg win R:R (planned)", st.avgWRR ? "1:" + st.avgWRR.toFixed(2) : "-")}${kv("Expectancy / trade", `<span class="${cls(st.exp)}">${rs(st.exp)}</span>`)}
+    ${kv("Max win streak", `<span class="up">${st.ws}</span>`)}${kv("Max losing streak", `<span class="dn">${st.ls}</span>`)}
+    ${kv("R:R factor", rf(st.rrf))}${kv("Avg entry after reversal", st.avgLag != null ? dur(Math.round(st.avgLag)) : "-")}</div>
+    <p class="lbl" style="margin:10px 0 0">R:R factor = total planned R:R of winning trades ÷ total planned R:R of losing trades. Expectancy = (win% × avg win R) + (loss% × avg loss R).</p></div>`;
+}
 function dash() {
   const L = rangeTrades(), st = stats(L), tot = st.n || 1;
   const td = fwd().filter((t) => t.trade_date === today()), tp = td.reduce((a, t) => a + rv(t), 0);
@@ -349,7 +385,8 @@ function dash() {
       ${kv("Avg SL / TP distance", `${st.avgSL.toFixed(1)} / ${st.avgTP.toFixed(1)} pts`)}${kv("Avg win / loss duration", `${dur(st.wDur)} / ${dur(st.lDur)}`)}
       ${kv("Avg MAE (heat taken)", `${st.avgMae.toFixed(1)} pts`)}
       ${kv("Plan adherence", `<span class="${st.adh >= 80 ? "up" : ""}">${st.adh != null ? st.adh.toFixed(0) + "%" : "-"}</span>`)}</div></div></div>
-  <div class="bkg">${bk("By NY phase", group(L, (t) => t.session))}${bk("By weekday", group(L, (t) => DAYS[new Date(t.trade_date + "T00:00").getDay()]))}${bk("By setup", group(L, (t) => t.setup))}${bk("By mistake", group(L.filter((t) => t.mistake), (t) => t.mistake))}${bk("By timeframe", group(L, (t) => t.timeframe))}${bk("By side", group(L, (t) => t.direction))}</div>`;
+  ${periodCard(L, st, S.range === "all" ? "All time" : "Last " + S.range + " days", "16px 0 0")}
+  <div class="bkg">${bk("By NY phase", group(L, (t) => t.session))}${bk("By weekday", group(L, (t) => DAYS[new Date(t.trade_date + "T00:00").getDay()]))}${bk("By entry pattern", group(L, (t) => t.entry_pattern))}${bk("By mistake", group(L.filter((t) => t.mistake), (t) => t.mistake))}${bk("By planned R:R", group(L, rrLabel))}${bk("By SL reason (PD array)", group(L.filter((t) => t.sl_pd_array), (t) => t.sl_pd_array))}${bk("By reversal → entry lag", group(L.filter((t) => t.reversal_gap_min != null), lagBucket))}${bk("By side", group(L, (t) => t.direction))}</div>`;
 }
 
 function calView() {
@@ -423,6 +460,12 @@ function preView() {
 
 function journalView(list, st) {
   const f = S.jc, keys = [...f.sel], on = (k) => (f.sel.has(k) ? "on" : "");
+  const sel = (k, all, opts) => `<select data-ff="${k}"><option value="">${all}</option>${opts.map(([v, l]) => `<option value="${v}" ${S.f[k] === v ? "selected" : ""}>${l}</option>`).join("")}</select>`;
+  const base = filtered(true), mfc = ["pat", "ph", "emo", "ath", "ib", "ibtf", "ibb", "inv"].filter((k) => S.f[k]).length;
+  const ppBtns = [["today", "Today"], ["7", "7D"], ["30", "30D"], ["90", "90D"], ["month", "This month"], ["all", "All time"]].map(([k, l]) => `<button class="pill sm ${ppOn(k) ? "on" : ""}" data-pp="${k}">${l}</button>`).join("");
+  const rrChips = RRB.map(([k, l]) => `<button class="pill sm ${S.f.rr.has(k) ? "on" : ""}" data-rr="${k}">${l} <span style="opacity:.55">${base.filter((t) => rrBucket(t) === k).length}</span></button>`).join("");
+  const moreP = S.mf ? `<div class="card" style="margin-bottom:14px"><div class="filters" style="margin:0">${sel("pat", "Entry pattern", PATTERNS.map((x) => [x, x]))}${sel("ph", "NY phase", PHASES.map((x) => [x, x]))}${sel("emo", "Emotion", EMO.map((x) => [x, x]))}${sel("ath", "ATH: any", [["1", "At ATH"], ["0", "Not at ATH"]])}${sel("ib", "Inside bar: any", [["1", "Inside bar"], ["0", "No inside bar"]])}${sel("ibtf", "IB timeframe", [["1H", "1H"], ["15min", "15min"]])}${sel("ibb", "IB bias: any", [["Yes", "Supports bias"], ["No", "Doesn't support"]])}${sel("inv", "Invalidation: any", [["1", "Invalidated"], ["0", "Not invalidated"]])}</div></div>` : "";
+  const periodLbl = S.f.from || S.f.to ? `${S.f.from || "start"} → ${S.f.to || "today"}` : "All time";
   const cnt = (k) => S.trades.filter((t) => k === "all" || (t.trade_type || "forward") === k).length;
   const tabs = [["all", "All"], ["forward", "Forward testing"], ["backtest", "Backtesting"]].map(([k, l]) => `<button class="pill ${S.jt === k ? "on" : ""}" data-jt="${k}">${l} <span style="opacity:.55">${cnt(k)}</span></button>`).join("");
   const ty = (t) => ((t.trade_type || "forward") === "backtest" ? "Backtest" : "Forward");
@@ -432,15 +475,15 @@ function journalView(list, st) {
   const rows = list.map((t) => `<tr><td>${t.trade_date}</td><td><span class="tag">${ty(t)}</span></td><td><span class="tag ${t.direction}">${t.direction}</span></td><td><span class="tag ${t.outcome}">${t.outcome}</span></td>
       <td>${t.entry_price}</td><td>${t.exit_price}</td><td>${t.sl_price ?? "-"}</td><td>${t.tp_price ?? "-"}</td><td>${t.sl_points ?? "-"}</td><td>${t.tp_points ?? "-"}</td><td>${t.planned_rr ? "1:" + t.planned_rr : "-"}</td>
       <td class="${cls(t.r_multiple)}">${rtxt(t)}</td><td>${t.mfe ?? "-"}</td><td>${t.mae ?? "-"}</td>
-      <td>${fmtT(t.entry_time)}</td><td>${fmtT(t.close_time)}</td><td>${dur(t.duration_min)}</td><td>${esc(t.timeframe)}</td><td>${esc(t.session)}</td><td>${esc(t.setup)}</td>
-      <td style="white-space:normal;min-width:240px"><div class="tfl">${cfTags(t)}</div></td><td>${esc(t.followed_plan)}</td><td>${esc(t.mistake)}</td><td>${esc(t.emotion)}</td><td>${t.rating ? t.rating + "/5" : ""}</td>
+      <td>${fmtT(t.entry_time)}</td><td>${fmtT(t.close_time)}</td><td>${dur(t.duration_min)}</td><td>${lagTxt(t)}</td><td>${esc(t.session)}</td><td>${t.ny_gap_time || "-"}</td><td>${esc(t.entry_pattern)}</td>
+      <td style="white-space:normal;min-width:240px"><div class="tfl">${cfTags(t)}</div></td><td style="white-space:normal;min-width:130px"><div class="tfl">${flags(t)}</div></td><td>${esc(t.sl_pd_array)}</td><td>${esc(t.followed_plan)}</td><td>${esc(t.mistake)}</td><td>${esc(t.emotion)}</td><td>${t.rating ? t.rating + "/5" : ""}</td>
       <td>${safeUrl(t.screenshot) ? `<a href="${safeUrl(t.screenshot)}" target="_blank" rel="noopener" style="color:var(--p2)">View</a>` : ""}<button class="x" data-e="${t.id}">Edit</button><button class="x" data-d="${t.id}">Delete</button></td></tr>`).join("");
   const mc = list.map((t) => `<div class="card mcard"><div class="r1"><span><span class="tag">${ty(t)}</span> <span class="tag ${t.direction}">${t.direction}</span> <span class="tag ${t.outcome}">${t.outcome}</span></span><b class="${cls(t.r_multiple)}">${rtxt(t)}</b></div>
       <div class="lbl">${t.trade_date} · ${fmtT(t.entry_time).slice(6)}–${fmtT(t.close_time).slice(6)} · ${dur(t.duration_min)}</div>
       <div class="g2"><div><span class="lbl">Entry → Exit</span><br>${t.entry_price} → ${t.exit_price}</div><div><span class="lbl">SL / TP pts</span><br>${t.sl_points ?? "-"} / ${t.tp_points ?? "-"}</div>
       <div><span class="lbl">Plan RR</span><br>${t.planned_rr ? "1:" + t.planned_rr : "-"}</div><div><span class="lbl">MFE / MAE</span><br>${t.mfe ?? "-"} / ${t.mae ?? "-"}</div></div>
-      ${cfTags(t) ? `<div class="tfl" style="margin-bottom:8px">${cfTags(t)}</div>` : ""}
-      <div class="lbl">${[t.session, t.timeframe, t.setup, t.followed_plan ? "Plan: " + t.followed_plan : "", t.mistake, t.emotion].filter(Boolean).map(esc).join(" · ")}</div>
+      <div class="tfl" style="margin-bottom:8px">${cfTags(t)}${flags(t)}</div>
+      <div class="lbl">${[t.session, t.ny_gap_time ? "Gap " + t.ny_gap_time : "", t.entry_pattern, t.reversal_gap_min != null ? "Rev " + lagTxt(t) : "", t.sl_pd_array ? "SL: " + t.sl_pd_array : "", t.followed_plan ? "Plan: " + t.followed_plan : "", t.mistake, t.emotion].filter(Boolean).map(esc).join(" · ")}</div>
       <div style="margin-top:8px">${safeUrl(t.screenshot) ? `<a href="${safeUrl(t.screenshot)}" target="_blank" rel="noopener" style="color:var(--p2);margin-right:14px">Screenshot</a>` : ""}<button class="x" data-e="${t.id}">Edit</button> <button class="x" data-d="${t.id}">Delete</button></div></div>`).join("");
   const frows = TFS.map((tf) => `<div class="cfr"><button class="cc tfa sm ${on(tf + "|*")}" data-fk="${tf}|*">${tf}</button>${CONF[tf].map((c) => `<button class="cc sm ${on(tf + "|" + c)}" data-fk="${tf}|${esc(c)}">${esc(c)}</button>`).join("")}</div>`).join("");
   const panel = f.open ? `<div class="card" style="margin-bottom:14px"><div class="ph" style="align-items:center"><div class="ct" style="margin:0">Filter by confluence</div>
@@ -450,13 +493,16 @@ function journalView(list, st) {
   return `<div class="ph"><div><h1>Journal</h1><p class="sub">${st.n} trades · <b class="${cls(st.total)}">${rs(st.total)}</b> · ${st.win.toFixed(0)}% win rate · avg ${dur(st.avgDur)}</p></div>
     <button class="btn g" id="exportPdf" ${list.length ? "" : "disabled"} title="Export filtered trades to PDF">Export PDF</button></div>
     <div class="chips" style="margin:0 0 14px">${tabs}</div>
-    <div class="kpis">${kp("Win rate", `<span class="${st.n ? (st.win >= 50 ? "up" : "dn") : ""}">${st.n ? st.win.toFixed(1) + "%" : "-"}</span>`, `${st.tp} TP · ${st.sl} SL · ${st.be} BE`, "var(--lime)")}${kp("Trades", st.n, `of ${S.trades.length} total`, "var(--p2)")}${kp("Total R", `<span class="${cls(st.total)}">${rs(st.total)}</span>`, "matching filter", "var(--blue)")}${kp("Average R", `<span class="${cls(st.avgR)}">${rs(st.avgR)}</span>`, `Plan RR ${st.prr ? "1:" + st.prr.toFixed(2) : "-"}`, "var(--blue)")}${kp("Profit factor", st.pf === Infinity ? "∞" : st.pf.toFixed(2), `Max DD ${st.dd ? "-" : ""}${st.dd.toFixed(2)}R`, "var(--p2)", "wide")}</div>
-    <div class="filters"><select id="fd"><option value="">Buy & Sell</option><option ${S.f.dir === "BUY" ? "selected" : ""}>BUY</option><option ${S.f.dir === "SELL" ? "selected" : ""}>SELL</option></select>
-    <select id="fo"><option value="">TP, SL & BE</option>${["TP", "SL", "BE"].map((o) => `<option ${S.f.out === o ? "selected" : ""}>${o}</option>`).join("")}</select>
-    <input id="ff" type="date" value="${S.f.from}" title="From date"><input id="ft" type="date" value="${S.f.to}" title="To date">
+    <div class="kpis">${kp("Win rate", `<span class="${st.n ? (st.win >= 50 ? "up" : "dn") : ""}">${st.n ? st.win.toFixed(1) + "%" : "-"}</span>`, `${st.tp} TP · ${st.sl} SL · ${st.be} BE`, "var(--lime)")}${kp("Trades", st.n, `of ${S.trades.length} total`, "var(--p2)")}${kp("Total R", `<span class="${cls(st.total)}">${rs(st.total)}</span>`, "matching filter", "var(--blue)")}${kp("Expectancy", `<span class="${cls(st.exp)}">${rs(st.exp)}</span>`, `per trade · Avg R ${sign(st.avgR)}`, "var(--blue)")}${kp("Profit factor", st.pf === Infinity ? "∞" : st.pf.toFixed(2), `Max DD ${st.dd ? "-" : ""}${st.dd.toFixed(2)}R`, "var(--p2)", "wide")}</div>
+    ${periodCard(list, st, periodLbl, "0 0 16px")}
+    <div class="filters">${sel("dir", "Buy & Sell", [["BUY", "BUY"], ["SELL", "SELL"]])}${sel("out", "TP, SL & BE", [["TP", "TP"], ["SL", "SL"], ["BE", "BE"]])}
+    <input type="date" data-ff="from" value="${S.f.from}" title="From date"><input type="date" data-ff="to" value="${S.f.to}" title="To date">
     <button class="pill sm ${keys.length || f.open ? "on" : ""}" id="jco">Confluences${keys.length ? " (" + keys.length + ")" : ""}</button>
-    <button class="pill sm" id="clearF" title="Clear all filters">Clear</button></div>${panel}${active}
-    <div class="card scroll tbl">${rows ? `<table><tr><th>Date</th><th>Type</th><th>Side</th><th>Result</th><th>Entry</th><th>Exit</th><th>SL</th><th>TP</th><th>SL pts</th><th>TP pts</th><th>Plan RR</th><th>R</th><th>MFE</th><th>MAE</th><th>Entry time</th><th>Close time</th><th>Duration</th><th>TF</th><th>Session</th><th>Setup</th><th>Confluences</th><th>Plan?</th><th>Mistake</th><th>Emotion</th><th>Rating</th><th></th></tr>${rows}</table>` : `<div class="empty">${S.trades.length ? "No trades match these filters." : "No trades yet. Log your first NAS100 trade with “New trade”."}</div>`}</div><div class="mc">${mc || `<div class="card empty">${S.trades.length ? "No trades match these filters." : "No trades yet. Tap “New trade”."}</div>`}</div>`;
+    <button class="pill sm ${mfc || S.mf ? "on" : ""}" id="mfo">More filters${mfc ? " (" + mfc + ")" : ""}</button>
+    <button class="pill sm" id="clearF" title="Clear all filters">Clear</button></div>
+    <div class="chips" style="margin:0 0 10px">${ppBtns}</div>
+    <div class="chips" style="margin:0 0 12px"><span class="lbl" style="align-self:center">Planned R:R</span>${rrChips}</div>${moreP}${panel}${active}
+    <div class="card scroll tbl">${rows ? `<table><tr><th>Date</th><th>Type</th><th>Side</th><th>Result</th><th>Entry</th><th>Exit</th><th>SL</th><th>TP</th><th>SL pts</th><th>TP pts</th><th>Plan RR</th><th>R</th><th>MFE</th><th>MAE</th><th>Entry time</th><th>Close time</th><th>Duration</th><th>Rev. lag</th><th>Session</th><th>NY gap</th><th>Pattern</th><th>Confluences</th><th>Flags</th><th>SL reason</th><th>Plan?</th><th>Mistake</th><th>Emotion</th><th>Rating</th><th></th></tr>${rows}</table>` : `<div class="empty">${S.trades.length ? "No trades match these filters." : "No trades yet. Log your first NAS100 trade with “New trade”."}</div>`}</div><div class="mc">${mc || `<div class="card empty">${S.trades.length ? "No trades match these filters." : "No trades yet. Tap “New trade”."}</div>`}</div>`;
 }
 
 /* ---------- premarket popup ---------- */
@@ -539,50 +585,66 @@ function cbody() {
 
 /* ---------- trade popup ---------- */
 function formHtml() {
+  const n = (id, l, ph = "") => `<div><label>${l}</label><input id="${id}" type="number" step="0.01" inputmode="decimal" placeholder="${ph}"></div>`;
+  const o = (a) => a.map((x) => `<option>${x}</option>`).join("");
   return `<div class="f">
   <div class="full"><label>Trade type</label><div class="seg ty" id="ty"><button type="button" data-v="forward">Forward testing</button><button type="button" data-v="backtest">Backtesting</button></div></div>
   <div><label>Side</label><div class="seg" id="sd"><button type="button" data-v="BUY">Buy</button><button type="button" data-v="SELL">Sell</button></div></div>
   <div><label>Result</label><div class="seg" id="oc"><button type="button" data-v="TP">TP</button><button type="button" data-v="SL">SL</button><button type="button" data-v="BE">BE</button></div></div>
-  <div><label>Entry price</label><input id="ep" type="number" step="0.01" inputmode="decimal"></div><div><label>Exit price</label><input id="xp" type="number" step="0.01" inputmode="decimal"></div>
-  <div><label>Stop loss (SL) price</label><input id="sp" type="number" step="0.01" inputmode="decimal"></div><div><label>Take profit (TP) price</label><input id="tp" type="number" step="0.01" inputmode="decimal"></div>
-  <div><label>Entry time</label><input id="et" type="datetime-local"></div><div><label>Close time</label><input id="ct" type="datetime-local"></div>
-  <div><label>Lots</label><input id="lt" type="number" step="0.01" inputmode="decimal"></div><div><label>Profit / loss ($)</label><input id="pl" type="number" step="0.01" inputmode="decimal"></div>
-  <div><label>Setup</label><input id="su" placeholder="e.g. Breakout, FVG, NY open"></div>
-  <div><label>Emotion</label><select id="em"><option value="">-</option><option>Calm</option><option>Confident</option><option>Fearful</option><option>Greedy</option><option>Revenge</option><option>FOMO</option></select></div>
-  <div><label>Timeframe</label><select id="tf"><option value="">-</option><option>1m</option><option>3m</option><option>5m</option><option>15m</option><option>1h</option><option>4h</option></select></div>
-  <div><label>NY phase</label><select id="se"><option value="">-</option><option>NY Manipulation</option><option>NY Reversal</option><option>NY Continuation</option></select></div>
-  <div><label>Max move in favour (MFE, pts)</label><input id="mf" type="number" step="0.01" inputmode="decimal" placeholder="Best price reached after entry"></div><div><label>Max move against (MAE, pts)</label><input id="ma" type="number" step="0.01" inputmode="decimal" placeholder="Worst drawdown after entry"></div>
-  <div><label>Risk % of account</label><input id="rk" type="number" step="0.01" inputmode="decimal"></div><div><label>Fees / commission ($)</label><input id="fe" type="number" step="0.01" inputmode="decimal"></div>
-  <div><label>Followed my plan?</label><select id="fp"><option value="">-</option><option>Yes</option><option>No</option></select></div>
-  <div><label>Mistake</label><select id="mi"><option value="">None</option><option>Early entry</option><option>Late entry</option><option>Moved SL</option><option>Cut winner early</option><option>Over-risked</option><option>Overtrading</option><option>No setup</option><option>Revenge trade</option></select></div>
-  <div><label>Execution rating</label><select id="rt"><option value="">-</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div><div><label>Screenshot link</label><input id="sc" placeholder="TradingView / image URL"></div>
+  ${n("ep", "Entry price")}${n("xp", "Exit price")}${n("sp", "Stop loss (SL) price")}${n("tp", "Take profit (TP) price")}
+  <div><label>Entry date</label><input id="ed" type="date"></div><div><label>Entry time</label><input id="et" type="time"></div>
+  <div><label>Close time</label><input id="ct" type="time"></div><div><label>Market reversal time</label><input id="rv" type="time"></div>
+  <div><label>NY phase</label><select id="se"><option value="">-</option>${o(PHASES)}</select></div><div><label>NY gap time</label><input id="ng" type="time"></div>
+  <div><label>Emotion</label><select id="em"><option value="">-</option>${o(EMO)}</select></div><div><label>Followed my plan?</label><select id="fp"><option value="">-</option><option>Yes</option><option>No</option></select></div>
+  ${n("mf", "Max move in favour (MFE, pts)", "Best price reached after entry")}${n("ma", "Max move against (MAE, pts)", "Worst drawdown after entry")}
+  ${n("rk", "Risk % of account")}<div><label>Execution rating</label><select id="rt"><option value="">-</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div>
+  <div><label>Mistake</label><select id="mi"><option value="">None</option><option>Early entry</option><option>Late entry</option><option>Moved SL</option><option>Cut winner early</option><option>Over-risked</option><option>Overtrading</option><option>No setup</option><option>Revenge trade</option></select></div><div><label>Screenshot link</label><input id="sc" placeholder="TradingView / image URL"></div>
+  <div class="full" id="xb"></div>
   <div class="full"><label>Entry confluences</label><div id="cb"></div></div>
   <div class="full"><label>Notes</label><textarea id="nt" rows="3" placeholder="Why did you take it? What would you change?"></textarea></div>
   <div class="full live" id="lv"></div></div>`;
 }
 
+// Entry pattern, market context, invalidation and SL reason. All tick based, state lives in S.xs
+function xbody() {
+  const X = S.xs, tk = (k, l, on) => `<button type="button" class="tk ${on ? "on" : ""}" data-x="${k}"><i>✓</i>${esc(l)}</button>`, two = (k, a, cur) => `<div class="tks">${a.map((c) => tk(k + "|" + c, c, cur === c)).join("")}</div>`;
+  $("#xb").innerHTML = `<div class="sec"><div class="lbl">Entry pattern</div>${two("pat", PATTERNS, X.pat)}</div>
+  <div class="sec"><div class="lbl">Market context</div>${tk("ath", "Market at all-time high (ATH)", X.ath)}${tk("ib", "Inside bar present", X.ib)}
+    ${X.ib ? `<div class="sub2"><div class="lbl">Inside bar timeframe</div>${two("ibtf", ["1H", "15min"], X.ibtf)}<div class="lbl">Does it support the bias?</div><div class="tks">${tk("ibb|Yes", "Supports bias", X.ibb === "Yes")}${tk("ibb|No", "Doesn't support bias", X.ibb === "No")}</div></div>` : ""}
+    ${tk("inv", "Invalidation", X.inv)}${X.inv ? `<div class="sub2"><div class="tks">${["I.SMT", "SMT"].map((c) => tk("it|" + c, c, X.it.has(c))).join("")}</div></div>` : ""}</div>
+  ${X.o === "SL" ? `<div class="sec"><div class="lbl">Stop loss reason</div>${tk("ret", "Retracement came after my entry", X.ret)}${X.ret ? `<div class="sub2"><div class="lbl">PD array that caused the SL</div>${two("pd", PD, X.pd)}</div>` : ""}</div>` : ""}`;
+  document.querySelectorAll("[data-x]").forEach((b) => (b.onclick = () => {
+    const i = b.dataset.x.indexOf("|"), k = i < 0 ? b.dataset.x : b.dataset.x.slice(0, i), c = i < 0 ? "" : b.dataset.x.slice(i + 1);
+    if (k === "it") X.it.has(c) ? X.it.delete(c) : X.it.add(c); else if (["pat", "ibtf", "ibb", "pd"].includes(k)) X[k] = X[k] === c ? "" : c; else X[k] = !X[k];
+    xbody();
+  }));
+}
+
 async function openForm(t) {
   if (!window.Swal) return noSwal();
   S.editing = t?.id || null;
-  const v = { d: t?.direction || "BUY", o: t?.outcome || "TP", t: t?.trade_type || (S.jt === "backtest" ? "backtest" : "forward") };
+  const v = (S.xs = { d: t?.direction || "BUY", o: t?.outcome || "TP", t: t?.trade_type || (S.jt === "backtest" ? "backtest" : "forward"), pat: t?.entry_pattern || "", ath: !!t?.ath, ib: !!t?.inside_bar, ibtf: t?.inside_bar_tf || "", ibb: t?.inside_bar_bias || "", inv: !!t?.invalidation, it: new Set(t?.invalidation_types || []), ret: !!t?.retracement, pd: t?.sl_pd_array || "" });
   S.cfm = { open: null, data: Object.fromEntries(TFS.map((tf) => [tf, new Set(t?.confluences?.[tf] || [])])) };
   const res = await Swal.fire({
     ...pop("nl-form"), title: t ? "Edit trade" : "New trade", html: formHtml(), confirmButtonText: "Save trade",
     didOpen: () => {
       const set = (id, val) => ($("#" + id).value = val ?? "");
-      set("ep", t?.entry_price); set("xp", t?.exit_price); set("sp", t?.sl_price); set("tp", t?.tp_price); set("et", t?.entry_time); set("ct", t?.close_time);
-      set("lt", t?.lots); set("tf", t?.timeframe); set("se", t?.session); set("mf", t?.mfe); set("ma", t?.mae); set("rk", t?.risk_pct); set("fe", t?.fees); set("fp", t?.followed_plan); set("mi", t?.mistake); set("rt", t?.rating); set("sc", t?.screenshot); set("pl", t?.pnl); set("su", t?.setup); set("em", t?.emotion); set("nt", t?.notes);
+      set("ep", t?.entry_price); set("xp", t?.exit_price); set("sp", t?.sl_price); set("tp", t?.tp_price);
+      set("ed", t ? t.entry_time.slice(0, 10) : today()); set("et", t?.entry_time?.slice(11, 16)); set("ct", t?.close_time?.slice(11, 16)); set("rv", t?.reversal_time?.slice(11, 16)); set("ng", t?.ny_gap_time);
+      set("se", t?.session); set("em", t?.emotion); set("fp", t?.followed_plan); set("mf", t?.mfe); set("ma", t?.mae); set("rk", t?.risk_pct); set("rt", t?.rating); set("mi", t?.mistake); set("sc", t?.screenshot); set("nt", t?.notes);
       const live = () => {
-        const e = +$("#ep").value, x = +$("#xp").value, s = $("#sp").value, p = (v.d === "BUY" ? x - e : e - x), m = (new Date($("#ct").value) - new Date($("#et").value)) / 60000;
+        const e = +$("#ep").value, x = +$("#xp").value, s = $("#sp").value, p = (v.d === "BUY" ? x - e : e - x), d = $("#ed").value, dt = (tm) => (d && tm ? new Date(d + "T" + tm) : null);
+        const en = dt($("#et").value), cl = dt($("#ct").value), rvt = dt($("#rv").value), m = en && cl ? (cl - en) / 60000 : NaN, lag = en && rvt ? Math.round((en - rvt) / 60000) : null;
         const ok = $("#ep").value && $("#xp").value, sl = +s, tpv = $("#tp").value, slp = s ? Math.abs(e - sl) : null, tpp = tpv ? Math.abs(+tpv - e) : null;
-        $("#lv").innerHTML = `<div><div class="lbl">Entry → SL</div><b>${slp != null ? slp.toFixed(1) + " pts" : "-"}</b></div><div><div class="lbl">Entry → TP</div><b>${tpp != null ? tpp.toFixed(1) + " pts" : "-"}</b></div><div><div class="lbl">Planned RR</div><b>${slp && tpp ? "1:" + (tpp / slp).toFixed(2) : "-"}</b></div><div><div class="lbl">R result</div><b>${ok && s && slp ? sign(p / slp) + "R" : "-"}</b></div><div><div class="lbl">Duration</div><b>${m >= 0 ? dur(Math.round(m)) : "-"}</b></div>`;
+        $("#lv").innerHTML = `<div><div class="lbl">Entry → SL</div><b>${slp != null ? slp.toFixed(1) + " pts" : "-"}</b></div><div><div class="lbl">Entry → TP</div><b>${tpp != null ? tpp.toFixed(1) + " pts" : "-"}</b></div><div><div class="lbl">Planned RR</div><b>${slp && tpp ? "1:" + (tpp / slp).toFixed(2) : "-"}</b></div><div><div class="lbl">R result</div><b>${ok && s && slp ? sign(p / slp) + "R" : "-"}</b></div><div><div class="lbl">Duration</div><b>${m >= 0 ? dur(Math.round(m)) : "-"}</b></div><div><div class="lbl">Entry vs reversal</div><b>${lag != null ? dur(Math.abs(lag)) + (lag >= 0 ? " after" : " before") : "-"}</b></div>`;
       };
-      const seg = (id, key) => { const el = $("#" + id), paint = () => el.querySelectorAll("button").forEach((b) => b.classList.toggle("on", b.dataset.v === v[key])); el.querySelectorAll("button").forEach((b) => (b.onclick = () => { v[key] = b.dataset.v; paint(); live(); })); paint(); };
-      seg("sd", "d"); seg("oc", "o"); seg("ty", "t"); cbody(); ["ep", "xp", "sp", "tp", "et", "ct"].forEach((i) => ($("#" + i).oninput = live)); live();
+      const seg = (id, key) => { const el = $("#" + id), paint = () => el.querySelectorAll("button").forEach((b) => b.classList.toggle("on", b.dataset.v === v[key])); el.querySelectorAll("button").forEach((b) => (b.onclick = () => { v[key] = b.dataset.v; paint(); live(); xbody(); })); paint(); };
+      seg("sd", "d"); seg("oc", "o"); seg("ty", "t"); cbody(); xbody(); ["ep", "xp", "sp", "tp", "ed", "et", "ct", "rv"].forEach((i) => ($("#" + i).oninput = live)); live();
     },
     preConfirm: async () => {
-      const g = (id) => $("#" + id).value;
-      const body = { direction: v.d, outcome: v.o, entry_price: g("ep"), exit_price: g("xp"), sl_price: g("sp"), tp_price: g("tp"), entry_time: g("et"), close_time: g("ct"), lots: g("lt"), timeframe: g("tf"), session: g("se"), mfe: g("mf"), mae: g("ma"), risk_pct: g("rk"), fees: g("fe"), followed_plan: g("fp"), mistake: g("mi"), rating: g("rt"), screenshot: g("sc"), pnl: g("pl"), setup: g("su"), emotion: g("em"), notes: g("nt"), trade_type: v.t, confluences: Object.fromEntries(TFS.map((tf) => [tf, [...S.cfm.data[tf]]])) };
+      const g = (id) => $("#" + id).value, d = g("ed"), at = (tm) => (d && tm ? `${d}T${tm}` : "");
+      const body = { direction: v.d, outcome: v.o, entry_price: g("ep"), exit_price: g("xp"), sl_price: g("sp"), tp_price: g("tp"), entry_time: at(g("et")), close_time: at(g("ct")), reversal_time: at(g("rv")), ny_gap_time: g("ng"), session: g("se"), emotion: g("em"), followed_plan: g("fp"), mfe: g("mf"), mae: g("ma"), risk_pct: g("rk"), rating: g("rt"), mistake: g("mi"), screenshot: g("sc"), notes: g("nt"), trade_type: v.t,
+        entry_pattern: v.pat, ath: v.ath, inside_bar: v.ib, inside_bar_tf: v.ibtf, inside_bar_bias: v.ibb, invalidation: v.inv, invalidation_types: [...v.it], retracement: v.ret, sl_pd_array: v.pd, confluences: Object.fromEntries(TFS.map((tf) => [tf, [...S.cfm.data[tf]]])) };
       try { await api("/api/trades" + (S.editing ? "/" + S.editing : ""), S.editing ? "PUT" : "POST", body); return true; }
       catch (e) { Swal.showValidationMessage(e.message); return false; }
     },
@@ -622,7 +684,7 @@ function exportPdf(list, st) {
   const from = S.f.from || (list.length ? list[list.length - 1].trade_date : "");
   const to = S.f.to || (list.length ? list[0].trade_date : "");
   const rangeTxt = from && to ? (from + "  to  " + to) : from || to || "All dates";
-  const keys = [...S.jc.sel], filt = [S.jt === "all" ? "" : S.jt === "forward" ? "Forward testing" : "Backtesting", S.f.dir, S.f.out, keys.length ? (S.jc.mode === "all" ? "ALL: " : "ANY: ") + keys.map((k) => k.replace("|*", "").replace("|", " ")).join(", ") : ""].filter(Boolean).join(" · ") || "No filters";
+  const keys = [...S.jc.sel], filt = [S.jt === "all" ? "" : S.jt === "forward" ? "Forward testing" : "Backtesting", S.f.dir, S.f.out, S.f.pat, S.f.ph, [...S.f.rr].map((k) => "1:" + k).join("/"), keys.length ? (S.jc.mode === "all" ? "ALL: " : "ANY: ") + keys.map((k) => k.replace("|*", "").replace("|", " ")).join(", ") : ""].filter(Boolean).join(" · ") || "No filters";
   const exported = new Date().toLocaleString("en", { dateStyle: "medium", timeStyle: "short" });
 
   // Background
@@ -693,7 +755,7 @@ function exportPdf(list, st) {
     { label: "Total R", val: rs(st.total), color: st.total >= 0 ? [34, 160, 60] : [200, 50, 70] },
     { label: "Win rate", val: st.win.toFixed(1) + "%" },
     { label: "Profit factor", val: st.pf === Infinity ? "∞" : st.pf.toFixed(2) },
-    { label: "Avg R", val: rs(st.avgR) },
+    { label: "Expectancy", val: rs(st.exp) }, { label: "R:R factor", val: rf(st.rrf) },
     { label: "Max DD", val: (st.dd ? "-" : "") + st.dd.toFixed(2) + "R" },
   ];
   const pillW = (pageW - margin * 2 - (kpis.length - 1) * 4) / kpis.length;
@@ -717,11 +779,11 @@ function exportPdf(list, st) {
 
   // Table
   const cf = (t) => TFS.filter((tf) => (t.confluences?.[tf] || []).length).map((tf) => tf + ": " + t.confluences[tf].join(", ")).join("\n") || "-";
-  const head = [["Date", "Type", "Side", "Result", "Entry", "Exit", "R", "Dur", "TF", "Session", "Setup", "Confluences", "Plan", "Mistake"]];
+  const head = [["Date", "Type", "Side", "Result", "Entry", "Exit", "R", "Plan RR", "Dur", "Rev lag", "Session", "Pattern", "Confluences", "Flags", "Plan", "Mistake"]];
   const body = list.map((t) => [
     t.trade_date, (t.trade_type || "forward") === "backtest" ? "Backtest" : "Forward", t.direction, t.outcome, t.entry_price, t.exit_price,
-    t.r_multiple != null ? rs(t.r_multiple) : "-", dur(t.duration_min),
-    t.timeframe || "-", t.session || "-", (t.setup || "-").slice(0, 16), cf(t), t.followed_plan || "-", (t.mistake || "-").slice(0, 12),
+    t.r_multiple != null ? rs(t.r_multiple) : "-", t.planned_rr ? "1:" + t.planned_rr : "-", dur(t.duration_min), lagTxt(t),
+    t.session || "-", t.entry_pattern || "-", cf(t), flagList(t).join(", ") || "-", t.followed_plan || "-", (t.mistake || "-").slice(0, 12),
   ]);
 
   doc.autoTable({
@@ -730,7 +792,7 @@ function exportPdf(list, st) {
     headStyles: { fillColor: [124, 58, 237], textColor: 255, fontStyle: "bold", fontSize: 8, cellPadding: 2.5 },
     alternateRowStyles: { fillColor: [255, 255, 255] },
     bodyStyles: { fillColor: [252, 251, 255] },
-    columnStyles: { 0: { cellWidth: 22 }, 1: { cellWidth: 16 }, 2: { cellWidth: 13 }, 3: { cellWidth: 14 }, 6: { halign: "right", fontStyle: "bold" }, 11: { cellWidth: 48 } },
+    columnStyles: { 0: { cellWidth: 22 }, 1: { cellWidth: 16 }, 2: { cellWidth: 13 }, 3: { cellWidth: 14 }, 6: { halign: "right", fontStyle: "bold" }, 12: { cellWidth: 40 } },
     didParseCell: (data) => {
       if (data.section !== "body") return;
       const raw = data.cell.raw, i = data.column.index;
@@ -822,14 +884,14 @@ function render() {
   document.querySelectorAll("[data-pe]").forEach((b) => (b.onclick = () => openPerf(b.dataset.pe)));
   document.querySelectorAll("[data-pd]").forEach((b) => (b.onclick = async () => { if (await ask("Delete this day's performance?", "This can't be undone.")) { await api("/api/routine/logs/" + b.dataset.pd, "DELETE"); S.logs = await api("/api/routine/logs"); render(); toast("Performance deleted"); } }));
   if ($("#cp")) { $("#cp").onclick = () => { if (--S.cal.m < 0) { S.cal.m = 11; S.cal.y--; } render(); }; $("#cn").onclick = () => { if (++S.cal.m > 11) { S.cal.m = 0; S.cal.y++; } render(); }; }
-  document.querySelectorAll("[data-day]").forEach((c) => (c.onclick = () => { S.f = { dir: "", out: "", from: c.dataset.day, to: c.dataset.day }; S.jt = "forward"; S.jc.sel = new Set(); go("journal"); }));
+  document.querySelectorAll("[data-day]").forEach((c) => (c.onclick = () => { S.f = { ...F0(), from: c.dataset.day, to: c.dataset.day }; S.jt = "forward"; S.jc.sel = new Set(); go("journal"); }));
   document.querySelectorAll("[data-e]").forEach((b) => (b.onclick = () => openForm(S.trades.find((t) => t.id == b.dataset.e))));
   document.querySelectorAll("[data-d]").forEach((b) => (b.onclick = async () => { if (await ask("Delete this trade?", "This can't be undone.")) { await api("/api/trades/" + b.dataset.d, "DELETE"); await load(); toast("Trade deleted"); } }));
-  if ($("#fd")) {
-    const u = () => { S.f = { dir: $("#fd").value, out: $("#fo").value, from: $("#ff").value, to: $("#ft").value }; render(); };
-    ["#fd", "#fo", "#ff", "#ft"].forEach((s) => ($(s).onchange = u));
-    if ($("#clearF")) $("#clearF").onclick = () => { S.f = { dir: "", out: "", from: "", to: "" }; S.jc.sel = new Set(); render(); };
-  }
+  document.querySelectorAll("[data-ff]").forEach((el) => (el.onchange = () => { S.f[el.dataset.ff] = el.value; render(); }));
+  document.querySelectorAll("[data-pp]").forEach((b) => (b.onclick = () => { [S.f.from, S.f.to] = ppRange(b.dataset.pp); render(); }));
+  document.querySelectorAll("[data-rr]").forEach((b) => (b.onclick = () => { const k = b.dataset.rr; S.f.rr.has(k) ? S.f.rr.delete(k) : S.f.rr.add(k); render(); }));
+  if ($("#mfo")) $("#mfo").onclick = () => { S.mf = !S.mf; render(); };
+  if ($("#clearF")) $("#clearF").onclick = () => { S.f = F0(); S.jc.sel = new Set(); render(); };
   if ($("#exportPdf")) $("#exportPdf").onclick = () => exportPdf(list, st);
 }
 

@@ -44,6 +44,16 @@ try { await db.execute("ALTER TABLE trades ADD COLUMN trade_type TEXT DEFAULT 'f
 try { await db.execute("ALTER TABLE trades ADD COLUMN confluences TEXT"); } catch {}
 try { await db.execute("ALTER TABLE routine_logs ADD COLUMN notes TEXT"); } catch {}
 
+// New journal fields
+const NEW2 = { entry_pattern: "TEXT", ny_gap_time: "TEXT", retracement: "INTEGER", sl_pd_array: "TEXT", ath: "INTEGER", inside_bar: "INTEGER", inside_bar_tf: "TEXT", inside_bar_bias: "TEXT", invalidation: "INTEGER", invalidation_types: "TEXT", reversal_time: "TEXT", reversal_gap_min: "INTEGER" };
+for (const [c, t] of Object.entries(NEW2)) { try { await db.execute(`ALTER TABLE trades ADD COLUMN ${c} ${t}`); } catch {} }
+// Old data: rename emotions, and carry over old setups that match the new entry patterns
+try {
+  await db.execute("UPDATE trades SET emotion='Neutral' WHERE emotion='Calm'");
+  await db.execute("UPDATE trades SET emotion='Over confident' WHERE emotion='Confident'");
+  await db.execute("UPDATE trades SET entry_pattern=setup WHERE entry_pattern IS NULL AND setup IN ('Perfect Man','Late Guest','Ghost Shadow','Left Over Eater')");
+} catch {}
+
 const auth = (req, res, next) => {
   try {
     req.uid = jwt.verify((req.headers.authorization || "").replace("Bearer ", ""), SECRET).uid;
@@ -69,30 +79,39 @@ app.post("/api/auth/login", async (req, res) => {
   res.json(token(u));
 });
 
-// R multiple and duration are calculated here so they are always consistent
+const PATTERNS = ["Perfect Man", "Late Guest", "Ghost Shadow", "Left Over Eater"];
+const PD = ["FVG", "IFVG", "OB", "Breaker", "Mitigation Block", "Rejection Block", "Propulsion Block", "Liquidity", "Premium / Discount", "Old High / Low", "Other"];
+const COLS = "trade_date,direction,outcome,entry_price,exit_price,sl_price,tp_price,r_multiple,entry_time,close_time,duration_min,emotion,notes,sl_points,tp_points,planned_rr,mfe,mae,session,risk_pct,followed_plan,mistake,rating,screenshot,trade_type,confluences,entry_pattern,ny_gap_time,retracement,sl_pd_array,ath,inside_bar,inside_bar_tf,inside_bar_bias,invalidation,invalidation_types,reversal_time,reversal_gap_min";
+
+// R multiple, duration and reversal gap are calculated here so they are always consistent
 function calc(t) {
-  const entry = +t.entry_price, exit = +t.exit_price, sl = t.sl_price === "" || t.sl_price == null ? null : +t.sl_price;
+  const num = (v) => (v === "" || v == null ? null : +v);
+  const entry = +t.entry_price, exit = +t.exit_price, sl = num(t.sl_price);
   const move = t.direction === "BUY" ? exit - entry : entry - exit;
   const risk = sl != null ? Math.abs(entry - sl) : 0;
-  const duration = Math.max(0, Math.round((new Date(t.close_time) - new Date(t.entry_time)) / 60000));
-  const num = (v) => (v === "" || v == null ? null : +v);
+  const mins = (a, b) => Math.round((new Date(a) - new Date(b)) / 60000);
   const slp = sl != null ? +Math.abs(entry - sl).toFixed(2) : null;
   const tpp = num(t.tp_price) != null ? +Math.abs(+t.tp_price - entry).toFixed(2) : null;
-  return [
-    String(t.entry_time).slice(0, 10), t.direction, t.outcome, entry, exit, sl, num(t.tp_price),
-    risk ? +(move / risk).toFixed(2) : null, num(t.lots), num(t.pnl),
-    t.entry_time, t.close_time, duration, t.setup || "", t.emotion || "", t.notes || "",
-    slp, tpp, slp && tpp ? +(tpp / slp).toFixed(2) : null, num(t.mfe), num(t.mae),
-    t.session || "", t.timeframe || "", num(t.risk_pct), num(t.fees), t.followed_plan || "", t.mistake || "", num(t.rating), t.screenshot || "",
-    t.trade_type === "backtest" ? "backtest" : "forward", JSON.stringify(cleanConf(t.confluences)),
-  ];
+  const isSL = t.outcome === "SL", ib = t.inside_bar ? 1 : 0, inv = t.invalidation ? 1 : 0, ret = isSL && t.retracement ? 1 : 0;
+  const row = {
+    trade_date: String(t.entry_time).slice(0, 10), direction: t.direction, outcome: t.outcome, entry_price: entry, exit_price: exit, sl_price: sl, tp_price: num(t.tp_price),
+    r_multiple: risk ? +(move / risk).toFixed(2) : null, entry_time: t.entry_time, close_time: t.close_time, duration_min: Math.max(0, mins(t.close_time, t.entry_time)),
+    emotion: t.emotion || "", notes: t.notes || "", sl_points: slp, tp_points: tpp, planned_rr: slp && tpp ? +(tpp / slp).toFixed(2) : null, mfe: num(t.mfe), mae: num(t.mae),
+    session: t.session || "", risk_pct: num(t.risk_pct), followed_plan: t.followed_plan || "", mistake: t.mistake || "", rating: num(t.rating), screenshot: t.screenshot || "",
+    trade_type: t.trade_type === "backtest" ? "backtest" : "forward", confluences: JSON.stringify(cleanConf(t.confluences)),
+    entry_pattern: PATTERNS.includes(t.entry_pattern) ? t.entry_pattern : "", ny_gap_time: /^\d{2}:\d{2}$/.test(t.ny_gap_time || "") ? t.ny_gap_time : "",
+    retracement: ret, sl_pd_array: ret && PD.includes(t.sl_pd_array) ? t.sl_pd_array : "", ath: t.ath ? 1 : 0,
+    inside_bar: ib, inside_bar_tf: ib && ["1H", "15min"].includes(t.inside_bar_tf) ? t.inside_bar_tf : "", inside_bar_bias: ib && ["Yes", "No"].includes(t.inside_bar_bias) ? t.inside_bar_bias : "",
+    invalidation: inv, invalidation_types: JSON.stringify(inv && Array.isArray(t.invalidation_types) ? ["I.SMT", "SMT"].filter((x) => t.invalidation_types.includes(x)) : []),
+    reversal_time: t.reversal_time || "", reversal_gap_min: t.reversal_time ? mins(t.entry_time, t.reversal_time) : null,
+  };
+  return COLS.split(",").map((c) => row[c] ?? null);
 }
-const COLS = "trade_date,direction,outcome,entry_price,exit_price,sl_price,tp_price,r_multiple,lots,pnl,entry_time,close_time,duration_min,setup,emotion,notes,sl_points,tp_points,planned_rr,mfe,mae,session,timeframe,risk_pct,fees,followed_plan,mistake,rating,screenshot,trade_type,confluences";
 const valid = (t) => ["BUY", "SELL"].includes(t.direction) && ["TP", "SL", "BE"].includes(t.outcome) && t.entry_price !== "" && t.exit_price !== "" && t.entry_time && t.close_time && new Date(t.close_time) >= new Date(t.entry_time);
 
 app.get("/api/trades", auth, async (req, res) => {
   const r = await db.execute({ sql: "SELECT * FROM trades WHERE user_id=? ORDER BY entry_time DESC", args: [req.uid] });
-  res.json(r.rows.map((t) => ({ ...t, confluences: parseJson(t.confluences) })));
+  res.json(r.rows.map((t) => ({ ...t, confluences: parseJson(t.confluences), invalidation_types: parseArr(t.invalidation_types) })));
 });
 app.post("/api/trades", auth, async (req, res) => {
   if (!valid(req.body)) return res.status(400).json({ error: "Check direction, outcome, prices and times (close must be after entry)" });
@@ -183,6 +202,7 @@ const cleanConf = (raw) => {
   }
   return out;
 };
+const parseArr = (v) => { try { const a = JSON.parse(v || "[]"); return Array.isArray(a) ? a : []; } catch { return []; } };
 const parseJson = (v) => { try { return JSON.parse(v || "{}"); } catch { return {}; } };
 
 app.get("/", (_, res) => res.send("NAS100 journal API running"));
