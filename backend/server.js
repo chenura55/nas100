@@ -33,16 +33,15 @@ await db.batch([
     id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, log_date TEXT NOT NULL,
     items TEXT, total INTEGER, done INTEGER, score REAL, created_at TEXT DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(user_id, log_date))`,
-  `CREATE TABLE IF NOT EXISTS confluence_logs (
-    id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, log_date TEXT NOT NULL,
-    data TEXT, notes TEXT, created_at TEXT DEFAULT CURRENT_TIMESTAMP)`,
-  `CREATE INDEX IF NOT EXISTS idx_confluence_user ON confluence_logs(user_id, log_date)`,
 ]);
 
 // Auto-migrate: adds new columns to an existing database without losing data
 const NEW = { sl_points: "REAL", tp_points: "REAL", planned_rr: "REAL", mfe: "REAL", mae: "REAL", session: "TEXT", timeframe: "TEXT", risk_pct: "REAL", fees: "REAL", followed_plan: "TEXT", mistake: "TEXT", rating: "INTEGER", screenshot: "TEXT" };
 for (const [c, t] of Object.entries(NEW)) { try { await db.execute(`ALTER TABLE trades ADD COLUMN ${c} ${t}`); } catch {} }
 
+// trade_type = forward | backtest. confluences = JSON of ticked confluences per timeframe
+try { await db.execute("ALTER TABLE trades ADD COLUMN trade_type TEXT DEFAULT 'forward'"); } catch {}
+try { await db.execute("ALTER TABLE trades ADD COLUMN confluences TEXT"); } catch {}
 try { await db.execute("ALTER TABLE routine_logs ADD COLUMN notes TEXT"); } catch {}
 
 const auth = (req, res, next) => {
@@ -70,10 +69,10 @@ app.post("/api/auth/login", async (req, res) => {
   res.json(token(u));
 });
 
-// Points, R multiple and duration are calculated here so they are always consistent
+// R multiple and duration are calculated here so they are always consistent
 function calc(t) {
   const entry = +t.entry_price, exit = +t.exit_price, sl = t.sl_price === "" || t.sl_price == null ? null : +t.sl_price;
-  const points = +((t.direction === "BUY" ? exit - entry : entry - exit).toFixed(2));
+  const move = t.direction === "BUY" ? exit - entry : entry - exit;
   const risk = sl != null ? Math.abs(entry - sl) : 0;
   const duration = Math.max(0, Math.round((new Date(t.close_time) - new Date(t.entry_time)) / 60000));
   const num = (v) => (v === "" || v == null ? null : +v);
@@ -81,18 +80,19 @@ function calc(t) {
   const tpp = num(t.tp_price) != null ? +Math.abs(+t.tp_price - entry).toFixed(2) : null;
   return [
     String(t.entry_time).slice(0, 10), t.direction, t.outcome, entry, exit, sl, num(t.tp_price),
-    points, risk ? +(points / risk).toFixed(2) : null, num(t.lots), num(t.pnl),
+    risk ? +(move / risk).toFixed(2) : null, num(t.lots), num(t.pnl),
     t.entry_time, t.close_time, duration, t.setup || "", t.emotion || "", t.notes || "",
     slp, tpp, slp && tpp ? +(tpp / slp).toFixed(2) : null, num(t.mfe), num(t.mae),
     t.session || "", t.timeframe || "", num(t.risk_pct), num(t.fees), t.followed_plan || "", t.mistake || "", num(t.rating), t.screenshot || "",
+    t.trade_type === "backtest" ? "backtest" : "forward", JSON.stringify(cleanConf(t.confluences)),
   ];
 }
-const COLS = "trade_date,direction,outcome,entry_price,exit_price,sl_price,tp_price,points,r_multiple,lots,pnl,entry_time,close_time,duration_min,setup,emotion,notes,sl_points,tp_points,planned_rr,mfe,mae,session,timeframe,risk_pct,fees,followed_plan,mistake,rating,screenshot";
+const COLS = "trade_date,direction,outcome,entry_price,exit_price,sl_price,tp_price,r_multiple,lots,pnl,entry_time,close_time,duration_min,setup,emotion,notes,sl_points,tp_points,planned_rr,mfe,mae,session,timeframe,risk_pct,fees,followed_plan,mistake,rating,screenshot,trade_type,confluences";
 const valid = (t) => ["BUY", "SELL"].includes(t.direction) && ["TP", "SL", "BE"].includes(t.outcome) && t.entry_price !== "" && t.exit_price !== "" && t.entry_time && t.close_time && new Date(t.close_time) >= new Date(t.entry_time);
 
 app.get("/api/trades", auth, async (req, res) => {
   const r = await db.execute({ sql: "SELECT * FROM trades WHERE user_id=? ORDER BY entry_time DESC", args: [req.uid] });
-  res.json(r.rows);
+  res.json(r.rows.map((t) => ({ ...t, confluences: parseJson(t.confluences) })));
 });
 app.post("/api/trades", auth, async (req, res) => {
   if (!valid(req.body)) return res.status(400).json({ error: "Check direction, outcome, prices and times (close must be after entry)" });
@@ -165,7 +165,7 @@ app.delete("/api/routine/logs/:id", auth, async (req, res) => {
 });
 
 // ---------- Entry confluences ----------
-// Each record = one entry idea: a date + the confluences ticked on every timeframe BEFORE entering.
+// Each trade stores the confluences ticked on every timeframe BEFORE entering.
 const CONF = {
   "1D": ["SCB", "PDH/PDL taken"],
   "1H": ["SCB", "I.SMT", "E.SMT"],
@@ -183,34 +183,7 @@ const cleanConf = (raw) => {
   }
   return out;
 };
-const confArgs = (b) => {
-  const date = String(b.log_date || "").slice(0, 10);
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return { error: "Pick a valid date" };
-  const data = cleanConf(b.data);
-  if (!Object.keys(data).length) return { error: "Tick at least one confluence" };
-  return { args: [date, JSON.stringify(data), String(b.notes || "").trim().slice(0, 1000)] };
-};
-
-app.get("/api/confluence", auth, async (req, res) => {
-  const r = await db.execute({ sql: "SELECT * FROM confluence_logs WHERE user_id=? ORDER BY log_date DESC, id DESC", args: [req.uid] });
-  res.json(r.rows.map((l) => ({ ...l, data: JSON.parse(l.data || "{}") })));
-});
-app.post("/api/confluence", auth, async (req, res) => {
-  const c = confArgs(req.body);
-  if (c.error) return res.status(400).json({ error: c.error });
-  await db.execute({ sql: "INSERT INTO confluence_logs (user_id,log_date,data,notes) VALUES (?,?,?,?)", args: [req.uid, ...c.args] });
-  res.json({ ok: true });
-});
-app.put("/api/confluence/:id", auth, async (req, res) => {
-  const c = confArgs(req.body);
-  if (c.error) return res.status(400).json({ error: c.error });
-  await db.execute({ sql: "UPDATE confluence_logs SET log_date=?,data=?,notes=? WHERE id=? AND user_id=?", args: [...c.args, req.params.id, req.uid] });
-  res.json({ ok: true });
-});
-app.delete("/api/confluence/:id", auth, async (req, res) => {
-  await db.execute({ sql: "DELETE FROM confluence_logs WHERE id=? AND user_id=?", args: [req.params.id, req.uid] });
-  res.json({ ok: true });
-});
+const parseJson = (v) => { try { return JSON.parse(v || "{}"); } catch { return {}; } };
 
 app.get("/", (_, res) => res.send("NAS100 journal API running"));
 app.listen(process.env.PORT || 3000, () => console.log("API up"));

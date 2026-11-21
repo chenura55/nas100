@@ -119,7 +119,7 @@ td{padding:12px 8px;border-top:1px solid var(--line);white-space:nowrap}
 .cc.on{background:var(--p);border-color:var(--p2);color:#fff;font-weight:600}
 .cc.sm{padding:7px 14px;font-size:13px}.cc.tfa{font-weight:600;border-color:#ffffff22}
 .cfr{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:10px 0;border-top:1px solid var(--line)}.cfr:first-of-type{border-top:0}.cfr .cc.tfa{min-width:64px}
-.seg.m{width:150px}.seg.m button.on{background:#fff;color:#000}
+.seg.m{width:150px}.seg.m button.on,.seg.ty button.on{background:#fff;color:#000}
 .tfl{display:flex;gap:6px;flex-wrap:wrap;flex-basis:100%}.tfl .tag b{color:var(--p2);font-weight:600;margin-right:4px}
 /* auth */
 .auth{max-width:400px;margin:12vh auto;padding:28px}.auth input{margin:6px 0;padding:13px}
@@ -187,7 +187,7 @@ td{padding:12px 8px;border-top:1px solid var(--line);white-space:nowrap}
 const API = location.hostname === "localhost" || location.protocol === "file:" ? "http://localhost:3000" : "https://nas100.onrender.com";
 
 const $ = (s) => document.querySelector(s);
-let S = { token: localStorage.token, user: JSON.parse(localStorage.user || "null"), trades: [], routine: [], logs: [], cfs: [], cf: { mode: "all", sel: new Set(), from: "", to: "" }, cfm: null, pm: { done: new Set() }, view: "dashboard", range: "all", mode: "login", f: { dir: "", out: "", from: "", to: "" }, editing: null, cal: { y: new Date().getFullYear(), m: new Date().getMonth() } };
+let S = { token: localStorage.token, user: JSON.parse(localStorage.user || "null"), trades: [], routine: [], logs: [], jt: "all", jc: { mode: "all", sel: new Set(), open: false }, cfm: null, pm: { done: new Set() }, view: "dashboard", range: "all", mode: "login", f: { dir: "", out: "", from: "", to: "" }, editing: null, cal: { y: new Date().getFullYear(), m: new Date().getMonth() } };
 
 async function api(path, method = "GET", body) {
   const r = await fetch(API + path, { method, headers: { "Content-Type": "application/json", Authorization: "Bearer " + S.token }, body: body && JSON.stringify(body) });
@@ -216,13 +216,12 @@ const ICON = {
   calendar: `<svg class="ic" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="3"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>`,
   premarket: `<svg class="ic" viewBox="0 0 24 24"><path d="M12 3v3M4.9 6.9l2.1 2.1M19.1 6.9L17 9M2 16h2M20 16h2M7 16a5 5 0 0110 0M3 20h18"/></svg>`,
   journal: `<svg class="ic" viewBox="0 0 24 24"><path d="M4 4h12a4 4 0 014 4v12H8a4 4 0 01-4-4z"/><path d="M8 9h8M8 13h6"/></svg>`,
-  confluence: `<svg class="ic" viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>`,
   out: `<svg class="ic" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>`,
 };
 
 async function load() {
-  const [t, r, g, c] = await Promise.all([api("/api/trades"), api("/api/routine"), api("/api/routine/logs"), api("/api/confluence")]);
-  S.trades = t; S.routine = r; S.logs = g; S.cfs = c; render();
+  const [t, r, g] = await Promise.all([api("/api/trades"), api("/api/routine"), api("/api/routine/logs")]);
+  S.trades = t; S.routine = r; S.logs = g; render();
 }
 
 /* ---------- popups (SweetAlert2) ---------- */
@@ -240,36 +239,47 @@ const ask = async (title, text, btn = "Delete") => window.Swal
 const toast = (title, icon = "success") => window.Swal && Swal.fire({ toast: true, position: isMob() ? "top" : "top-end", icon, iconColor: icon === "success" ? "#c6f432" : "#f0627a", title, showConfirmButton: false, timer: 2200, timerProgressBar: true, background: "#242427", color: "#f4f4f6", customClass: { popup: "nl-toast" } });
 
 /* ---------- maths + charts ---------- */
+const rv = (t) => t.r_multiple ?? 0, rs = (n) => sign(n) + "R";
+const isFwd = (t) => (t.trade_type || "forward") === "forward", fwd = () => S.trades.filter(isFwd);
+const CONF = { "1D": ["SCB", "PDH/PDL taken"], "1H": ["SCB", "I.SMT", "E.SMT"], "15min": ["SCB", "I.SMT", "E.SMT"], "5min": ["SCB", "I.SMT", "E.SMT", "SMT", "IFVG"], "1min": ["I.SMT", "SMT", "MSS", "IFVG"] };
+const TFS = Object.keys(CONF);
+// filter key = "timeframe|confluence". "15min|*" means: any confluence ticked on 15min
+const cfHas = (r, k) => { const i = k.indexOf("|"), tf = k.slice(0, i), c = k.slice(i + 1), a = r.confluences?.[tf] || []; return c === "*" ? a.length > 0 : a.includes(c); };
+// Journal filter: trade type tab + side + result + dates + confluences
 function filtered() {
-  const { dir, out, from, to } = S.f;
-  return S.trades.filter((t) => (!dir || t.direction === dir) && (!out || t.outcome === out) && (!from || t.trade_date >= from) && (!to || t.trade_date <= to));
+  const { dir, out, from, to } = S.f, { mode, sel } = S.jc, keys = [...sel];
+  return S.trades.filter((t) => (S.jt === "all" || (t.trade_type || "forward") === S.jt) && (!dir || t.direction === dir) && (!out || t.outcome === out) && (!from || t.trade_date >= from) && (!to || t.trade_date <= to)
+    && (!keys.length || (mode === "all" ? keys.every((k) => cfHas(t, k)) : keys.some((k) => cfHas(t, k)))));
 }
+// Dashboard + calendar only count forward-testing trades, so backtests never mix with live results
 function rangeTrades() {
-  if (S.range === "all") return S.trades;
+  const base = fwd();
+  if (S.range === "all") return base;
   const c = new Date(); c.setDate(c.getDate() - +S.range); const k = dstr(c);
-  return S.trades.filter((t) => t.trade_date >= k);
+  return base.filter((t) => t.trade_date >= k);
 }
 
 function stats(list) {
-  const n = list.length, w = list.filter((t) => t.points > 0), l = list.filter((t) => t.points < 0);
-  const total = list.reduce((a, t) => a + t.points, 0), gp = w.reduce((a, t) => a + t.points, 0), gl = Math.abs(l.reduce((a, t) => a + t.points, 0));
-  const rs = list.filter((t) => t.r_multiple != null);
+  const n = list.length, w = list.filter((t) => t.outcome === "TP"), l = list.filter((t) => t.outcome === "SL");
+  const total = list.reduce((a, t) => a + rv(t), 0), gp = list.filter((t) => rv(t) > 0).reduce((a, t) => a + rv(t), 0), gl = Math.abs(list.filter((t) => rv(t) < 0).reduce((a, t) => a + rv(t), 0));
   const ch = [...list].reverse(); let c = 0, pk = 0, dd = 0, ws = 0, ls = 0, cw = 0, cl = 0;
-  ch.forEach((t) => { c += t.points; pk = Math.max(pk, c); dd = Math.max(dd, pk - c); if (t.points > 0) { cw++; cl = 0; } else if (t.points < 0) { cl++; cw = 0; } else { cw = 0; cl = 0; } ws = Math.max(ws, cw); ls = Math.max(ls, cl); });
-  const avg = (a) => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : 0), pl = list.filter((t) => t.followed_plan), cap = w.filter((t) => t.mfe > 0).map((t) => (t.points / t.mfe) * 100);
-  const ex = { dd, ws, ls, exp: n ? total / n : 0, best: Math.max(0, ...list.map((t) => t.points)), worst: Math.min(0, ...list.map((t) => t.points)), adh: pl.length ? (pl.filter((t) => t.followed_plan === "Yes").length / pl.length) * 100 : null, prr: avg(list.filter((t) => t.planned_rr).map((t) => t.planned_rr)), wDur: Math.round(avg(w.map((t) => t.duration_min))), lDur: Math.round(avg(l.map((t) => t.duration_min))), cap: cap.length ? avg(cap) : null, avgSL: avg(list.filter((t) => t.sl_points).map((t) => t.sl_points)), avgTP: avg(list.filter((t) => t.tp_points).map((t) => t.tp_points)), avgMae: avg(list.filter((t) => t.mae != null).map((t) => t.mae)) };
+  ch.forEach((t) => { c += rv(t); pk = Math.max(pk, c); dd = Math.max(dd, pk - c); if (t.outcome === "TP") { cw++; cl = 0; } else if (t.outcome === "SL") { cl++; cw = 0; } else { cw = 0; cl = 0; } ws = Math.max(ws, cw); ls = Math.max(ls, cl); });
+  const avg = (a) => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : 0), pl = list.filter((t) => t.followed_plan), rl = list.filter((t) => t.r_multiple != null);
   return {
-    ...ex, n, total, win: n ? (w.length / n) * 100 : 0, pf: gl ? gp / gl : gp ? Infinity : 0,
-    avgW: w.length ? gp / w.length : 0, avgL: l.length ? -gl / l.length : 0,
-    avgDur: n ? Math.round(list.reduce((a, t) => a + t.duration_min, 0) / n) : 0,
-    avgR: rs.length ? rs.reduce((a, t) => a + t.r_multiple, 0) / rs.length : 0,
-    tp: list.filter((t) => t.outcome === "TP").length, sl: list.filter((t) => t.outcome === "SL").length, be: list.filter((t) => t.outcome === "BE").length,
+    n, total, dd, ws, ls, best: Math.max(0, ...list.map(rv)), worst: Math.min(0, ...list.map(rv)),
+    adh: pl.length ? (pl.filter((t) => t.followed_plan === "Yes").length / pl.length) * 100 : null, prr: avg(list.filter((t) => t.planned_rr).map((t) => t.planned_rr)),
+    wDur: Math.round(avg(w.map((t) => t.duration_min))), lDur: Math.round(avg(l.map((t) => t.duration_min))),
+    avgSL: avg(list.filter((t) => t.sl_points).map((t) => t.sl_points)), avgTP: avg(list.filter((t) => t.tp_points).map((t) => t.tp_points)), avgMae: avg(list.filter((t) => t.mae != null).map((t) => t.mae)),
+    win: n ? (w.length / n) * 100 : 0, pf: gl ? gp / gl : gp ? Infinity : 0,
+    avgW: avg(w.filter((t) => t.r_multiple != null).map(rv)), avgL: avg(l.filter((t) => t.r_multiple != null).map(rv)),
+    avgDur: n ? Math.round(list.reduce((a, t) => a + t.duration_min, 0) / n) : 0, avgR: avg(rl.map((t) => t.r_multiple)),
+    tp: w.length, sl: l.length, be: n - w.length - l.length,
   };
 }
 
 let gid = 0;
 function curve(list, o = {}) {
-  const pts = [...list].reverse(); let c = 0; const ys = [0, ...pts.map((t) => (c += t.points))];
+  const pts = [...list].reverse(); let c = 0; const ys = [0, ...pts.map((t) => (c += rv(t)))];
   if (ys.length < 2) return `<div class="empty sm" style="color:inherit;opacity:.7">Log a trade to see your curve</div>`;
   const W = 600, H = o.mini ? 90 : 230, pad = o.mini ? 8 : 16, min = Math.min(0, ...ys), max = Math.max(0, ...ys), r = max - min || 1, id = "g" + ++gid;
   const X = (i) => (i / (ys.length - 1)) * W, Y = (v) => H - pad - ((v - min) / r) * (H - pad * 2);
@@ -287,64 +297,64 @@ function donut(parts, center, sub, size = 120) {
 
 function group(list, kf) {
   const m = {}; list.forEach((t) => { const k = kf(t) || "-"; (m[k] = m[k] || []).push(t); });
-  return Object.entries(m).map(([k, a]) => ({ k, n: a.length, w: (a.filter((t) => t.points > 0).length / a.length) * 100, p: a.reduce((s, t) => s + t.points, 0) })).sort((a, b) => b.p - a.p);
+  return Object.entries(m).map(([k, a]) => ({ k, n: a.length, w: (a.filter((t) => t.outcome === "TP").length / a.length) * 100, p: a.reduce((s, t) => s + rv(t), 0) })).sort((a, b) => b.p - a.p);
 }
-const bk = (title, rows) => `<div class="card"><div class="ct">${title}</div>${rows.length ? rows.map((r) => `<div class="brow"><span class="bn">${esc(r.k)}</span><span class="lbl">${r.n}×</span><div class="bar slim"><span style="width:${r.w}%;background:${wCol(r.w)}"></span></div><b>${r.w.toFixed(0)}%</b><b class="${cls(r.p)} bp">${sign(r.p)}</b></div>`).join("") : `<div class="empty sm">No data yet</div>`}</div>`;
+const bk = (title, rows) => `<div class="card"><div class="ct">${title}</div>${rows.length ? rows.map((r) => `<div class="brow"><span class="bn">${esc(r.k)}</span><span class="lbl">${r.n}×</span><div class="bar slim"><span style="width:${r.w}%;background:${wCol(r.w)}"></span></div><b>${r.w.toFixed(0)}%</b><b class="${cls(r.p)} bp">${rs(r.p)}</b></div>`).join("") : `<div class="empty sm">No data yet</div>`}</div>`;
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 /* ---------- views ---------- */
 function dash() {
   const L = rangeTrades(), st = stats(L), tot = st.n || 1;
-  const td = S.trades.filter((t) => t.trade_date === today()), tp = td.reduce((a, t) => a + t.points, 0);
+  const td = fwd().filter((t) => t.trade_date === today()), tp = td.reduce((a, t) => a + rv(t), 0);
   const hr = new Date().getHours(), greet = hr < 12 ? "Good morning" : hr < 18 ? "Good afternoon" : "Good evening";
   const pm = S.logs.find((l) => l.log_date === today()), sk = streaks(), nm = esc(S.user?.name || "trader");
   const rng = [["all", "All"], ["90", "90D"], ["30", "30D"], ["7", "7D"]].map(([k, l]) => `<button class="${S.range === k ? "on" : ""}" data-rg="${k}">${l}</button>`).join("");
-  const wins = L.filter((t) => t.points > 0).length, loss = L.filter((t) => t.points < 0).length;
-  const recent = S.trades.slice(0, 5).map((t) => `<div class="rt"><span class="tag ${t.direction}">${t.direction}</span><div class="m"><b>${t.entry_price} → ${t.exit_price}</b><small>${t.trade_date} · ${dur(t.duration_min)}${t.setup ? " · " + esc(t.setup) : ""}</small></div><span class="tag ${t.outcome}">${t.outcome}</span><b class="${cls(t.points)}" style="min-width:64px;text-align:right">${sign(t.points)}</b></div>`).join("");
+  const wins = st.tp, loss = st.sl;
+  const recent = fwd().slice(0, 5).map((t) => `<div class="rt"><span class="tag ${t.direction}">${t.direction}</span><div class="m"><b>${t.entry_price} → ${t.exit_price}</b><small>${t.trade_date} · ${dur(t.duration_min)}${t.setup ? " · " + esc(t.setup) : ""}</small></div><span class="tag ${t.outcome}">${t.outcome}</span><b class="${cls(rv(t))}" style="min-width:64px;text-align:right">${t.r_multiple != null ? rs(t.r_multiple) : "-"}</b></div>`).join("");
   const kv = (a, b) => `<div><span>${a}</span><b>${b}</b></div>`;
   return `<div class="dash">
     <div class="card hero"><div class="ph" style="align-items:center"><div><div class="lbl">${greet}</div><h1>${nm}</h1></div><div class="rng">${rng}</div></div>
-      <div class="hero-main"><div><div class="lbl">Total points</div><div class="huge ${st.total > 0 ? "up" : st.total < 0 ? "dn" : ""}">${sign(st.total)}</div>
-        <div class="hchips"><span class="chip">${st.n} trades</span><span class="chip">Today <b class="${cls(tp)}">${sign(tp)}</b></span><span class="chip">${st.win.toFixed(0)}% win</span></div></div>
+      <div class="hero-main"><div><div class="lbl">Total R</div><div class="huge ${st.total > 0 ? "up" : st.total < 0 ? "dn" : ""}">${rs(st.total)}</div>
+        <div class="hchips"><span class="chip">${st.n} trades</span><span class="chip">Today <b class="${cls(tp)}">${rs(tp)}</b></span><span class="chip">${st.win.toFixed(0)}% win</span></div></div>
         <div class="spark">${curve(L, { mini: true })}</div></div></div>
     <div class="card pmc"><div class="ct">Premarket routine · ${nice(today()).split(",")[0]}</div><div class="pmr">${donut([{ v: pm ? pm.score / 100 : 0, c: pm ? (pm.score >= 80 ? "#c6f432" : pm.score >= 50 ? "#38bdf8" : "#f0627a") : "#7c3aed" }], pm ? pm.score.toFixed(0) + "%" : "–", pm ? `${pm.done}/${pm.total} done` : "not done", 112)}
       <div style="min-width:0"><div class="lbl">${S.routine.length ? (pm ? "Today's checklist is logged" : "Start your day right") : "Create your routine"}</div><div style="margin:4px 0 12px"><b>${sk.cur}</b> <span class="lbl">day streak (80%+)</span></div><button class="btn p" id="pk">${pm ? "Update" : "Start"}</button></div></div></div></div>
   <div class="kpis">
     <div class="card kpi" style="--a:var(--lime)"><div class="lbl">Win rate</div><div class="big">${st.win.toFixed(1)}%</div><div class="lbl">${wins} wins · ${loss} losses</div></div>
-    <div class="card kpi" style="--a:var(--p2)"><div class="lbl">Profit factor</div><div class="big">${st.pf === Infinity ? "∞" : st.pf.toFixed(2)}</div><div class="lbl">${sign(st.avgW)} / ${sign(st.avgL)}</div></div>
+    <div class="card kpi" style="--a:var(--p2)"><div class="lbl">Profit factor</div><div class="big">${st.pf === Infinity ? "∞" : st.pf.toFixed(2)}</div><div class="lbl">${rs(st.avgW)} / ${rs(st.avgL)}</div></div>
     <div class="card kpi" style="--a:var(--blue)"><div class="lbl">Average R</div><div class="big ${cls(st.avgR)}">${sign(st.avgR)}R</div><div class="lbl">Plan RR ${st.prr ? "1:" + st.prr.toFixed(2) : "-"}</div></div>
-    <div class="card kpi" style="--a:var(--lime)"><div class="lbl">Expectancy / trade</div><div class="big ${cls(st.exp)}">${sign(st.exp)}</div><div class="lbl">Avg ${dur(st.avgDur)}</div></div>
-    <div class="card kpi wide" style="--a:var(--red)"><div class="lbl">Max drawdown</div><div class="big dn">-${st.dd.toFixed(1)}</div><div class="lbl">Worst ${sign(st.worst)} pts</div></div></div>
+    <div class="card kpi" style="--a:var(--lime)"><div class="lbl">Total R</div><div class="big ${cls(st.total)}">${rs(st.total)}</div><div class="lbl">Avg ${dur(st.avgDur)}</div></div>
+    <div class="card kpi wide" style="--a:var(--red)"><div class="lbl">Max drawdown</div><div class="big dn">${st.dd ? "-" : ""}${st.dd.toFixed(2)}R</div><div class="lbl">Worst ${rs(st.worst)}</div></div></div>
   <div class="grid two" style="margin-bottom:16px">
-    <div class="card"><div class="ph" style="align-items:center;margin-bottom:10px"><div class="ct" style="margin:0">Equity curve (points)</div><span class="lbl">Now <b class="${cls(st.total)}">${sign(st.total)}</b></span></div>${curve(L)}</div>
+    <div class="card"><div class="ph" style="align-items:center;margin-bottom:10px"><div class="ct" style="margin:0">Equity curve (R)</div><span class="lbl">Now <b class="${cls(st.total)}">${rs(st.total)}</b></span></div>${curve(L)}</div>
     <div class="card"><div class="ct">Outcomes</div><div style="display:flex;align-items:center;gap:18px;flex-wrap:wrap">${donut([{ v: st.tp / tot, c: "#c6f432" }, { v: st.be / tot, c: "#38bdf8" }, { v: st.sl / tot, c: "#f0627a" }], st.n, "trades")}
       <div class="legend"><span><i style="background:var(--lime)"></i>TP ${st.tp}</span><span><i style="background:var(--blue)"></i>BE ${st.be}</span><span><i style="background:var(--red)"></i>SL ${st.sl}</span></div></div>
-      <div class="kv" style="grid-template-columns:1fr;margin-top:12px">${kv("Avg win", `<span class="up">${sign(st.avgW)} pts</span>`)}${kv("Avg loss", `<span class="dn">${sign(st.avgL)} pts</span>`)}</div></div></div>
+      <div class="kv" style="grid-template-columns:1fr;margin-top:12px">${kv("Avg win", `<span class="up">${rs(st.avgW)}</span>`)}${kv("Avg loss", `<span class="dn">${rs(st.avgL)}</span>`)}</div></div></div>
   <div class="grid two" style="margin-bottom:0">
     <div class="card"><div class="ph" style="align-items:center"><div class="ct">Recent trades</div><button class="pill sm" data-nav="journal">View all</button></div>${recent || `<div class="empty sm">No trades yet. Log your first one.</div>`}</div>
     <div class="card"><div class="ct">More insights</div><div class="kv" style="grid-template-columns:1fr">
-      ${kv("Best / worst trade", `<span class="up">${sign(st.best)}</span> / <span class="dn">${sign(st.worst)}</span>`)}${kv("Max win / loss streak", `<span class="up">${st.ws}</span> / <span class="dn">${st.ls}</span>`)}
+      ${kv("Best / worst trade", `<span class="up">${rs(st.best)}</span> / <span class="dn">${rs(st.worst)}</span>`)}${kv("Max win / loss streak", `<span class="up">${st.ws}</span> / <span class="dn">${st.ls}</span>`)}
       ${kv("Avg SL / TP distance", `${st.avgSL.toFixed(1)} / ${st.avgTP.toFixed(1)} pts`)}${kv("Avg win / loss duration", `${dur(st.wDur)} / ${dur(st.lDur)}`)}
-      ${kv("Avg MAE (heat taken)", `${st.avgMae.toFixed(1)} pts`)}${kv("Move captured (winners)", st.cap != null ? st.cap.toFixed(0) + "%" : "-")}
+      ${kv("Avg MAE (heat taken)", `${st.avgMae.toFixed(1)} pts`)}
       ${kv("Plan adherence", `<span class="${st.adh >= 80 ? "up" : ""}">${st.adh != null ? st.adh.toFixed(0) + "%" : "-"}</span>`)}</div></div></div>
   <div class="bkg">${bk("By NY phase", group(L, (t) => t.session))}${bk("By weekday", group(L, (t) => DAYS[new Date(t.trade_date + "T00:00").getDay()]))}${bk("By setup", group(L, (t) => t.setup))}${bk("By mistake", group(L.filter((t) => t.mistake), (t) => t.mistake))}${bk("By timeframe", group(L, (t) => t.timeframe))}${bk("By side", group(L, (t) => t.direction))}</div>`;
 }
 
 function calView() {
   const { y, m } = S.cal, days = new Date(y, m + 1, 0).getDate(), off = (new Date(y, m, 1).getDay() + 6) % 7, pre = `${y}-${String(m + 1).padStart(2, "0")}`;
-  const by = {}; S.trades.forEach((t) => { if (t.trade_date.startsWith(pre)) { const o = (by[t.trade_date] = by[t.trade_date] || { p: 0, n: 0 }); o.p += t.points; o.n++; } });
+  const by = {}; fwd().forEach((t) => { if (t.trade_date.startsWith(pre)) { const o = (by[t.trade_date] = by[t.trade_date] || { p: 0, n: 0 }); o.p += rv(t); o.n++; } });
   const vals = Object.values(by), tot = vals.reduce((a, o) => a + o.p, 0), cnt = vals.reduce((a, o) => a + o.n, 0), gd = vals.filter((o) => o.p > 0).length, rd = vals.filter((o) => o.p < 0).length;
   const arr = Array(off).fill(null); for (let d = 1; d <= days; d++) arr.push({ d, key: `${pre}-${String(d).padStart(2, "0")}` }); while (arr.length % 7) arr.push(null);
   let grid = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun", "Week"].map((h) => `<div class="h ${h === "Week" ? "wk" : ""}">${h}</div>`).join("");
   for (let w = 0; w < arr.length; w += 7) {
     const wk = arr.slice(w, w + 7); let wp = 0, wn = 0;
     grid += wk.map((c) => { if (!c) return `<div class="cd blank"></div>`; const x = by[c.key]; if (x) { wp += x.p; wn += x.n; }
-      return `<div class="cd ${x ? (x.p > 0 ? "win" : x.p < 0 ? "loss" : "be") : ""}" ${x ? `data-day="${c.key}"` : ""}><span class="dnum">${c.d}</span>${x ? `<b>${sign(x.p)}</b><small>${x.n} trade${x.n > 1 ? "s" : ""}</small>` : ""}</div>`; }).join("");
-    grid += `<div class="cd wk"><span class="dnum">Week ${w / 7 + 1}</span>${wn ? `<b class="${cls(wp)}">${sign(wp)}</b><small>${wn} trade${wn > 1 ? "s" : ""}</small>` : ""}</div>`;
+      return `<div class="cd ${x ? (x.p > 0 ? "win" : x.p < 0 ? "loss" : "be") : ""}" ${x ? `data-day="${c.key}"` : ""}><span class="dnum">${c.d}</span>${x ? `<b>${rs(x.p)}</b><small>${x.n} trade${x.n > 1 ? "s" : ""}</small>` : ""}</div>`; }).join("");
+    grid += `<div class="cd wk"><span class="dnum">Week ${w / 7 + 1}</span>${wn ? `<b class="${cls(wp)}">${rs(wp)}</b><small>${wn} trade${wn > 1 ? "s" : ""}</small>` : ""}</div>`;
   }
   const name = new Date(y, m, 1).toLocaleString("en", { month: "long", year: "numeric" });
   return `<div style="display:flex;align-items:center;gap:12px;margin-bottom:6px"><button class="pill" id="cp">‹</button><h1 style="margin:0;font-size:28px;flex:1;text-align:center">${name}</h1><button class="pill" id="cn">›</button></div>
-  <p class="sub" style="text-align:center">Total <b class="${cls(tot)}">${sign(tot)} pts</b> · ${cnt} trades · ${gd} green · ${rd} red. Tap a day to open its trades.</p><div class="card"><div class="cal">${grid}</div></div>`;
+  <p class="sub" style="text-align:center">Total <b class="${cls(tot)}">${rs(tot)}</b> · ${cnt} trades · ${gd} green · ${rd} red. Tap a day to open its trades.</p><div class="card"><div class="cal">${grid}</div></div>`;
 }
 
 // Streak = consecutive days with score >= 80%. Weekends are skipped, a missed weekday breaks it.
@@ -370,11 +380,11 @@ function streaks() {
 
 function preView() {
   const L = S.logs, n = L.length, avg = n ? L.reduce((a, l) => a + l.score, 0) / n : 0, td = L.find((l) => l.log_date === today()), sk = streaks();
-  const byDay = {}; S.trades.forEach((t) => (byDay[t.trade_date] = byDay[t.trade_date] || []).push(t));
-  const pts = (k) => (byDay[k] ? byDay[k].reduce((a, t) => a + t.points, 0) : null);
+  const byDay = {}; fwd().forEach((t) => (byDay[t.trade_date] = byDay[t.trade_date] || []).push(t));
+  const pts = (k) => (byDay[k] ? byDay[k].reduce((a, t) => a + rv(t), 0) : null);
   const rows = L.map((l) => `<div class="hist"><b style="min-width:92px">${l.log_date}</b><span class="lbl" style="min-width:36px">${l.done}/${l.total}</span>
     <div class="bar"><span style="width:${l.score}%;background:${scCol(l.score)}"></span></div><b class="${scCls(l.score)}" style="min-width:44px">${l.score.toFixed(0)}%</b>
-    <span class="lbl" style="min-width:84px">${pts(l.log_date) != null ? `<span class="${cls(pts(l.log_date))}">${sign(pts(l.log_date))} pts</span>` : "no trades"}</span>
+    <span class="lbl" style="min-width:84px">${pts(l.log_date) != null ? `<span class="${cls(pts(l.log_date))}">${rs(pts(l.log_date))}</span>` : "no trades"}</span>
     <span><button class="x" data-pe="${l.log_date}">Edit</button><button class="x" data-pd="${l.id}">Delete</button></span>${l.notes ? `<div class="hnote">${esc(l.notes)}</div>` : ""}</div>`).join("");
   let cols = "";
   for (let i = 13; i >= 0; i--) {
@@ -382,9 +392,9 @@ function preView() {
     cols += `<div style="flex:1;min-width:0;text-align:center"><div class="mini"><div style="margin:0 2px;height:${l ? Math.max(l.score, 4) : 4}%;background:${l ? scCol(l.score) : "var(--card2)"}" title="${k}: ${l ? l.score.toFixed(0) + "%" : "not logged"}"></div></div><div class="lbl" style="font-size:10px;margin-top:4px">${d.getDate()}</div></div>`;
   }
   const rate = S.routine.map((i) => { let a = 0, dn = 0; L.forEach((l) => { const x = l.items.find((y) => y.id === i.id); if (x) { a++; if (x.done) dn++; } }); return { t: i.title, a, p: a ? (dn / a) * 100 : null }; }).filter((r) => r.a).sort((x, y) => x.p - y.p);
-  const grp = (f) => { const days = L.filter((l) => f(l.score) && byDay[l.log_date]), tr = days.flatMap((l) => byDay[l.log_date]), p = tr.reduce((a, t) => a + t.points, 0); return { d: days.length, avg: days.length ? p / days.length : null, win: tr.length ? (tr.filter((t) => t.points > 0).length / tr.length) * 100 : null }; };
+  const grp = (f) => { const days = L.filter((l) => f(l.score) && byDay[l.log_date]), tr = days.flatMap((l) => byDay[l.log_date]), p = tr.reduce((a, t) => a + rv(t), 0); return { d: days.length, avg: days.length ? p / days.length : null, win: tr.length ? (tr.filter((t) => t.outcome === "TP").length / tr.length) * 100 : null }; };
   const hi = grp((s) => s >= 80), lo = grp((s) => s < 80);
-  const cmp = (title, g) => `<div class="card"><div class="lbl">${title}</div><div class="big ${g.avg != null ? cls(g.avg) : ""}">${g.avg != null ? sign(g.avg) + " pts/day" : "-"}</div><p class="lbl" style="margin:8px 0 0">${g.d} traded day${g.d === 1 ? "" : "s"} · win rate ${g.win != null ? g.win.toFixed(0) + "%" : "-"}</p></div>`;
+  const cmp = (title, g) => `<div class="card"><div class="lbl">${title}</div><div class="big ${g.avg != null ? cls(g.avg) : ""}">${g.avg != null ? rs(g.avg) + " / day" : "-"}</div><p class="lbl" style="margin:8px 0 0">${g.d} traded day${g.d === 1 ? "" : "s"} · win rate ${g.win != null ? g.win.toFixed(0) + "%" : "-"}</p></div>`;
   const kp = (a, b, c, col) => `<div class="card kpi" style="--a:${col}"><div class="lbl">${a}</div><div class="big">${b}</div><div class="lbl">${c}</div></div>`;
   return `<div class="ph"><div><h1>Premarket <span>routine</span></h1><p class="sub">${nice(today())}</p></div><button class="btn p" id="np">+ New performance</button></div>
   <div class="kpis">
@@ -400,24 +410,41 @@ function preView() {
 }
 
 function journalView(list, st) {
-  const rows = list.map((t) => `<tr><td>${t.trade_date}</td><td><span class="tag ${t.direction}">${t.direction}</span></td><td><span class="tag ${t.outcome}">${t.outcome}</span></td>
+  const f = S.jc, keys = [...f.sel], on = (k) => (f.sel.has(k) ? "on" : "");
+  const cnt = (k) => S.trades.filter((t) => k === "all" || (t.trade_type || "forward") === k).length;
+  const tabs = [["all", "All"], ["forward", "Forward testing"], ["backtest", "Backtesting"]].map(([k, l]) => `<button class="pill ${S.jt === k ? "on" : ""}" data-jt="${k}">${l} <span style="opacity:.55">${cnt(k)}</span></button>`).join("");
+  const ty = (t) => ((t.trade_type || "forward") === "backtest" ? "Backtest" : "Forward");
+  const cfTags = (t) => TFS.filter((tf) => (t.confluences?.[tf] || []).length).map((tf) => `<span class="tag"><b style="color:var(--p2);margin-right:4px">${tf}</b>${t.confluences[tf].map(esc).join(" · ")}</span>`).join("");
+  const rtxt = (t) => (t.r_multiple != null ? rs(t.r_multiple) : "-");
+  const kp = (a, b, c, col, x = "") => `<div class="card kpi ${x}" style="--a:${col}"><div class="lbl">${a}</div><div class="big">${b}</div><div class="lbl">${c}</div></div>`;
+  const rows = list.map((t) => `<tr><td>${t.trade_date}</td><td><span class="tag">${ty(t)}</span></td><td><span class="tag ${t.direction}">${t.direction}</span></td><td><span class="tag ${t.outcome}">${t.outcome}</span></td>
       <td>${t.entry_price}</td><td>${t.exit_price}</td><td>${t.sl_price ?? "-"}</td><td>${t.tp_price ?? "-"}</td><td>${t.sl_points ?? "-"}</td><td>${t.tp_points ?? "-"}</td><td>${t.planned_rr ? "1:" + t.planned_rr : "-"}</td>
-      <td class="${cls(t.points)}">${sign(t.points)}</td><td>${t.r_multiple != null ? sign(t.r_multiple) + "R" : "-"}</td><td>${t.mfe ?? "-"}</td><td>${t.mae ?? "-"}</td>
-      <td>${fmtT(t.entry_time)}</td><td>${fmtT(t.close_time)}</td><td>${dur(t.duration_min)}</td><td>${esc(t.timeframe)}</td><td>${esc(t.session)}</td><td>${esc(t.setup)}</td><td>${esc(t.followed_plan)}</td><td>${esc(t.mistake)}</td><td>${esc(t.emotion)}</td><td>${t.rating ? t.rating + "/5" : ""}</td>
+      <td class="${cls(t.r_multiple)}">${rtxt(t)}</td><td>${t.mfe ?? "-"}</td><td>${t.mae ?? "-"}</td>
+      <td>${fmtT(t.entry_time)}</td><td>${fmtT(t.close_time)}</td><td>${dur(t.duration_min)}</td><td>${esc(t.timeframe)}</td><td>${esc(t.session)}</td><td>${esc(t.setup)}</td>
+      <td style="white-space:normal;min-width:240px"><div class="tfl">${cfTags(t)}</div></td><td>${esc(t.followed_plan)}</td><td>${esc(t.mistake)}</td><td>${esc(t.emotion)}</td><td>${t.rating ? t.rating + "/5" : ""}</td>
       <td>${safeUrl(t.screenshot) ? `<a href="${safeUrl(t.screenshot)}" target="_blank" rel="noopener" style="color:var(--p2)">View</a>` : ""}<button class="x" data-e="${t.id}">Edit</button><button class="x" data-d="${t.id}">Delete</button></td></tr>`).join("");
-  const mc = list.map((t) => `<div class="card mcard"><div class="r1"><span><span class="tag ${t.direction}">${t.direction}</span> <span class="tag ${t.outcome}">${t.outcome}</span></span><b class="${cls(t.points)}">${sign(t.points)} pts</b></div>
+  const mc = list.map((t) => `<div class="card mcard"><div class="r1"><span><span class="tag">${ty(t)}</span> <span class="tag ${t.direction}">${t.direction}</span> <span class="tag ${t.outcome}">${t.outcome}</span></span><b class="${cls(t.r_multiple)}">${rtxt(t)}</b></div>
       <div class="lbl">${t.trade_date} · ${fmtT(t.entry_time).slice(6)}–${fmtT(t.close_time).slice(6)} · ${dur(t.duration_min)}</div>
       <div class="g2"><div><span class="lbl">Entry → Exit</span><br>${t.entry_price} → ${t.exit_price}</div><div><span class="lbl">SL / TP pts</span><br>${t.sl_points ?? "-"} / ${t.tp_points ?? "-"}</div>
-      <div><span class="lbl">Plan RR / R</span><br>${t.planned_rr ? "1:" + t.planned_rr : "-"} / ${t.r_multiple != null ? sign(t.r_multiple) + "R" : "-"}</div><div><span class="lbl">MFE / MAE</span><br>${t.mfe ?? "-"} / ${t.mae ?? "-"}</div></div>
+      <div><span class="lbl">Plan RR</span><br>${t.planned_rr ? "1:" + t.planned_rr : "-"}</div><div><span class="lbl">MFE / MAE</span><br>${t.mfe ?? "-"} / ${t.mae ?? "-"}</div></div>
+      ${cfTags(t) ? `<div class="tfl" style="margin-bottom:8px">${cfTags(t)}</div>` : ""}
       <div class="lbl">${[t.session, t.timeframe, t.setup, t.followed_plan ? "Plan: " + t.followed_plan : "", t.mistake, t.emotion].filter(Boolean).map(esc).join(" · ")}</div>
       <div style="margin-top:8px">${safeUrl(t.screenshot) ? `<a href="${safeUrl(t.screenshot)}" target="_blank" rel="noopener" style="color:var(--p2);margin-right:14px">Screenshot</a>` : ""}<button class="x" data-e="${t.id}">Edit</button> <button class="x" data-d="${t.id}">Delete</button></div></div>`).join("");
-  return `<div class="ph"><div><h1>Journal</h1><p class="sub">${st.n} trades · <b class="${cls(st.total)}">${sign(st.total)} pts</b> · ${st.win.toFixed(0)}% win rate · avg ${dur(st.avgDur)}</p></div>
+  const frows = TFS.map((tf) => `<div class="cfr"><button class="cc tfa sm ${on(tf + "|*")}" data-fk="${tf}|*">${tf}</button>${CONF[tf].map((c) => `<button class="cc sm ${on(tf + "|" + c)}" data-fk="${tf}|${esc(c)}">${esc(c)}</button>`).join("")}</div>`).join("");
+  const panel = f.open ? `<div class="card" style="margin-bottom:14px"><div class="ph" style="align-items:center"><div class="ct" style="margin:0">Filter by confluence</div>
+      <div class="seg m"><button type="button" class="${f.mode === "all" ? "on" : ""}" data-fm="all">All</button><button type="button" class="${f.mode === "any" ? "on" : ""}" data-fm="any">Any</button></div></div>
+      <p class="lbl" style="margin:8px 0 6px">Tap confluences one by one and the win rate above updates. <b>All</b> = every selected one was present (e.g. 15min SCB + 1H SCB). <b>Any</b> = at least one. Tapping a timeframe name = any confluence on that timeframe.</p>${frows}</div>` : "";
+  const active = keys.length && !f.open ? `<div class="lbl" style="margin:-4px 0 12px">Confluence filter (${f.mode === "all" ? "ALL" : "ANY"}): ${keys.map((k) => esc(k.replace("|*", " (any)").replace("|", " "))).join(" · ")}</div>` : "";
+  return `<div class="ph"><div><h1>Journal</h1><p class="sub">${st.n} trades · <b class="${cls(st.total)}">${rs(st.total)}</b> · ${st.win.toFixed(0)}% win rate · avg ${dur(st.avgDur)}</p></div>
     <button class="btn g" id="exportPdf" ${list.length ? "" : "disabled"} title="Export filtered trades to PDF">Export PDF</button></div>
+    <div class="chips" style="margin:0 0 14px">${tabs}</div>
+    <div class="kpis">${kp("Win rate", `<span class="${st.n ? (st.win >= 50 ? "up" : "dn") : ""}">${st.n ? st.win.toFixed(1) + "%" : "-"}</span>`, `${st.tp} TP · ${st.sl} SL · ${st.be} BE`, "var(--lime)")}${kp("Trades", st.n, `of ${S.trades.length} total`, "var(--p2)")}${kp("Total R", `<span class="${cls(st.total)}">${rs(st.total)}</span>`, "matching filter", "var(--blue)")}${kp("Average R", `<span class="${cls(st.avgR)}">${rs(st.avgR)}</span>`, `Plan RR ${st.prr ? "1:" + st.prr.toFixed(2) : "-"}`, "var(--blue)")}${kp("Profit factor", st.pf === Infinity ? "∞" : st.pf.toFixed(2), `Max DD ${st.dd ? "-" : ""}${st.dd.toFixed(2)}R`, "var(--p2)", "wide")}</div>
     <div class="filters"><select id="fd"><option value="">Buy & Sell</option><option ${S.f.dir === "BUY" ? "selected" : ""}>BUY</option><option ${S.f.dir === "SELL" ? "selected" : ""}>SELL</option></select>
     <select id="fo"><option value="">TP, SL & BE</option>${["TP", "SL", "BE"].map((o) => `<option ${S.f.out === o ? "selected" : ""}>${o}</option>`).join("")}</select>
     <input id="ff" type="date" value="${S.f.from}" title="From date"><input id="ft" type="date" value="${S.f.to}" title="To date">
-    <button class="pill sm" id="clearF" title="Clear all filters">Clear</button></div>
-    <div class="card scroll tbl">${rows ? `<table><tr><th>Date</th><th>Side</th><th>Result</th><th>Entry</th><th>Exit</th><th>SL</th><th>TP</th><th>SL pts</th><th>TP pts</th><th>Plan RR</th><th>Points</th><th>R</th><th>MFE</th><th>MAE</th><th>Entry time</th><th>Close time</th><th>Duration</th><th>TF</th><th>Session</th><th>Setup</th><th>Plan?</th><th>Mistake</th><th>Emotion</th><th>Rating</th><th></th></tr>${rows}</table>` : `<div class="empty">No trades yet. Log your first NAS100 trade with “New trade”.</div>`}</div><div class="mc">${mc || `<div class="card empty">No trades yet. Tap “New trade”.</div>`}</div>`;
+    <button class="pill sm ${keys.length || f.open ? "on" : ""}" id="jco">Confluences${keys.length ? " (" + keys.length + ")" : ""}</button>
+    <button class="pill sm" id="clearF" title="Clear all filters">Clear</button></div>${panel}${active}
+    <div class="card scroll tbl">${rows ? `<table><tr><th>Date</th><th>Type</th><th>Side</th><th>Result</th><th>Entry</th><th>Exit</th><th>SL</th><th>TP</th><th>SL pts</th><th>TP pts</th><th>Plan RR</th><th>R</th><th>MFE</th><th>MAE</th><th>Entry time</th><th>Close time</th><th>Duration</th><th>TF</th><th>Session</th><th>Setup</th><th>Confluences</th><th>Plan?</th><th>Mistake</th><th>Emotion</th><th>Rating</th><th></th></tr>${rows}</table>` : `<div class="empty">${S.trades.length ? "No trades match these filters." : "No trades yet. Log your first NAS100 trade with “New trade”."}</div>`}</div><div class="mc">${mc || `<div class="card empty">${S.trades.length ? "No trades match these filters." : "No trades yet. Tap “New trade”."}</div>`}</div>`;
 }
 
 /* ---------- premarket popup ---------- */
@@ -490,45 +517,6 @@ async function openPerf(date = today()) {
 }
 
 /* ---------- entry confluences ---------- */
-const CONF = { "1D": ["SCB", "PDH/PDL taken"], "1H": ["SCB", "I.SMT", "E.SMT"], "15min": ["SCB", "I.SMT", "E.SMT"], "5min": ["SCB", "I.SMT", "E.SMT", "SMT", "IFVG"], "1min": ["I.SMT", "SMT", "MSS", "IFVG"] };
-const TFS = Object.keys(CONF);
-// filter key = "timeframe|confluence". "15min|*" means: any confluence ticked on 15min
-const cfHas = (r, k) => { const i = k.indexOf("|"), tf = k.slice(0, i), c = k.slice(i + 1), a = r.data?.[tf] || []; return c === "*" ? a.length > 0 : a.includes(c); };
-function cfFiltered() {
-  const { mode, sel, from, to } = S.cf, keys = [...sel];
-  return S.cfs.filter((r) => (!from || r.log_date >= from) && (!to || r.log_date <= to) && (!keys.length || (mode === "all" ? keys.every((k) => cfHas(r, k)) : keys.some((k) => cfHas(r, k)))));
-}
-
-function confView() {
-  const L = cfFiltered(), keys = [...S.cf.sel], td = S.cfs.filter((r) => r.log_date === today()).length;
-  const byDay = {}; S.trades.forEach((t) => (byDay[t.trade_date] = byDay[t.trade_date] || []).push(t));
-  const pts = (k) => (byDay[k] ? byDay[k].reduce((a, t) => a + t.points, 0) : null);
-  const tr = [...new Set(L.map((r) => r.log_date))].flatMap((d) => byDay[d] || []), tp = tr.reduce((a, t) => a + t.points, 0), win = tr.length ? (tr.filter((t) => t.points > 0).length / tr.length) * 100 : null;
-  const kp = (a, b, c, col) => `<div class="card kpi" style="--a:${col}"><div class="lbl">${a}</div><div class="big">${b}</div><div class="lbl">${c}</div></div>`;
-  const on = (k) => (S.cf.sel.has(k) ? "on" : "");
-  const frows = TFS.map((tf) => `<div class="cfr"><button class="cc tfa sm ${on(tf + "|*")}" data-fk="${tf}|*">${tf}</button>${CONF[tf].map((c) => `<button class="cc sm ${on(tf + "|" + c)}" data-fk="${tf}|${esc(c)}">${esc(c)}</button>`).join("")}</div>`).join("");
-  const freq = TFS.map((tf) => `<div class="card"><div class="ct">${tf} · how often</div>${CONF[tf].map((c) => { const n = L.filter((r) => (r.data?.[tf] || []).includes(c)).length, p = L.length ? (n / L.length) * 100 : 0; return `<div class="rate"><span>${esc(c)}</span><div class="bar"><span style="width:${p}%;background:var(--p2)"></span></div><b style="min-width:64px;text-align:right">${n} · ${p.toFixed(0)}%</b></div>`; }).join("")}</div>`).join("");
-  const rows = L.map((r) => {
-    const p = pts(r.log_date);
-    const tags = TFS.filter((tf) => (r.data?.[tf] || []).length).map((tf) => `<span class="tag"><b>${tf}</b>${r.data[tf].map(esc).join(" · ")}</span>`).join("");
-    return `<div class="hist"><b style="min-width:92px">${r.log_date}</b><span class="lbl" style="flex:1">${nice(r.log_date).split(",")[0]} · ${p != null ? `<span class="${cls(p)}">${sign(p)} pts that day</span>` : "no trades"}</span>
-      <span><button class="x" data-ce="${r.id}">Edit</button><button class="x" data-cd="${r.id}">Delete</button></span><div class="tfl">${tags}</div>${r.notes ? `<div class="hnote">${esc(r.notes)}</div>` : ""}</div>`;
-  }).join("");
-  const f = S.cf;
-  return `<div class="ph"><div><h1>Clear Entry <span>confluence</span></h1><p class="sub">${nice(today())}</p></div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn g" id="exportCf" ${L.length ? "" : "disabled"} title="Export filtered confluence entries to PDF">Export PDF</button><button class="btn p" id="nc">+ New entry</button></div></div>
-  <div class="kpis">${kp("Entries logged", S.cfs.length, "all time", "var(--p2)")}${kp("Today", td, td === 1 ? "entry" : "entries", "var(--lime)")}${kp("Matching filter", L.length, `of ${S.cfs.length}`, "var(--blue)")}
-    ${kp("Points on those days", `<span class="${cls(tp)}">${tr.length ? sign(tp) : "-"}</span>`, `${tr.length} trade${tr.length === 1 ? "" : "s"}`, "var(--lime)")}
-    <div class="kpi wide card" style="--a:var(--blue)"><div class="lbl">Win rate on those days</div><div class="big">${win != null ? win.toFixed(0) + "%" : "-"}</div><div class="lbl">all trades that day</div></div></div>
-  <div class="card" style="margin-bottom:16px"><div class="ph" style="align-items:center"><div class="ct" style="margin:0">Filter by confluence</div>
-    <div class="seg m"><button type="button" class="${f.mode === "all" ? "on" : ""}" data-fm="all">All</button><button type="button" class="${f.mode === "any" ? "on" : ""}" data-fm="any">Any</button></div></div>
-    <p class="lbl" style="margin:8px 0 6px">Tap confluences. <b>All</b> = every selected one was present (e.g. 15min SCB + 1H SCB). <b>Any</b> = at least one. Tapping a timeframe name = any confluence on that timeframe.</p>
-    ${frows}
-    <div class="filters" style="margin:12px 0 0"><input id="cff" type="date" value="${f.from}"><input id="cft" type="date" value="${f.to}"><button class="pill sm" id="ccl">Clear filters</button></div></div>
-  <div class="bkg" style="margin:0 0 16px">${freq}</div>
-  <div class="card"><div class="ct">History${keys.length || f.from || f.to ? ` · ${L.length} match${L.length === 1 ? "" : "es"}` : ""}</div>${rows || `<div class="empty">${S.cfs.length ? "No entries match this filter." : "No confluences logged yet. Tap “New entry” to start."}</div>`}</div>`;
-}
-
 function cbody() {
   const M = S.cfm;
   $("#cb").innerHTML = TFS.map((tf) => { const n = M.data[tf].size, open = M.open === tf;
@@ -537,28 +525,10 @@ function cbody() {
   document.querySelectorAll("[data-cc]").forEach((b) => (b.onclick = () => { const i = b.dataset.cc.indexOf("|"), tf = b.dataset.cc.slice(0, i), c = b.dataset.cc.slice(i + 1), set = M.data[tf]; set.has(c) ? set.delete(c) : set.add(c); cbody(); }));
 }
 
-// Date is set to today automatically (you can still change it). Pick a timeframe, tick what you had before entry, save.
-async function openConf(rec) {
-  if (!window.Swal) return noSwal();
-  S.cfm = { id: rec?.id || null, open: rec ? TFS.find((tf) => (rec.data?.[tf] || []).length) || "1D" : "1D", data: Object.fromEntries(TFS.map((tf) => [tf, new Set(rec?.data?.[tf] || [])])) };
-  const res = await Swal.fire({
-    ...pop("nl-form"), title: rec ? "Edit confluences" : "Entry confluences", confirmButtonText: "Save entry",
-    html: `<div class="f"><div class="full"><label>Date</label><input id="cdt" type="date"></div></div>
-      <div class="lbl" style="margin:14px 0 8px">Tap a timeframe, then tick the confluences you had before entry.</div><div id="cb"></div>
-      <div class="f" style="margin-top:6px"><div class="full"><label>Notes (optional)</label><textarea id="cn" rows="2" placeholder="Anything about this setup…"></textarea></div></div><div class="err" id="ce"></div>`,
-    didOpen: () => { $("#cdt").value = rec?.log_date || today(); $("#cn").value = rec?.notes || ""; cbody(); },
-    preConfirm: async () => {
-      const data = Object.fromEntries(TFS.map((tf) => [tf, [...S.cfm.data[tf]]]));
-      try { await api("/api/confluence" + (S.cfm.id ? "/" + S.cfm.id : ""), S.cfm.id ? "PUT" : "POST", { log_date: $("#cdt").value, data, notes: $("#cn").value }); S.cfs = await api("/api/confluence"); return true; }
-      catch (e) { Swal.showValidationMessage(e.message); return false; }
-    },
-  });
-  if (res.isConfirmed) { render(); toast(rec ? "Entry updated" : "Entry saved"); }
-}
-
 /* ---------- trade popup ---------- */
 function formHtml() {
   return `<div class="f">
+  <div class="full"><label>Trade type</label><div class="seg ty" id="ty"><button type="button" data-v="forward">Forward testing</button><button type="button" data-v="backtest">Backtesting</button></div></div>
   <div><label>Side</label><div class="seg" id="sd"><button type="button" data-v="BUY">Buy</button><button type="button" data-v="SELL">Sell</button></div></div>
   <div><label>Result</label><div class="seg" id="oc"><button type="button" data-v="TP">TP</button><button type="button" data-v="SL">SL</button><button type="button" data-v="BE">BE</button></div></div>
   <div><label>Entry price</label><input id="ep" type="number" step="0.01" inputmode="decimal"></div><div><label>Exit price</label><input id="xp" type="number" step="0.01" inputmode="decimal"></div>
@@ -574,6 +544,7 @@ function formHtml() {
   <div><label>Followed my plan?</label><select id="fp"><option value="">-</option><option>Yes</option><option>No</option></select></div>
   <div><label>Mistake</label><select id="mi"><option value="">None</option><option>Early entry</option><option>Late entry</option><option>Moved SL</option><option>Cut winner early</option><option>Over-risked</option><option>Overtrading</option><option>No setup</option><option>Revenge trade</option></select></div>
   <div><label>Execution rating</label><select id="rt"><option value="">-</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div><div><label>Screenshot link</label><input id="sc" placeholder="TradingView / image URL"></div>
+  <div class="full"><label>Entry confluences</label><div id="cb"></div></div>
   <div class="full"><label>Notes</label><textarea id="nt" rows="3" placeholder="Why did you take it? What would you change?"></textarea></div>
   <div class="full live" id="lv"></div></div>`;
 }
@@ -581,7 +552,8 @@ function formHtml() {
 async function openForm(t) {
   if (!window.Swal) return noSwal();
   S.editing = t?.id || null;
-  const v = { d: t?.direction || "BUY", o: t?.outcome || "TP" };
+  const v = { d: t?.direction || "BUY", o: t?.outcome || "TP", t: t?.trade_type || (S.jt === "backtest" ? "backtest" : "forward") };
+  S.cfm = { open: null, data: Object.fromEntries(TFS.map((tf) => [tf, new Set(t?.confluences?.[tf] || [])])) };
   const res = await Swal.fire({
     ...pop("nl-form"), title: t ? "Edit trade" : "New trade", html: formHtml(), confirmButtonText: "Save trade",
     didOpen: () => {
@@ -591,14 +563,14 @@ async function openForm(t) {
       const live = () => {
         const e = +$("#ep").value, x = +$("#xp").value, s = $("#sp").value, p = (v.d === "BUY" ? x - e : e - x), m = (new Date($("#ct").value) - new Date($("#et").value)) / 60000;
         const ok = $("#ep").value && $("#xp").value, sl = +s, tpv = $("#tp").value, slp = s ? Math.abs(e - sl) : null, tpp = tpv ? Math.abs(+tpv - e) : null;
-        $("#lv").innerHTML = `<div><div class="lbl">Points</div><b class="${cls(p)}">${ok ? sign(p) : "-"}</b></div><div><div class="lbl">Entry → SL</div><b>${slp != null ? slp.toFixed(1) + " pts" : "-"}</b></div><div><div class="lbl">Entry → TP</div><b>${tpp != null ? tpp.toFixed(1) + " pts" : "-"}</b></div><div><div class="lbl">Planned RR</div><b>${slp && tpp ? "1:" + (tpp / slp).toFixed(2) : "-"}</b></div><div><div class="lbl">R result</div><b>${ok && s && slp ? sign(p / slp) + "R" : "-"}</b></div><div><div class="lbl">Duration</div><b>${m >= 0 ? dur(Math.round(m)) : "-"}</b></div>`;
+        $("#lv").innerHTML = `<div><div class="lbl">Entry → SL</div><b>${slp != null ? slp.toFixed(1) + " pts" : "-"}</b></div><div><div class="lbl">Entry → TP</div><b>${tpp != null ? tpp.toFixed(1) + " pts" : "-"}</b></div><div><div class="lbl">Planned RR</div><b>${slp && tpp ? "1:" + (tpp / slp).toFixed(2) : "-"}</b></div><div><div class="lbl">R result</div><b>${ok && s && slp ? sign(p / slp) + "R" : "-"}</b></div><div><div class="lbl">Duration</div><b>${m >= 0 ? dur(Math.round(m)) : "-"}</b></div>`;
       };
       const seg = (id, key) => { const el = $("#" + id), paint = () => el.querySelectorAll("button").forEach((b) => b.classList.toggle("on", b.dataset.v === v[key])); el.querySelectorAll("button").forEach((b) => (b.onclick = () => { v[key] = b.dataset.v; paint(); live(); })); paint(); };
-      seg("sd", "d"); seg("oc", "o"); ["ep", "xp", "sp", "tp", "et", "ct"].forEach((i) => ($("#" + i).oninput = live)); live();
+      seg("sd", "d"); seg("oc", "o"); seg("ty", "t"); cbody(); ["ep", "xp", "sp", "tp", "et", "ct"].forEach((i) => ($("#" + i).oninput = live)); live();
     },
     preConfirm: async () => {
       const g = (id) => $("#" + id).value;
-      const body = { direction: v.d, outcome: v.o, entry_price: g("ep"), exit_price: g("xp"), sl_price: g("sp"), tp_price: g("tp"), entry_time: g("et"), close_time: g("ct"), lots: g("lt"), timeframe: g("tf"), session: g("se"), mfe: g("mf"), mae: g("ma"), risk_pct: g("rk"), fees: g("fe"), followed_plan: g("fp"), mistake: g("mi"), rating: g("rt"), screenshot: g("sc"), pnl: g("pl"), setup: g("su"), emotion: g("em"), notes: g("nt") };
+      const body = { direction: v.d, outcome: v.o, entry_price: g("ep"), exit_price: g("xp"), sl_price: g("sp"), tp_price: g("tp"), entry_time: g("et"), close_time: g("ct"), lots: g("lt"), timeframe: g("tf"), session: g("se"), mfe: g("mf"), mae: g("ma"), risk_pct: g("rk"), fees: g("fe"), followed_plan: g("fp"), mistake: g("mi"), rating: g("rt"), screenshot: g("sc"), pnl: g("pl"), setup: g("su"), emotion: g("em"), notes: g("nt"), trade_type: v.t, confluences: Object.fromEntries(TFS.map((tf) => [tf, [...S.cfm.data[tf]]])) };
       try { await api("/api/trades" + (S.editing ? "/" + S.editing : ""), S.editing ? "PUT" : "POST", body); return true; }
       catch (e) { Swal.showValidationMessage(e.message); return false; }
     },
@@ -623,7 +595,7 @@ function authView() {
   $("#go").onclick = go; $("#pw").onkeydown = (e) => { if (e.key === "Enter") go(); };
 }
 
-const VIEWS = ["dashboard", "calendar", "premarket", "confluence", "journal"], vlabel = (v) => v[0].toUpperCase() + v.slice(1);
+const VIEWS = ["dashboard", "calendar", "premarket", "journal"], vlabel = (v) => v[0].toUpperCase() + v.slice(1);
 const go = (v) => { S.view = v; render(); scrollTo(0, 0); };
 
 function exportPdf(list, st) {
@@ -638,7 +610,7 @@ function exportPdf(list, st) {
   const from = S.f.from || (list.length ? list[list.length - 1].trade_date : "");
   const to = S.f.to || (list.length ? list[0].trade_date : "");
   const rangeTxt = from && to ? (from + "  to  " + to) : from || to || "All dates";
-  const filt = [S.f.dir, S.f.out].filter(Boolean).join(" · ") || "All sides & outcomes";
+  const keys = [...S.jc.sel], filt = [S.jt === "all" ? "" : S.jt === "forward" ? "Forward testing" : "Backtesting", S.f.dir, S.f.out, keys.length ? (S.jc.mode === "all" ? "ALL: " : "ANY: ") + keys.map((k) => k.replace("|*", "").replace("|", " ")).join(", ") : ""].filter(Boolean).join(" · ") || "No filters";
   const exported = new Date().toLocaleString("en", { dateStyle: "medium", timeStyle: "short" });
 
   // Background
@@ -701,19 +673,18 @@ function exportPdf(list, st) {
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
   doc.setTextColor(80, 80, 95);
-  doc.text(filt, margin + 120, cardY + 16);
+  doc.text(filt, margin + 120, cardY + 16, { maxWidth: pageW - margin * 2 - 126 });
 
   // Summary KPI pills
   const kpis = [
     { label: "Trades", val: String(st.n) },
-    { label: "Total pts", val: sign(st.total), color: st.total >= 0 ? [34, 160, 60] : [200, 50, 70] },
+    { label: "Total R", val: rs(st.total), color: st.total >= 0 ? [34, 160, 60] : [200, 50, 70] },
     { label: "Win rate", val: st.win.toFixed(1) + "%" },
     { label: "Profit factor", val: st.pf === Infinity ? "∞" : st.pf.toFixed(2) },
-    { label: "Avg R", val: sign(st.avgR) + "R" },
-    { label: "Expectancy", val: sign(st.exp) },
-    { label: "Max DD", val: "-" + st.dd.toFixed(1) },
+    { label: "Avg R", val: rs(st.avgR) },
+    { label: "Max DD", val: (st.dd ? "-" : "") + st.dd.toFixed(2) + "R" },
   ];
-  const pillW = (pageW - margin * 2 - 6 * 4) / 7;
+  const pillW = (pageW - margin * 2 - (kpis.length - 1) * 4) / kpis.length;
   let px = margin;
   kpis.forEach((k) => {
     doc.setFillColor(255, 255, 255);
@@ -733,11 +704,12 @@ function exportPdf(list, st) {
   });
 
   // Table
-  const head = [["Date", "Side", "Result", "Entry", "Exit", "Points", "R", "Dur", "TF", "Session", "Setup", "Plan", "Mistake"]];
+  const cf = (t) => TFS.filter((tf) => (t.confluences?.[tf] || []).length).map((tf) => tf + ": " + t.confluences[tf].join(", ")).join("\n") || "-";
+  const head = [["Date", "Type", "Side", "Result", "Entry", "Exit", "R", "Dur", "TF", "Session", "Setup", "Confluences", "Plan", "Mistake"]];
   const body = list.map((t) => [
-    t.trade_date, t.direction, t.outcome, t.entry_price, t.exit_price, sign(t.points),
-    t.r_multiple != null ? sign(t.r_multiple) + "R" : "-", dur(t.duration_min),
-    t.timeframe || "-", t.session || "-", (t.setup || "-").slice(0, 16), t.followed_plan || "-", (t.mistake || "-").slice(0, 12),
+    t.trade_date, (t.trade_type || "forward") === "backtest" ? "Backtest" : "Forward", t.direction, t.outcome, t.entry_price, t.exit_price,
+    t.r_multiple != null ? rs(t.r_multiple) : "-", dur(t.duration_min),
+    t.timeframe || "-", t.session || "-", (t.setup || "-").slice(0, 16), cf(t), t.followed_plan || "-", (t.mistake || "-").slice(0, 12),
   ]);
 
   doc.autoTable({
@@ -746,25 +718,15 @@ function exportPdf(list, st) {
     headStyles: { fillColor: [124, 58, 237], textColor: 255, fontStyle: "bold", fontSize: 8, cellPadding: 2.5 },
     alternateRowStyles: { fillColor: [255, 255, 255] },
     bodyStyles: { fillColor: [252, 251, 255] },
-    columnStyles: { 0: { cellWidth: 22 }, 1: { cellWidth: 14 }, 2: { cellWidth: 14 }, 5: { halign: "right", fontStyle: "bold" }, 6: {halign: "right" } },
+    columnStyles: { 0: { cellWidth: 22 }, 1: { cellWidth: 16 }, 2: { cellWidth: 13 }, 3: { cellWidth: 14 }, 6: { halign: "right", fontStyle: "bold" }, 11: { cellWidth: 48 } },
     didParseCell: (data) => {
-      if (data.section === "body" && data.column.index === 5) {
-        const v = parseFloat(String(data.cell.raw).replace("+", ""));
-        if (v > 0) data.cell.styles.textColor = [34, 160, 60];
-        else if (v < 0) data.cell.styles.textColor = [200, 50, 70];
-      }
-      if (data.section === "body" && data.column.index === 1) {
-        if (data.cell.raw === "BUY") data.cell.styles.textColor = [34, 160, 60];
-        if (data.cell.raw === "SELL") data.cell.styles.textColor = [200, 50, 70];
-      }
-      if (data.section === "body" && data.column.index === 2) {
-        if (data.cell.raw === "TP") data.cell.styles.textColor = [34, 160, 60];
-        if (data.cell.raw === "SL") data.cell.styles.textColor = [200, 50, 70];
-        if (data.cell.raw === "BE") data.cell.styles.textColor = [30, 140, 200];
-      }
+      if (data.section !== "body") return;
+      const raw = data.cell.raw, i = data.column.index;
+      if (i === 6) { const v = parseFloat(String(raw).replace("+", "")); if (v > 0) data.cell.styles.textColor = [34, 160, 60]; else if (v < 0) data.cell.styles.textColor = [200, 50, 70]; }
+      if (i === 2) { if (raw === "BUY") data.cell.styles.textColor = [34, 160, 60]; if (raw === "SELL") data.cell.styles.textColor = [200, 50, 70]; }
+      if (i === 3) { if (raw === "TP") data.cell.styles.textColor = [34, 160, 60]; if (raw === "SL") data.cell.styles.textColor = [200, 50, 70]; if (raw === "BE") data.cell.styles.textColor = [30, 140, 200]; }
     },
     didDrawPage: (data) => {
-      // Footer bar
       doc.setFillColor(124, 58, 237);
       doc.rect(0, pageH - 12, pageW, 12, "F");
       doc.setFontSize(8);
@@ -779,209 +741,35 @@ function exportPdf(list, st) {
   toast("PDF downloaded");
 }
 
-function exportConfPdf() {
-  if (!window.jspdf) { toast("PDF library failed to load. Check internet and refresh.", "error"); return; }
-  const L = cfFiltered();
-  if (!L.length) { toast("No confluence entries to export", "error"); return; }
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-  const pageW = doc.internal.pageSize.getWidth();
-  const pageH = doc.internal.pageSize.getHeight();
-  const margin = 16;
-  const nm = S.user?.name || "Trader";
-  const f = S.cf;
-  const from = f.from || (L.length ? L[L.length - 1].log_date : "");
-  const to = f.to || (L.length ? L[0].log_date : "");
-  const rangeTxt = from && to ? (from + "  to  " + to) : from || to || "All dates";
-  const keys = [...f.sel];
-  const filt = keys.length ? (f.mode === "all" ? "ALL of: " : "ANY of: ") + keys.map((k) => k.replace("|", " ")).join(", ") : "No confluence filter";
-  const exported = new Date().toLocaleString("en", { dateStyle: "medium", timeStyle: "short" });
-
-  // Soft background
-  doc.setFillColor(248, 247, 252);
-  doc.rect(0, 0, pageW, pageH, "F");
-
-  // Purple header with curve
-  doc.setFillColor(124, 58, 237);
-  doc.rect(0, 0, pageW, 52, "F");
-  doc.setFillColor(109, 40, 217);
-  doc.ellipse(pageW * 0.8, 52, pageW * 0.6, 20, "F");
-  doc.setFillColor(248, 247, 252);
-  doc.ellipse(pageW * 0.2, 56, pageW * 0.55, 18, "F");
-
-  // Brand
-  doc.setFillColor(233, 224, 255);
-  doc.circle(margin + 5, 18, 5.5, "F");
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(18);
-  doc.setFont("helvetica", "bold");
-  doc.text("NasLog", margin + 15, 16);
-  doc.setFontSize(9);
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(233, 224, 255);
-  doc.text("Entry Confluence Log", margin + 15, 22);
-
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(20);
-  doc.setFont("helvetica", "bold");
-  doc.text("Confluence Report", pageW - margin, 18, { align: "right" });
-  doc.setFontSize(9);
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(233, 224, 255);
-  doc.text(exported, pageW - margin, 25, { align: "right" });
-
-  // White info card
-  const cardY = 46;
-  doc.setFillColor(255, 255, 255);
-  doc.roundedRect(margin, cardY, pageW - margin * 2, 26, 4, 4, "F");
-  doc.setDrawColor(230, 226, 245);
-  doc.setLineWidth(0.3);
-  doc.roundedRect(margin, cardY, pageW - margin * 2, 26, 4, 4, "S");
-
-  doc.setTextColor(110, 110, 125);
-  doc.setFontSize(7.5);
-  doc.setFont("helvetica", "normal");
-  doc.text("TRADER", margin + 6, cardY + 8);
-  doc.text("PERIOD", margin + 55, cardY + 8);
-  doc.text("FILTER", margin + 6, cardY + 17);
-  doc.setTextColor(30, 30, 40);
-  doc.setFontSize(10);
-  doc.setFont("helvetica", "bold");
-  doc.text(nm, margin + 6, cardY + 13.5);
-  doc.text(rangeTxt, margin + 55, cardY + 13.5);
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(8.5);
-  doc.setTextColor(70, 70, 85);
-  doc.text(filt, margin + 6, cardY + 22, { maxWidth: pageW - margin * 2 - 12 });
-
-  // Summary strip
-  const byDay = {};
-  S.trades.forEach((t) => (byDay[t.trade_date] = byDay[t.trade_date] || []).push(t));
-  const pts = (k) => (byDay[k] ? byDay[k].reduce((a, t) => a + t.points, 0) : null);
-  const tr = [...new Set(L.map((r) => r.log_date))].flatMap((d) => byDay[d] || []);
-  const tp = tr.reduce((a, t) => a + t.points, 0);
-  const win = tr.length ? (tr.filter((t) => t.points > 0).length / tr.length) * 100 : null;
-
-  const sumY = cardY + 32;
-  const boxes = [
-    { label: "Entries", val: String(L.length) },
-    { label: "Day points", val: tr.length ? sign(tp) : "-", color: tp >= 0 ? [34, 160, 60] : [200, 50, 70] },
-    { label: "Win rate", val: win != null ? win.toFixed(0) + "%" : "-" },
-    { label: "Trades linked", val: String(tr.length) },
-  ];
-  const bw = (pageW - margin * 2 - 9) / 4;
-  boxes.forEach((b, i) => {
-    const x = margin + i * (bw + 3);
-    doc.setFillColor(255, 255, 255);
-    doc.roundedRect(x, sumY, bw, 18, 3, 3, "F");
-    doc.setDrawColor(230, 226, 245);
-    doc.roundedRect(x, sumY, bw, 18, 3, 3, "S");
-    doc.setTextColor(120, 120, 135);
-    doc.setFontSize(7);
-    doc.setFont("helvetica", "normal");
-    doc.text(b.label, x + bw / 2, sumY + 7, { align: "center" });
-    doc.setFontSize(11);
-    doc.setFont("helvetica", "bold");
-    if (b.color) doc.setTextColor(...b.color);
-    else doc.setTextColor(30, 30, 40);
-    doc.text(b.val, x + bw / 2, sumY + 14, { align: "center" });
-  });
-
-  // Table – confluences always in order: 1D, 1H, 15min, 5min, 1min (each on new line)
-  const head = [["Date", "Confluences", "Day pts", "Notes"]];
-  const body = L.map((r) => {
-    const lines = TFS.map((tf) => {
-      const list = r.data?.[tf] || [];
-      return list.length ? (tf + ": " + list.join(", ")) : null;
-    }).filter(Boolean);
-    const tags = lines.length ? lines.join("\n") : "-";
-    const p = pts(r.log_date);
-    return [r.log_date, tags, p != null ? sign(p) : "-", (r.notes || "").slice(0, 55)];
-  });
-
-  doc.autoTable({
-    startY: sumY + 24, head, body, margin: { left: margin, right: margin },
-    theme: "grid",
-    styles: {
-      fontSize: 8, cellPadding: { top: 3, bottom: 3, left: 3, right: 3 },
-      overflow: "linebreak", textColor: [45, 45, 55],
-      lineColor: [230, 226, 245], lineWidth: 0.25, font: "helvetica",
-      minCellHeight: 10,
-    },
-    headStyles: {
-      fillColor: [124, 58, 237], textColor: 255, fontStyle: "bold",
-      fontSize: 8.5, cellPadding: 4, halign: "left",
-    },
-    alternateRowStyles: { fillColor: [255, 255, 255] },
-    bodyStyles: { fillColor: [252, 251, 255] },
-    columnStyles: {
-      0: { cellWidth: 24, valign: "top" },
-      1: { cellWidth: 95, valign: "top" },
-      2: { cellWidth: 20, halign: "right", fontStyle: "bold", valign: "top" },
-      3: { cellWidth: 35, valign: "top" },
-    },
-    didParseCell: (data) => {
-      if (data.section === "body" && data.column.index === 2) {
-        const v = parseFloat(String(data.cell.raw).replace("+", ""));
-        if (v > 0) data.cell.styles.textColor = [34, 160, 60];
-        else if (v < 0) data.cell.styles.textColor = [200, 50, 70];
-      }
-    },
-    // Soft rounded look: draw rounded rect behind table area on first page
-    willDrawPage: (data) => {
-      if (data.pageNumber === 1) {
-        const y = sumY + 22;
-        doc.setFillColor(255, 255, 255);
-        doc.roundedRect(margin - 1, y, pageW - margin * 2 + 2, pageH - y - 18, 5, 5, "F");
-      }
-    },
-    didDrawPage: (data) => {
-      doc.setFillColor(124, 58, 237);
-      doc.rect(0, pageH - 12, pageW, 12, "F");
-      doc.setFontSize(8);
-      doc.setTextColor(255, 255, 255);
-      doc.setFont("helvetica", "normal");
-      doc.text("NasLog  ·  Confidential trading journal", margin, pageH - 5);
-      doc.text("Page " + data.pageNumber, pageW - margin, pageH - 5, { align: "right" });
-    },
-  });
-
-  doc.save(("NasLog_Confluence_" + (from || "all") + "_" + (to || "all") + ".pdf").replace(/\s+/g, "_"));
-  toast("PDF downloaded");
-}
-
 function render() {
   if (!S.token) return authView();
   const list = filtered(), st = stats(list);
   const nav = VIEWS.map((v) => `<button class="pill ${S.view === v ? "on" : ""}" data-nav="${v}">${vlabel(v)}</button>`).join("");
   const tabs = VIEWS.map((v) => `<button class="${S.view === v ? "on" : ""}" data-nav="${v}">${ICON[v]}<span>${vlabel(v)}</span></button>`).join("");
-  const head = `<div class="top"><div class="logo"><i></i>NasLog</div><div class="nav">${nav}</div><button class="btn p addbtn ${S.view === "dashboard" || S.view === "premarket" || S.view === "confluence" ? "nomob" : ""}" id="add">+ New trade</button><button class="pill outb" id="out" title="Log out">${ICON.out}<span>Log out</span></button></div>`;
-  const body = S.view === "dashboard" ? dash() : S.view === "calendar" ? calView() : S.view === "premarket" ? preView() : S.view === "confluence" ? confView() : journalView(list, st);
+  const head = `<div class="top"><div class="logo"><i></i>NasLog</div><div class="nav">${nav}</div><button class="btn p addbtn ${S.view === "dashboard" || S.view === "premarket" ? "nomob" : ""}" id="add">+ New trade</button><button class="pill outb" id="out" title="Log out">${ICON.out}<span>Log out</span></button></div>`;
+  const body = S.view === "dashboard" ? dash() : S.view === "calendar" ? calView() : S.view === "premarket" ? preView() : journalView(list, st);
   $("#app").innerHTML = head + body + `<nav class="tabbar">${tabs}</nav>`;
   document.querySelectorAll("[data-nav]").forEach((b) => (b.onclick = () => go(b.dataset.nav)));
   document.querySelectorAll("[data-rg]").forEach((b) => (b.onclick = () => { S.range = b.dataset.rg; render(); }));
   $("#out").onclick = logout; $("#add").onclick = () => openForm();
   if ($("#np")) $("#np").onclick = () => openPerf();
   if ($("#pk")) $("#pk").onclick = () => openPerf();
-  if ($("#nc")) $("#nc").onclick = () => openConf();
-  document.querySelectorAll("[data-ce]").forEach((b) => (b.onclick = () => openConf(S.cfs.find((r) => r.id == b.dataset.ce))));
-  document.querySelectorAll("[data-cd]").forEach((b) => (b.onclick = async () => { if (await ask("Delete this entry?", "This can't be undone.")) { await api("/api/confluence/" + b.dataset.cd, "DELETE"); S.cfs = await api("/api/confluence"); render(); toast("Entry deleted"); } }));
-  document.querySelectorAll("[data-fk]").forEach((b) => (b.onclick = () => { const k = b.dataset.fk; S.cf.sel.has(k) ? S.cf.sel.delete(k) : S.cf.sel.add(k); render(); }));
-  document.querySelectorAll("[data-fm]").forEach((b) => (b.onclick = () => { S.cf.mode = b.dataset.fm; render(); }));
-  if ($("#cff")) { $("#cff").onchange = () => { S.cf.from = $("#cff").value; render(); }; $("#cft").onchange = () => { S.cf.to = $("#cft").value; render(); }; $("#ccl").onclick = () => { S.cf = { mode: "all", sel: new Set(), from: "", to: "" }; render(); }; }
+  document.querySelectorAll("[data-jt]").forEach((b) => (b.onclick = () => { S.jt = b.dataset.jt; render(); }));
+  document.querySelectorAll("[data-fk]").forEach((b) => (b.onclick = () => { const k = b.dataset.fk; S.jc.sel.has(k) ? S.jc.sel.delete(k) : S.jc.sel.add(k); render(); }));
+  document.querySelectorAll("[data-fm]").forEach((b) => (b.onclick = () => { S.jc.mode = b.dataset.fm; render(); }));
+  if ($("#jco")) $("#jco").onclick = () => { S.jc.open = !S.jc.open; render(); };
   document.querySelectorAll("[data-pe]").forEach((b) => (b.onclick = () => openPerf(b.dataset.pe)));
   document.querySelectorAll("[data-pd]").forEach((b) => (b.onclick = async () => { if (await ask("Delete this day's performance?", "This can't be undone.")) { await api("/api/routine/logs/" + b.dataset.pd, "DELETE"); S.logs = await api("/api/routine/logs"); render(); toast("Performance deleted"); } }));
   if ($("#cp")) { $("#cp").onclick = () => { if (--S.cal.m < 0) { S.cal.m = 11; S.cal.y--; } render(); }; $("#cn").onclick = () => { if (++S.cal.m > 11) { S.cal.m = 0; S.cal.y++; } render(); }; }
-  document.querySelectorAll("[data-day]").forEach((c) => (c.onclick = () => { S.f = { dir: "", out: "", from: c.dataset.day, to: c.dataset.day }; go("journal"); }));
+  document.querySelectorAll("[data-day]").forEach((c) => (c.onclick = () => { S.f = { dir: "", out: "", from: c.dataset.day, to: c.dataset.day }; S.jt = "forward"; S.jc.sel = new Set(); go("journal"); }));
   document.querySelectorAll("[data-e]").forEach((b) => (b.onclick = () => openForm(S.trades.find((t) => t.id == b.dataset.e))));
   document.querySelectorAll("[data-d]").forEach((b) => (b.onclick = async () => { if (await ask("Delete this trade?", "This can't be undone.")) { await api("/api/trades/" + b.dataset.d, "DELETE"); await load(); toast("Trade deleted"); } }));
   if ($("#fd")) {
     const u = () => { S.f = { dir: $("#fd").value, out: $("#fo").value, from: $("#ff").value, to: $("#ft").value }; render(); };
     ["#fd", "#fo", "#ff", "#ft"].forEach((s) => ($(s).onchange = u));
-    if ($("#clearF")) $("#clearF").onclick = () => { S.f = { dir: "", out: "", from: "", to: "" }; render(); };
+    if ($("#clearF")) $("#clearF").onclick = () => { S.f = { dir: "", out: "", from: "", to: "" }; S.jc.sel = new Set(); render(); };
   }
   if ($("#exportPdf")) $("#exportPdf").onclick = () => exportPdf(list, st);
-  if ($("#exportCf")) $("#exportCf").onclick = () => exportConfPdf();
 }
 
 S.token ? load().catch(authView) : authView();
