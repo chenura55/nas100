@@ -263,7 +263,7 @@ const rv = (t) => t.r_multiple ?? 0, rs = (n) => sign(n) + "R";
 const isFwd = (t) => (t.trade_type || "forward") === "forward", fwd = () => S.trades.filter(isFwd);
 const CONF = { "1D": ["SCB", "PDH/PDL taken"], "1H": ["SCB", "I.SMT", "E.SMT"], "15min": ["SCB", "I.SMT", "E.SMT"], "5min": ["SCB", "I.SMT", "E.SMT", "SMT", "IFVG"], "1min": ["I.SMT", "SMT", "MSS", "IFVG"] };
 const TFS = Object.keys(CONF);
-const PATTERNS = ["Perfect Man", "Late Guest", "Ghost Shadow", "Left Over Eater"], PHASES = ["NY Manipulation", "NY Reversal", "NY Continuation"], EMO = ["Neutral", "Over confident", "Fearful", "Greedy", "Revenge", "FOMO"];
+const PATTERNS = ["Perfect Man", "Late Guest", "Ghost Shadow", "Left Over Eater"], PHASES = ["NY Manipulation", "NY Reversal", "NY Continuation", "NY Gap Time"], EMO = ["Neutral", "Over confident", "Fearful", "Greedy", "Revenge", "FOMO"];
 const PD = ["FVG", "IFVG", "OB", "Breaker", "Mitigation Block", "Rejection Block", "Propulsion Block", "Liquidity", "Premium / Discount", "Old High / Low", "Other"];
 const RRB = [["1", "1:1"], ["2", "1:2"], ["3", "1:3"], ["4", "1:4"], ["5+", "1:5+"], ["none", "No R:R"]];
 const rrBucket = (t) => { const r = t.planned_rr; if (!r) return "none"; const n = Math.round(r); return n < 1 ? "1" : n >= 5 ? "5+" : String(n); };
@@ -302,7 +302,7 @@ function stats(list) {
   const rrs = (a) => a.filter((t) => t.planned_rr).map((t) => t.planned_rr), sum = (a) => a.reduce((x, y) => x + y, 0);
   const aW = avg(w.filter((t) => t.r_multiple != null).map(rv)), aL = avg(l.filter((t) => t.r_multiple != null).map(rv)), sW = sum(rrs(w)), sL = sum(rrs(l)), lag = list.filter((t) => t.reversal_gap_min != null).map((t) => t.reversal_gap_min);
   return {
-    exp: n ? (w.length / n) * aW + (l.length / n) * aL : 0, avgWRR: avg(rrs(w)), rrf: sL ? sW / sL : sW ? Infinity : 0, avgLag: lag.length ? avg(lag) : null,
+    exp: n ? (w.length / n) * aW + (l.length / n) * aL : 0, avgWRR: aW, rrf: sL ? sW / sL : sW ? Infinity : 0, avgLag: lag.length ? avg(lag) : null,
     buys: list.filter((t) => t.direction === "BUY").length, sells: list.filter((t) => t.direction === "SELL").length,
     n, total, dd, ws, ls, best: Math.max(0, ...list.map(rv)), worst: Math.min(0, ...list.map(rv)),
     adh: pl.length ? (pl.filter((t) => t.followed_plan === "Yes").length / pl.length) * 100 : null, prr: avg(list.filter((t) => t.planned_rr).map((t) => t.planned_rr)),
@@ -346,7 +346,7 @@ function periodCard(L, st, label, margin) {
   return `<div class="card" style="margin:${margin}"><div class="ct">Period summary · ${label}</div><div class="kv">
     ${kv("Win rate", `<span class="${st.n ? (st.win >= 50 ? "up" : "dn") : ""}">${st.n ? st.win.toFixed(1) + "%" : "-"}</span>`)}${kv("Total trades", st.n)}
     ${kv("Buy trades", st.buys)}${kv("Sell trades", st.sells)}
-    ${kv("Avg win R:R (planned)", st.avgWRR ? "1:" + st.avgWRR.toFixed(2) : "-")}${kv("Expectancy / trade", `<span class="${cls(st.exp)}">${rs(st.exp)}</span>`)}
+    ${kv("Avg win R:R (actual)", st.avgWRR ? "1:" + st.avgWRR.toFixed(2) : "-")}${kv("Expectancy / trade", `<span class="${cls(st.exp)}">${rs(st.exp)}</span>`)}
     ${kv("Max win streak", `<span class="up">${st.ws}</span>`)}${kv("Max losing streak", `<span class="dn">${st.ls}</span>`)}
     ${kv("R:R factor", rf(st.rrf))}${kv("Avg entry after reversal", st.avgLag != null ? dur(Math.round(st.avgLag)) : "-")}</div>
     <p class="lbl" style="margin:10px 0 0">R:R factor = total planned R:R of winning trades ÷ total planned R:R of losing trades. Expectancy = (win% × avg win R) + (loss% × avg loss R).</p></div>`;
@@ -475,7 +475,7 @@ function journalView(list, st) {
   const rows = list.map((t) => `<tr><td>${t.trade_date}</td><td><span class="tag">${ty(t)}</span></td><td><span class="tag ${t.direction}">${t.direction}</span></td><td><span class="tag ${t.outcome}">${t.outcome}</span></td>
       <td>${t.entry_price}</td><td>${t.exit_price}</td><td>${t.sl_price ?? "-"}</td><td>${t.tp_price ?? "-"}</td><td>${t.sl_points ?? "-"}</td><td>${t.tp_points ?? "-"}</td><td>${t.planned_rr ? "1:" + t.planned_rr : "-"}</td>
       <td class="${cls(t.r_multiple)}">${rtxt(t)}</td><td>${t.mfe ?? "-"}</td><td>${t.mae ?? "-"}</td>
-      <td>${fmtT(t.entry_time)}</td><td>${fmtT(t.close_time)}</td><td>${dur(t.duration_min)}</td><td>${lagTxt(t)}</td><td>${esc(t.session)}</td><td>${t.ny_gap_time || "-"}</td><td>${esc(t.entry_pattern)}</td>
+      <td>${fmtT(t.entry_time)}</td><td>${fmtT(t.close_time)}</td><td>${dur(t.duration_min)}</td><td>${lagTxt(t)}</td><td>${esc(t.session)}</td><td>${esc(t.entry_pattern)}</td>
       <td style="white-space:normal;min-width:240px"><div class="tfl">${cfTags(t)}</div></td><td style="white-space:normal;min-width:130px"><div class="tfl">${flags(t)}</div></td><td>${esc(t.sl_pd_array)}</td><td>${esc(t.followed_plan)}</td><td>${esc(t.mistake)}</td><td>${esc(t.emotion)}</td><td>${t.rating ? t.rating + "/5" : ""}</td>
       <td>${safeUrl(t.screenshot) ? `<a href="${safeUrl(t.screenshot)}" target="_blank" rel="noopener" style="color:var(--p2)">View</a>` : ""}<button class="x" data-e="${t.id}">Edit</button><button class="x" data-d="${t.id}">Delete</button></td></tr>`).join("");
   const mc = list.map((t) => `<div class="card mcard"><div class="r1"><span><span class="tag">${ty(t)}</span> <span class="tag ${t.direction}">${t.direction}</span> <span class="tag ${t.outcome}">${t.outcome}</span></span><b class="${cls(t.r_multiple)}">${rtxt(t)}</b></div>
@@ -483,7 +483,7 @@ function journalView(list, st) {
       <div class="g2"><div><span class="lbl">Entry → Exit</span><br>${t.entry_price} → ${t.exit_price}</div><div><span class="lbl">SL / TP pts</span><br>${t.sl_points ?? "-"} / ${t.tp_points ?? "-"}</div>
       <div><span class="lbl">Plan RR</span><br>${t.planned_rr ? "1:" + t.planned_rr : "-"}</div><div><span class="lbl">MFE / MAE</span><br>${t.mfe ?? "-"} / ${t.mae ?? "-"}</div></div>
       <div class="tfl" style="margin-bottom:8px">${cfTags(t)}${flags(t)}</div>
-      <div class="lbl">${[t.session, t.ny_gap_time ? "Gap " + t.ny_gap_time : "", t.entry_pattern, t.reversal_gap_min != null ? "Rev " + lagTxt(t) : "", t.sl_pd_array ? "SL: " + t.sl_pd_array : "", t.followed_plan ? "Plan: " + t.followed_plan : "", t.mistake, t.emotion].filter(Boolean).map(esc).join(" · ")}</div>
+      <div class="lbl">${[t.session, t.entry_pattern, t.reversal_gap_min != null ? "Rev " + lagTxt(t) : "", t.sl_pd_array ? "SL: " + t.sl_pd_array : "", t.followed_plan ? "Plan: " + t.followed_plan : "", t.mistake, t.emotion].filter(Boolean).map(esc).join(" · ")}</div>
       <div style="margin-top:8px">${safeUrl(t.screenshot) ? `<a href="${safeUrl(t.screenshot)}" target="_blank" rel="noopener" style="color:var(--p2);margin-right:14px">Screenshot</a>` : ""}<button class="x" data-e="${t.id}">Edit</button> <button class="x" data-d="${t.id}">Delete</button></div></div>`).join("");
   const frows = TFS.map((tf) => `<div class="cfr"><button class="cc tfa sm ${on(tf + "|*")}" data-fk="${tf}|*">${tf}</button>${CONF[tf].map((c) => `<button class="cc sm ${on(tf + "|" + c)}" data-fk="${tf}|${esc(c)}">${esc(c)}</button>`).join("")}</div>`).join("");
   const panel = f.open ? `<div class="card" style="margin-bottom:14px"><div class="ph" style="align-items:center"><div class="ct" style="margin:0">Filter by confluence</div>
@@ -502,7 +502,7 @@ function journalView(list, st) {
     <button class="pill sm" id="clearF" title="Clear all filters">Clear</button></div>
     <div class="chips" style="margin:0 0 10px">${ppBtns}</div>
     <div class="chips" style="margin:0 0 12px"><span class="lbl" style="align-self:center">Planned R:R</span>${rrChips}</div>${moreP}${panel}${active}
-    <div class="card scroll tbl">${rows ? `<table><tr><th>Date</th><th>Type</th><th>Side</th><th>Result</th><th>Entry</th><th>Exit</th><th>SL</th><th>TP</th><th>SL pts</th><th>TP pts</th><th>Plan RR</th><th>R</th><th>MFE</th><th>MAE</th><th>Entry time</th><th>Close time</th><th>Duration</th><th>Rev. lag</th><th>Session</th><th>NY gap</th><th>Pattern</th><th>Confluences</th><th>Flags</th><th>SL reason</th><th>Plan?</th><th>Mistake</th><th>Emotion</th><th>Rating</th><th></th></tr>${rows}</table>` : `<div class="empty">${S.trades.length ? "No trades match these filters." : "No trades yet. Log your first NAS100 trade with “New trade”."}</div>`}</div><div class="mc">${mc || `<div class="card empty">${S.trades.length ? "No trades match these filters." : "No trades yet. Tap “New trade”."}</div>`}</div>`;
+    <div class="card scroll tbl">${rows ? `<table><tr><th>Date</th><th>Type</th><th>Side</th><th>Result</th><th>Entry</th><th>Exit</th><th>SL</th><th>TP</th><th>SL pts</th><th>TP pts</th><th>Plan RR</th><th>R</th><th>MFE</th><th>MAE</th><th>Entry time</th><th>Close time</th><th>Duration</th><th>Rev. lag</th><th>NY phase</th><th>Pattern</th><th>Confluences</th><th>Flags</th><th>SL reason</th><th>Plan?</th><th>Mistake</th><th>Emotion</th><th>Rating</th><th></th></tr>${rows}</table>` : `<div class="empty">${S.trades.length ? "No trades match these filters." : "No trades yet. Log your first NAS100 trade with “New trade”."}</div>`}</div><div class="mc">${mc || `<div class="card empty">${S.trades.length ? "No trades match these filters." : "No trades yet. Tap “New trade”."}</div>`}</div>`;
 }
 
 /* ---------- premarket popup ---------- */
@@ -594,7 +594,7 @@ function formHtml() {
   ${n("ep", "Entry price")}${n("xp", "Exit price")}${n("sp", "Stop loss (SL) price")}${n("tp", "Take profit (TP) price")}
   <div><label>Entry date</label><input id="ed" type="date"></div><div><label>Entry time</label><input id="et" type="time"></div>
   <div><label>Close time</label><input id="ct" type="time"></div><div><label>Market reversal time</label><input id="rv" type="time"></div>
-  <div><label>NY phase</label><select id="se"><option value="">-</option>${o(PHASES)}</select></div><div><label>NY gap time</label><input id="ng" type="time"></div>
+  <div class="full"><label>NY phase</label><select id="se"><option value="">-</option>${o(PHASES)}</select></div>
   <div><label>Emotion</label><select id="em"><option value="">-</option>${o(EMO)}</select></div><div><label>Followed my plan?</label><select id="fp"><option value="">-</option><option>Yes</option><option>No</option></select></div>
   ${n("mf", "Max move in favour (MFE, pts)", "Best price reached after entry")}${n("ma", "Max move against (MAE, pts)", "Worst drawdown after entry")}
   ${n("rk", "Risk % of account")}<div><label>Execution rating</label><select id="rt"><option value="">-</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div>
@@ -630,7 +630,7 @@ async function openForm(t) {
     didOpen: () => {
       const set = (id, val) => ($("#" + id).value = val ?? "");
       set("ep", t?.entry_price); set("xp", t?.exit_price); set("sp", t?.sl_price); set("tp", t?.tp_price);
-      set("ed", t ? t.entry_time.slice(0, 10) : today()); set("et", t?.entry_time?.slice(11, 16)); set("ct", t?.close_time?.slice(11, 16)); set("rv", t?.reversal_time?.slice(11, 16)); set("ng", t?.ny_gap_time);
+      set("ed", t ? t.entry_time.slice(0, 10) : today()); set("et", t?.entry_time?.slice(11, 16)); set("ct", t?.close_time?.slice(11, 16)); set("rv", t?.reversal_time?.slice(11, 16));
       set("se", t?.session); set("em", t?.emotion); set("fp", t?.followed_plan); set("mf", t?.mfe); set("ma", t?.mae); set("rk", t?.risk_pct); set("rt", t?.rating); set("mi", t?.mistake); set("sc", t?.screenshot); set("nt", t?.notes);
       const live = () => {
         const e = +$("#ep").value, x = +$("#xp").value, s = $("#sp").value, p = (v.d === "BUY" ? x - e : e - x), d = $("#ed").value, dt = (tm) => (d && tm ? new Date(d + "T" + tm) : null);
@@ -643,7 +643,7 @@ async function openForm(t) {
     },
     preConfirm: async () => {
       const g = (id) => $("#" + id).value, d = g("ed"), at = (tm) => (d && tm ? `${d}T${tm}` : "");
-      const body = { direction: v.d, outcome: v.o, entry_price: g("ep"), exit_price: g("xp"), sl_price: g("sp"), tp_price: g("tp"), entry_time: at(g("et")), close_time: at(g("ct")), reversal_time: at(g("rv")), ny_gap_time: g("ng"), session: g("se"), emotion: g("em"), followed_plan: g("fp"), mfe: g("mf"), mae: g("ma"), risk_pct: g("rk"), rating: g("rt"), mistake: g("mi"), screenshot: g("sc"), notes: g("nt"), trade_type: v.t,
+      const body = { direction: v.d, outcome: v.o, entry_price: g("ep"), exit_price: g("xp"), sl_price: g("sp"), tp_price: g("tp"), entry_time: at(g("et")), close_time: at(g("ct")), reversal_time: at(g("rv")), session: g("se"), emotion: g("em"), followed_plan: g("fp"), mfe: g("mf"), mae: g("ma"), risk_pct: g("rk"), rating: g("rt"), mistake: g("mi"), screenshot: g("sc"), notes: g("nt"), trade_type: v.t,
         entry_pattern: v.pat, ath: v.ath, inside_bar: v.ib, inside_bar_tf: v.ibtf, inside_bar_bias: v.ibb, invalidation: v.inv, invalidation_types: [...v.it], retracement: v.ret, sl_pd_array: v.pd, confluences: Object.fromEntries(TFS.map((tf) => [tf, [...S.cfm.data[tf]]])) };
       try { await api("/api/trades" + (S.editing ? "/" + S.editing : ""), S.editing ? "PUT" : "POST", body); return true; }
       catch (e) { Swal.showValidationMessage(e.message); return false; }
