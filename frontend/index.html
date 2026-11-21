@@ -402,7 +402,7 @@ function dash() {
   <div class="kpis">
     <div class="card kpi" style="--a:var(--lime)"><div class="lbl">Win rate</div><div class="big">${st.win.toFixed(1)}%</div><div class="lbl">${wins} wins · ${loss} losses</div></div>
     <div class="card kpi" style="--a:var(--p2)"><div class="lbl">Profit factor</div><div class="big">${st.pf === Infinity ? "∞" : st.pf.toFixed(2)}</div><div class="lbl">${rs(st.avgW)} / ${rs(st.avgL)}</div></div>
-    <div class="card kpi" style="--a:var(--blue)"><div class="lbl">Average R</div><div class="big ${cls(st.avgR)}">${sign(st.avgR)}R</div><div class="lbl">Plan RR ${st.prr ? "1:" + st.prr.toFixed(2) : "-"}</div></div>
+    <div class="card kpi" style="--a:var(--blue)"><div class="lbl">Average R</div><div class="big ${cls(st.avgR)}">${sign(st.avgR)}R</div><div class="lbl">Best ${rs(st.best)}</div></div>
     <div class="card kpi" style="--a:var(--lime)"><div class="lbl">Total R</div><div class="big ${cls(st.total)}">${rs(st.total)}</div><div class="lbl">Avg ${dur(st.avgDur)}</div></div>
     <div class="card kpi wide" style="--a:var(--red)"><div class="lbl">Max drawdown</div><div class="big dn">${st.dd ? "-" : ""}${st.dd.toFixed(2)}R</div><div class="lbl">Worst ${rs(st.worst)}</div></div></div>
   <div class="grid two" style="margin-bottom:16px">
@@ -416,9 +416,9 @@ function dash() {
       ${kv("Best / worst trade", `<span class="up">${rs(st.best)}</span> / <span class="dn">${rs(st.worst)}</span>`)}${kv("Max win / loss streak", `<span class="up">${st.ws}</span> / <span class="dn">${st.ls}</span>`)}
       ${kv("Avg SL / TP distance", `${st.avgSL.toFixed(1)} / ${st.avgTP.toFixed(1)} pts`)}${kv("Avg win / loss duration", `${dur(st.wDur)} / ${dur(st.lDur)}`)}
       ${kv("Avg MAE (heat taken)", `${st.avgMae.toFixed(1)} pts`)}
-      ${kv("Plan adherence", `<span class="${st.adh >= 80 ? "up" : ""}">${st.adh != null ? st.adh.toFixed(0) + "%" : "-"}</span>`)}</div></div></div>
+      </div></div></div>
   ${periodCard(L, st, S.range === "all" ? "All time" : "Last " + S.range + " days", "16px 0 0")}
-  <div class="bkg">${bk("By NY phase", group(L, (t) => t.session))}${bk("By weekday", group(L, (t) => DAYS[new Date(t.trade_date + "T00:00").getDay()]))}${bk("By entry pattern", group(L, (t) => t.entry_pattern))}${bk("By mistake", group(L.filter((t) => t.mistake), (t) => t.mistake))}${bk("By planned R:R", group(L, rrLabel))}${bk("By SL reason (PD array)", group(L.filter((t) => t.sl_pd_array), (t) => t.sl_pd_array))}${bk("By reversal → entry lag", group(L.filter((t) => t.reversal_gap_min != null), lagBucket))}${bk("By side", group(L, (t) => t.direction))}${bk("By liquidity point", group(L.filter((t) => t.liq_point), (t) => t.liq_point))}</div>
+  <div class="bkg">${bk("By NY phase", group(L, (t) => t.session))}${bk("By weekday", group(L, (t) => DAYS[new Date(t.trade_date + "T00:00").getDay()]))}${bk("By entry pattern", group(L, (t) => t.entry_pattern))}${bk("By mistake", group(L.filter((t) => t.mistake), (t) => t.mistake))}${bk("By SL reason (PD array)", group(L.filter((t) => t.sl_pd_array), (t) => t.sl_pd_array))}${bk("By reversal → entry lag", group(L.filter((t) => t.reversal_gap_min != null), lagBucket))}${bk("By side", group(L, (t) => t.direction))}${bk("By liquidity point", group(L.filter((t) => t.liq_point), (t) => t.liq_point))}</div>
   ${advCard(L)}`;
 }
 
