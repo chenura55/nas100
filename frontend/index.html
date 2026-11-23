@@ -283,7 +283,7 @@ const API = location.hostname === "localhost" || location.protocol === "file:" ?
 
 const $ = (s) => document.querySelector(s);
 function F0() { return { dir: "", out: "", from: "", to: "", pat: "", ph: "", emo: "", ath: "", ib: "", ibtf: "", ibb: "", inv: "", liq: "", rr: new Set() }; }
-let S = { token: localStorage.token, user: JSON.parse(localStorage.user || "null"), trades: [], routine: [], logs: [], habits: [], checkins: [], gy: { m: "", tab: "sheet", sc: null }, jt: "all", jc: { mode: "all", sel: new Set(), open: false }, cfm: null, pm: { done: new Set() }, view: "dashboard", range: "all", mode: "login", f: F0(), mf: false, xs: null, editing: null, cal: { y: new Date().getFullYear(), m: new Date().getMonth() } };
+let S = { token: localStorage.token, user: JSON.parse(localStorage.user || "null"), trades: [], habits: [], checkins: [], gy: { m: "", tab: "sheet", sc: null }, jt: "all", jc: { mode: "all", sel: new Set(), open: false }, cfm: null, view: "dashboard", range: "all", mode: "login", f: F0(), mf: false, xs: null, editing: null, cal: { y: new Date().getFullYear(), m: new Date().getMonth() } };
 
 async function api(path, method = "GET", body) {
   const r = await fetch(API + path, { method, headers: { "Content-Type": "application/json", Authorization: "Bearer " + S.token }, body: body && JSON.stringify(body) });
@@ -310,15 +310,14 @@ const isMob = () => innerWidth <= 700;
 const ICON = {
   dashboard: `<svg class="ic" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="2"/><rect x="14" y="3" width="7" height="5" rx="2"/><rect x="14" y="12" width="7" height="9" rx="2"/><rect x="3" y="16" width="7" height="5" rx="2"/></svg>`,
   calendar: `<svg class="ic" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="3"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>`,
-  premarket: `<svg class="ic" viewBox="0 0 24 24"><path d="M12 3v3M4.9 6.9l2.1 2.1M19.1 6.9L17 9M2 16h2M20 16h2M7 16a5 5 0 0110 0M3 20h18"/></svg>`,
   journal: `<svg class="ic" viewBox="0 0 24 24"><path d="M4 4h12a4 4 0 014 4v12H8a4 4 0 01-4-4z"/><path d="M8 9h8M8 13h6"/></svg>`,
   gym: `<svg class="ic" viewBox="0 0 24 24"><path d="M6.5 6.5v11M17.5 6.5v11M3 9v6M21 9v6M6.5 12h11"/></svg>`,
   out: `<svg class="ic" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>`,
 };
 
 async function load() {
-  const [t, r, g, hb, ck] = await Promise.all([api("/api/trades"), api("/api/routine"), api("/api/routine/logs"), api("/api/habits").catch(() => []), api("/api/checkins").catch(() => [])]);
-  S.trades = t; S.routine = r; S.logs = g; S.habits = Array.isArray(hb) ? hb : []; S.checkins = Array.isArray(ck) ? ck : []; render();
+  const [t, hb, ck] = await Promise.all([api("/api/trades"), api("/api/habits").catch(() => []), api("/api/checkins").catch(() => [])]);
+  S.trades = t; S.habits = Array.isArray(hb) ? hb : []; S.checkins = Array.isArray(ck) ? ck : []; render();
 }
 
 /* ---------- popups (SweetAlert2) ---------- */
@@ -462,7 +461,7 @@ function dash() {
   const L = rangeTrades(), st = stats(L), tot = st.n || 1;
   const td = fwd().filter((t) => t.trade_date === today()), tp = td.reduce((a, t) => a + rv(t), 0);
   const hr = new Date().getHours(), greet = hr < 12 ? "Good morning" : hr < 18 ? "Good afternoon" : "Good evening";
-  const pm = S.logs.find((l) => l.log_date === today()), sk = streaks(), nm = esc(S.user?.name || "trader");
+  const gx = gyX(), gt = gyRange(today(), today(), gx, false), gtot = gt.done + gt.pend + gt.fail, gp = gtot ? (gt.done / gtot) * 100 : 0, gov = gyOverall(gx), gmo = gyRange(gM1(today()), gMEnd(today().slice(0, 7)), gx), nm = esc(S.user?.name || "trader");
   const rng = [["all", "All"], ["90", "90D"], ["30", "30D"], ["7", "7D"]].map(([k, l]) => `<button class="${S.range === k ? "on" : ""}" data-rg="${k}">${l}</button>`).join("");
   const wins = st.tp, loss = st.sl;
   const recent = fwd().slice(0, 5).map((t) => `<div class="rt"><span class="tag ${t.direction}">${t.direction}</span><div class="m"><b>${t.entry_price} → ${t.exit_price}</b><small>${t.trade_date} · ${dur(t.duration_min)}${t.setup ? " · " + esc(t.setup) : ""}</small></div><span class="tag ${t.outcome}">${t.outcome}</span><b class="${cls(rv(t))}" style="min-width:64px;text-align:right">${t.r_multiple != null ? rs(t.r_multiple) : "-"}</b></div>`).join("");
@@ -472,8 +471,8 @@ function dash() {
       <div class="hero-main"><div><div class="lbl">Total R</div><div class="huge ${st.total > 0 ? "up" : st.total < 0 ? "dn" : ""}">${rs(st.total)}</div>
         <div class="hchips"><span class="chip">${st.n} trades</span><span class="chip">Today <b class="${cls(tp)}">${rs(tp)}</b></span><span class="chip">${st.win.toFixed(0)}% win</span></div></div>
         <div class="spark">${curve(L, { mini: true })}</div></div></div>
-    <div class="card pmc"><div class="ct">Daily routine · ${nice(today()).split(",")[0]}</div><div class="pmr">${donut([{ v: pm ? pm.score / 100 : 0, c: pm ? (pm.score >= 80 ? "#c6f432" : pm.score >= 50 ? "#38bdf8" : "#f0627a") : "#7c3aed" }], pm ? pm.score.toFixed(0) + "%" : "–", pm ? `${pm.done}/${pm.total} done` : "not done", 112)}
-      <div style="min-width:0"><div class="lbl">${S.routine.length ? (pm ? "Today's checklist is logged" : "Start your day right") : "Create your routine"}</div><div style="margin:4px 0 12px"><b>${sk.cur}</b> <span class="lbl">day streak (80%+)</span></div><button class="btn p" id="pk">${pm ? "Update" : "Start"}</button></div></div></div></div>
+    <div class="card pmc"><div class="ct">Gym tracker · ${nice(today()).split(",")[0]}</div><div class="pmr">${donut([{ v: gp / 100, c: gp >= 80 ? "#c6f432" : gp >= 50 ? "#38bdf8" : gt.fail ? "#f0627a" : "#7c3aed" }], gtot ? Math.round(gp) + "%" : "–", gtot ? `${gt.done}/${gtot} done` : S.habits.length ? "rest day" : "no habits", 112)}
+      <div style="min-width:0"><div class="lbl">${!S.habits.length ? "Set up your habits" : !gtot ? "Nothing due today" : gp === 100 ? "Perfect day so far" : "Keep ticking today's habits"}</div><div style="margin:4px 0 12px"><b>${gov.cur}</b> <span class="lbl">day streak</span></div><button class="btn p" data-nav="gym">Open tracker</button></div></div></div></div>
   <div class="kpis">
     <div class="card kpi" style="--a:var(--lime)"><div class="lbl">Win rate</div><div class="big">${st.win.toFixed(1)}%</div><div class="lbl">${wins} wins · ${loss} losses</div></div>
     <div class="card kpi" style="--a:var(--p2)"><div class="lbl">Profit factor</div><div class="big">${st.pf === Infinity ? "∞" : st.pf.toFixed(2)}</div><div class="lbl">${rs(st.avgW)} / ${rs(st.avgL)}</div></div>
@@ -490,9 +489,10 @@ function dash() {
     <div class="card"><div class="ct">More insights</div><div class="kv" style="grid-template-columns:1fr">
       ${kv("Best / worst trade", `<span class="up">${rs(st.best)}</span> / <span class="dn">${rs(st.worst)}</span>`)}${kv("Max win / loss streak", `<span class="up">${st.ws}</span> / <span class="dn">${st.ls}</span>`)}
       ${kv("Avg SL / TP distance", `${st.avgSL.toFixed(1)} / ${st.avgTP.toFixed(1)} pts`)}${kv("Avg win / loss duration", `${dur(st.wDur)} / ${dur(st.lDur)}`)}
-      ${kv("Avg MAE (heat taken)", `${st.avgMae.toFixed(1)} pts`)}
+      ${kv("Avg MAE (heat taken)", `${st.avgMae.toFixed(1)} pts`)}${kv("Habit streak (now / best)", `<b>${gov.cur}</b> / ${gov.best} days`)}${kv("Habits this month", gyPct(gmo.pct))}
       </div></div></div>
   ${periodCard(L, st, S.range === "all" ? "All time" : "Last " + S.range + " days", "16px 0 0")}
+  ${gyTradeLink(gx, L, "16px 0 0")}
   <div class="bkg">${bk("By NY phase", group(L, (t) => t.session))}${bk("By weekday", group(L, (t) => DAYS[new Date(t.trade_date + "T00:00").getDay()]))}${bk("By entry pattern", group(L, (t) => t.entry_pattern))}${bk("By mistake", group(L.filter((t) => t.mistake), (t) => t.mistake))}${bk("By SL reason (PD array)", group(L.filter((t) => t.sl_pd_array), (t) => t.sl_pd_array))}${bk("By reversal → entry lag", group(L.filter((t) => t.reversal_gap_min != null), lagBucket))}${bk("By side", group(L, (t) => t.direction))}${bk("By liquidity point", group(L.filter((t) => t.liq_point), (t) => t.liq_point))}</div>
   ${advCard(L)}`;
 }
@@ -512,58 +512,6 @@ function calView() {
   const name = new Date(y, m, 1).toLocaleString("en", { month: "long", year: "numeric" });
   return `<div style="display:flex;align-items:center;gap:12px;margin-bottom:6px"><button class="pill" id="cp">‹</button><h1 style="margin:0;font-size:28px;flex:1;text-align:center">${name}</h1><button class="pill" id="cn">›</button></div>
   <p class="sub" style="text-align:center">Total <b class="${cls(tot)}">${rs(tot)}</b> · ${cnt} trades · ${gd} green · ${rd} red. Tap a day to open its trades.</p><div class="card"><div class="cal">${grid}</div></div>`;
-}
-
-// Streak = consecutive days with score >= 80%. Weekends are skipped, a missed weekday breaks it.
-function streaks() {
-  const ok = new Set(S.logs.filter((l) => l.score >= 80).map((l) => l.log_date));
-  const wkend = (d) => d.getDay() === 0 || d.getDay() === 6;
-  let cur = 0, d = new Date(), first = true;
-  for (let i = 0; i < 4000; i++, d.setDate(d.getDate() - 1)) {
-    if (ok.has(dstr(d))) cur++;
-    else if (wkend(d) || (first && cur === 0)) { /* skip */ }
-    else break;
-    first = false;
-  }
-  let best = 0, run = 0;
-  if (S.logs.length) {
-    const ds = S.logs.map((l) => l.log_date).sort(), e = new Date(ds[ds.length - 1] + "T00:00");
-    for (let x = new Date(ds[0] + "T00:00"); x <= e; x.setDate(x.getDate() + 1)) {
-      if (ok.has(dstr(x))) { run++; best = Math.max(best, run); } else if (!wkend(x)) run = 0;
-    }
-  }
-  return { cur, best };
-}
-
-function preView() {
-  const L = S.logs, n = L.length, avg = n ? L.reduce((a, l) => a + l.score, 0) / n : 0, td = L.find((l) => l.log_date === today()), sk = streaks();
-  const byDay = {}; fwd().forEach((t) => (byDay[t.trade_date] = byDay[t.trade_date] || []).push(t));
-  const pts = (k) => (byDay[k] ? byDay[k].reduce((a, t) => a + rv(t), 0) : null);
-  const rows = L.map((l) => `<div class="hist"><b style="min-width:92px">${l.log_date}</b><span class="lbl" style="min-width:36px">${l.done}/${l.total}</span>
-    <div class="bar"><span style="width:${l.score}%;background:${scCol(l.score)}"></span></div><b class="${scCls(l.score)}" style="min-width:44px">${l.score.toFixed(0)}%</b>
-    <span class="lbl" style="min-width:84px">${pts(l.log_date) != null ? `<span class="${cls(pts(l.log_date))}">${rs(pts(l.log_date))}</span>` : "no trades"}</span>
-    <span><button class="x" data-pe="${l.log_date}">Edit</button><button class="x" data-pd="${l.id}">Delete</button></span>${l.notes ? `<div class="hnote">${esc(l.notes)}</div>` : ""}</div>`).join("");
-  let cols = "";
-  for (let i = 13; i >= 0; i--) {
-    const d = new Date(); d.setDate(d.getDate() - i); const k = dstr(d), l = L.find((x) => x.log_date === k);
-    cols += `<div style="flex:1;min-width:0;text-align:center"><div class="mini"><div style="margin:0 2px;height:${l ? Math.max(l.score, 4) : 4}%;background:${l ? scCol(l.score) : "var(--card2)"}" title="${k}: ${l ? l.score.toFixed(0) + "%" : "not logged"}"></div></div><div class="lbl" style="font-size:10px;margin-top:4px">${d.getDate()}</div></div>`;
-  }
-  const rate = S.routine.map((i) => { let a = 0, dn = 0; L.forEach((l) => { const x = l.items.find((y) => y.id === i.id); if (x) { a++; if (x.done) dn++; } }); return { t: i.title, a, p: a ? (dn / a) * 100 : null }; }).filter((r) => r.a).sort((x, y) => x.p - y.p);
-  const grp = (f) => { const days = L.filter((l) => f(l.score) && byDay[l.log_date]), tr = days.flatMap((l) => byDay[l.log_date]), p = tr.reduce((a, t) => a + rv(t), 0); return { d: days.length, avg: days.length ? p / days.length : null, win: tr.length ? (tr.filter((t) => t.outcome === "TP").length / tr.length) * 100 : null }; };
-  const hi = grp((s) => s >= 80), lo = grp((s) => s < 80);
-  const cmp = (title, g) => `<div class="card"><div class="lbl">${title}</div><div class="big ${g.avg != null ? cls(g.avg) : ""}">${g.avg != null ? rs(g.avg) + " / day" : "-"}</div><p class="lbl" style="margin:8px 0 0">${g.d} traded day${g.d === 1 ? "" : "s"} · win rate ${g.win != null ? g.win.toFixed(0) + "%" : "-"}</p></div>`;
-  const kp = (a, b, c, col) => `<div class="card kpi" style="--a:${col}"><div class="lbl">${a}</div><div class="big">${b}</div><div class="lbl">${c}</div></div>`;
-  return `<div class="ph"><div><h1>Daily <span>routine</span></h1><p class="sub">${nice(today())}</p></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn g" id="exportXls" ${L.length ? "" : "disabled"} title="Download your daily routine history as an Excel file">Export Excel</button><button class="btn p" id="np">+ New performance</button></div></div>
-  <div class="kpis">
-    ${kp("Today's score", `<span class="${td ? scCls(td.score) : ""}">${td ? td.score.toFixed(0) + "%" : "-"}</span>`, td ? `${td.done}/${td.total} done` : "not logged", "var(--lime)")}
-    ${kp("Average score", `<span class="${scCls(avg)}">${n ? avg.toFixed(0) + "%" : "-"}</span>`, `${n} day${n === 1 ? "" : "s"} logged`, "var(--blue)")}
-    ${kp("Current streak", `${sk.cur} <span class="lbl">day${sk.cur === 1 ? "" : "s"}</span>`, "80%+ days", "var(--p2)")}
-    ${kp("Best streak", `${sk.best} <span class="lbl">day${sk.best === 1 ? "" : "s"}</span>`, "all time", "var(--p2)")}
-    <div class="kpi wide card" style="--a:var(--blue)"><div class="lbl">Activities</div><div class="big">${S.routine.length}</div><div class="lbl">in your routine</div></div></div>
-  <div class="grid two" style="margin-bottom:16px"><div class="card"><div class="ct">Last 14 days</div><div style="display:flex">${cols}</div></div>
-    <div class="card"><div class="ct">Consistency · weakest first</div>${rate.length ? rate.map((r) => `<div class="rate"><span>${esc(r.t)}</span><div class="bar"><span style="width:${r.p}%;background:${scCol(r.p)}"></span></div><b style="min-width:38px;text-align:right">${r.p.toFixed(0)}%</b></div>`).join("") : `<div class="empty sm">Log a day to see this</div>`}</div></div>
-  ${hi.d + lo.d ? `<div class="bkg" style="margin:0 0 16px"><div class="lbl" style="grid-column:1/-1;margin-bottom:-6px">Does routine discipline affect your trading? (days with both a routine log and trades)</div>${cmp("Routine 80%+ days", hi)}${cmp("Routine under 80% days", lo)}</div>` : ""}
-  <div class="card"><div class="ct">History</div>${rows || `<div class="empty">No performance logged yet. Tap “New performance” to start.</div>`}</div>`;
 }
 
 function journalView(list, st) {
@@ -611,75 +559,6 @@ function journalView(list, st) {
     <div class="chips" style="margin:0 0 10px">${ppBtns}</div>
     <div class="chips" style="margin:0 0 12px"><span class="lbl" style="align-self:center" title="Actual result. 1:2+ includes every trade that closed at 2R or more (1:2, 1:3, 1:4…)">Reached R:R</span>${rrChips}</div>${moreP}${panel}${active}
     <div class="card scroll tbl">${rows ? `<table><tr><th>Date</th><th>Type</th><th>Side</th><th>Result</th><th>Entry</th><th>Exit</th><th>SL</th><th>TP</th><th>SL pts</th><th>TP pts</th><th>Plan RR</th><th>R</th><th>MFE</th><th>MAE</th><th>Entry time</th><th>Close time</th><th>Duration</th><th>Rev. lag</th><th>NY phase</th><th>Pattern</th><th>Confluences</th><th>Flags</th><th>SL reason</th><th>Liquidity pt</th><th>Plan?</th><th>Mistake</th><th>Emotion</th><th>Rating</th><th></th></tr>${rows}</table>` : `<div class="empty">${S.trades.length ? "No trades match these filters." : "No trades yet. Log your first NAS100 trade with “New trade”."}</div>`}</div><div class="mc">${mc || `<div class="card empty">${S.trades.length ? "No trades match these filters." : "No trades yet. Tap “New trade”."}</div>`}</div>`;
-}
-
-/* ---------- premarket popup ---------- */
-const SUGGEST = ["Check economic calendar", "Mark key levels", "Mark HTF bias", "Review last trades", "Set max daily loss", "Read my trading rules", "Breathing / meditation"];
-
-function pbody() {
-  const P = S.pm, items = S.routine, done = P.done, mg = P.manage, d = items.filter((i) => done.has(i.id)).length, sc = items.length ? (d / items.length) * 100 : 0, keep = $("#na")?.value || "";
-  $("#pmg").textContent = mg ? "Done" : "Edit routine";
-  const row = (i) => {
-    if (!mg) return `<label class="chk ${done.has(i.id) ? "done" : ""}"><input type="checkbox" data-c="${i.id}" ${done.has(i.id) ? "checked" : ""}><span>${esc(i.title)}</span></label>`;
-    const left = P.edit === i.id ? `<input class="re" id="re" value="${esc(i.title)}" maxlength="120">` : `<span>${esc(i.title)}</span>`;
-    const ed = P.edit === i.id ? `<button type="button" class="x ok" data-rs="${i.id}">✓</button>` : `<button type="button" class="x" data-rn="${i.id}">✎</button>`;
-    const rm = P.rm === i.id ? `<button type="button" class="x dng" data-rm="${i.id}">Remove?</button>` : `<button type="button" class="x" data-rm="${i.id}">✕</button>`;
-    return `<div class="chk" style="cursor:default">${left}<button type="button" class="x" data-up="${i.id}">▲</button><button type="button" class="x" data-dn="${i.id}">▼</button>${ed}${rm}</div>`;
-  };
-  $("#pb").innerHTML = `<div class="score"><b class="${scCls(sc)}">${sc.toFixed(0)}%</b><div class="lbl">${d} of ${items.length} activities done</div></div>
-  ${items.length ? items.map(row).join("") : `<div class="lbl">No activities yet. Add your own below, or tap a suggestion:</div><div class="chips">${SUGGEST.map((x) => `<button type="button" class="pill" data-sg="${esc(x)}">+ ${esc(x)}</button>`).join("")}</div>`}
-  <div class="add-row"><input id="na" placeholder="Add activity, e.g. Mark key levels" maxlength="120" value="${esc(keep)}"><button type="button" class="btn g" id="aa">Add</button></div>
-  <div class="lbl">Activities you add are saved in your routine template and show up every day.</div>`;
-  const err = (e) => ($("#pe").textContent = e.message);
-  document.querySelectorAll("[data-c]").forEach((c) => (c.onchange = () => { const id = +c.dataset.c; c.checked ? done.add(id) : done.delete(id); pbody(); }));
-  const mv = async (id, dir) => {
-    const i = S.routine.findIndex((x) => x.id == id), j = i + dir; if (j < 0 || j >= S.routine.length) return;
-    [S.routine[i], S.routine[j]] = [S.routine[j], S.routine[i]]; pbody();
-    try { await api("/api/routine/reorder", "POST", { ids: S.routine.map((x) => x.id) }); } catch (e) { err(e); }
-  };
-  document.querySelectorAll("[data-up]").forEach((b) => (b.onclick = () => mv(b.dataset.up, -1)));
-  document.querySelectorAll("[data-dn]").forEach((b) => (b.onclick = () => mv(b.dataset.dn, 1)));
-  const saveRename = async (id) => {
-    const t = $("#re").value.trim(), it = S.routine.find((x) => x.id == id); if (!t) return;
-    try { await api("/api/routine/" + id, "PUT", { title: t }); it.title = t.slice(0, 120); P.edit = null; pbody(); } catch (e) { err(e); }
-  };
-  document.querySelectorAll("[data-rn]").forEach((b) => (b.onclick = () => { P.edit = +b.dataset.rn; P.rm = null; pbody(); $("#re").focus(); }));
-  document.querySelectorAll("[data-rs]").forEach((b) => (b.onclick = () => saveRename(b.dataset.rs)));
-  if ($("#re")) $("#re").onkeydown = (e) => { if (e.key === "Enter") saveRename(P.edit); if (e.key === "Escape") { P.edit = null; pbody(); } };
-  document.querySelectorAll("[data-rm]").forEach((b) => (b.onclick = async () => {
-    const id = +b.dataset.rm;
-    if (P.rm !== id) { P.rm = id; pbody(); setTimeout(() => { if (P.rm === id && $("#pb")) { P.rm = null; pbody(); } }, 3000); return; }
-    try { await api("/api/routine/" + id, "DELETE"); S.routine = S.routine.filter((i) => i.id !== id); done.delete(id); P.rm = null; pbody(); } catch (e) { err(e); }
-  }));
-  const add = async (title) => {
-    const t = (title || $("#na").value).trim(); if (!t) return;
-    try { S.routine.push(await api("/api/routine", "POST", { title: t })); if (!title) $("#na").value = ""; $("#pe").textContent = ""; pbody(); if (!title) $("#na").focus(); } catch (e) { err(e); }
-  };
-  document.querySelectorAll("[data-sg]").forEach((b) => (b.onclick = () => add(b.dataset.sg)));
-  $("#aa").onclick = () => add(); $("#na").onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); add(); } };
-}
-
-// The date is set automatically to today. Only the Edit button in History opens an older day.
-async function openPerf(date = today()) {
-  if (!window.Swal) return noSwal();
-  const l = S.logs.find((x) => x.log_date === date);
-  S.pm = { date, manage: false, edit: null, rm: null, done: new Set(l ? l.items.filter((i) => i.done).map((i) => i.id) : []) };
-  const res = await Swal.fire({
-    ...pop("nl-form"), title: "Daily routine", confirmButtonText: "Save performance",
-    html: `<div class="ph" style="align-items:center"><div id="pdl" style="font-size:14px"></div><button type="button" class="pill sm" id="pmg">Edit routine</button></div><div id="pb"></div>
-      <div class="f" style="margin-top:14px"><div class="full"><label>Notes (optional)</label><textarea id="pn" rows="2" placeholder="Bias for today, key levels, how you feel…"></textarea></div></div><div class="err" id="pe"></div>`,
-    didOpen: () => {
-      $("#pdl").innerHTML = `${nice(date)} ${date === today() ? `<span class="tag" style="color:var(--lime)">Today</span>` : `<span class="tag">Editing past day</span>`}`;
-      $("#pn").value = l?.notes || "";
-      $("#pmg").onclick = () => { S.pm.manage = !S.pm.manage; S.pm.edit = S.pm.rm = null; pbody(); };
-      pbody();
-    },
-    preConfirm: async () => {
-      try { await api("/api/routine/logs", "POST", { log_date: S.pm.date, done_ids: [...S.pm.done], notes: $("#pn").value }); S.logs = await api("/api/routine/logs"); return true; }
-      catch (e) { Swal.showValidationMessage(e.message); return false; }
-    },
-  });
-  if (res.isConfirmed) { render(); toast("Performance saved"); } else render();
 }
 
 /* ---------- entry confluences ---------- */
@@ -990,6 +869,18 @@ function gyLine(pts, unit) {
   return `<svg viewBox="0 0 ${W} ${H}" width="100%" height="70" preserveAspectRatio="none"><path d="${d}" fill="none" stroke="#a78bfa" stroke-width="2.5" vector-effect="non-scaling-stroke" stroke-linejoin="round"/></svg><div class="lbl">${gyNum(vs[0])} → <b style="color:var(--text)">${gyNum(vs[vs.length - 1])} ${esc(unit || "")}</b> (${ch > 0 ? "+" : ""}${gyNum(ch)}) · ${pts.length} records</div>`;
 }
 
+// Compares trading results on days when every daily habit was done vs days with a miss
+function gyTradeLink(x, L, margin) {
+  const by = {}; L.forEach((t) => (by[t.trade_date] = by[t.trade_date] || []).push(t));
+  const hi = [], lo = [];
+  Object.keys(by).forEach((d) => { if (d >= today()) return; const r = gyRange(d, d, x, false); if (!r.ce) return; (r.fail === 0 && r.done > 0 ? hi : lo).push(d); });
+  const g = (days) => { const tr = days.flatMap((d) => by[d]), p = tr.reduce((a, t) => a + rv(t), 0); return { d: days.length, avg: days.length ? p / days.length : null, win: tr.length ? (tr.filter((t) => t.outcome === "TP").length / tr.length) * 100 : null }; };
+  const A = g(hi), B = g(lo);
+  if (!A.d && !B.d) return "";
+  const c = (title, o) => `<div class="card"><div class="lbl">${title}</div><div class="big ${o.avg != null ? cls(o.avg) : ""}">${o.avg != null ? rs(o.avg) + " / day" : "-"}</div><p class="lbl" style="margin:8px 0 0">${o.d} traded day${o.d === 1 ? "" : "s"} · win rate ${o.win != null ? o.win.toFixed(0) + "%" : "-"}</p></div>`;
+  return `<div class="bkg" style="margin:${margin}"><div class="lbl" style="grid-column:1/-1;margin-bottom:-6px">Do your habits affect your trading? (days with daily habits and trades)</div>${c("All habits done days", A)}${c("Missed a habit days", B)}</div>`;
+}
+
 function gyInsights(x) {
   const t = x.today, mon = gMon(t), first = x.H.reduce((a, h) => (h.start_date < a ? h.start_date : a), "9999-99-99");
   const td = gyRange(t, t, x, false), wk = gyRange(mon, gAdd(mon, 6), x), mo = gyRange(gM1(t), gMEnd(t.slice(0, 7)), x), all = first <= t ? gyRange(first, t, x) : { pct: null }, ov = gyOverall(x);
@@ -1006,6 +897,7 @@ function gyInsights(x) {
   const trend = x.H.filter((h) => h.kind === "value").map((h) => ({ h, pts: S.checkins.filter((c) => c.habit_id === h.id && c.status === "done" && c.value != null).sort((a, b) => (a.check_date < b.check_date ? -1 : 1)).map((c) => ({ d: c.check_date, v: +c.value })) })).filter((o) => o.pts.length >= 2);
   return `<div class="kpis">${kp("Today", gyPct(td.pct), `${td.cd}/${td.ce} done`, "var(--lime)")}${kp("This week", gyPct(wk.pct), `${wk.cd}/${wk.ce} done`, "var(--blue)")}${kp("This month", gyPct(mo.pct), `${mo.cd}/${mo.ce} done`, "var(--p2)")}${kp("All time", gyPct(all.pct), `${all.cd || 0}/${all.ce || 0} done`, "var(--lime)")}${kp("Total completed", totalDone, "habit check-ins", "var(--blue)")}
     ${kp("Current streak", ov.cur + " <span class='lbl'>days</span>", "perfect days in a row", "var(--p2)")}${kp("Longest streak", ov.best + " <span class='lbl'>days</span>", `${ov.days} perfect days total`, "var(--p2)")}${kp("Best month", best ? gyPct(best.r.pct) : "–", best ? gyMonthName(best.m.slice(0, 7)) : "no data yet", "var(--lime)")}</div>
+  ${gyTradeLink(x, fwd(), "0 0 16px")}
   <div class="card" style="margin-bottom:16px"><div class="ct">Calendar heatmap</div>${gyHeat(x)}</div>
   <div class="grid two" style="grid-template-columns:1fr 1fr;margin-bottom:16px"><div class="card"><div class="ct">Weekly completion (last 12 weeks, week start)</div>${gyBars(wb)}</div><div class="card"><div class="ct">Monthly progress (last 12 months)</div>${gyBars(mb)}</div></div>
   <div class="card" style="margin-bottom:16px"><div class="ct">Habit-by-habit performance</div>${perf || `<div class="empty sm">No habits yet</div>`}</div>
@@ -1036,8 +928,8 @@ function gyHabitsTab(x) {
 
 function gymView() {
   const x = gyX();
-  const head = `<div class="ph"><div><h1>Gym <span>tracker</span></h1><p class="sub">${nice(today())}</p></div><div style="display:flex;gap:8px"><button class="btn g" data-gtp>Templates</button><button class="btn p" data-gah>+ Habit</button></div></div>`;
-  if (!S.habits.length) return head + `<div class="card empty" style="padding:44px 20px"><div style="font-size:44px">🏋️</div><h2 style="margin:8px 0">Build your habit tracker</h2><p class="lbl" style="max-width:380px;margin:0 auto 18px">Track gym, food, water, weight and anything else. Start from the 28-day Gym &amp; Health sheet or create your own habits with custom schedules.</p><button class="btn p" data-gtp>Choose a template</button> <button class="btn g" data-gah>Add a habit</button></div>`;
+  const head = `<div class="ph"><div><h1>Gym <span>tracker</span></h1><p class="sub">${nice(today())}</p></div><div style="display:flex;gap:8px"><button class="btn g" id="gxl" title="Download this month as an Excel file">Export Excel</button><button class="btn g" data-gtp>Templates</button><button class="btn p" data-gah>+ Habit</button></div></div>`;
+  if (!S.habits.length) return head + `<div class="card empty" style="padding:44px 20px"><div style="font-size:44px">🏋️</div><h2 style="margin:8px 0">Build your habit tracker</h2><p class="lbl" style="max-width:380px;margin:0 auto 18px">Track gym, food, water, weight, your premarket routine and anything else. Start from the 28-day Gym &amp; Health sheet or create your own habits with custom schedules.</p><button class="btn p" data-gtp>Choose a template</button> <button class="btn g" data-gah>Add a habit</button></div>`;
   const tabs = [["sheet", "Sheet"], ["insights", "Insights"], ["badges", "Badges"], ["habits", "Habits"]].map(([k, l]) => `<button class="${S.gy.tab === k ? "on" : ""}" data-gt="${k}">${l}</button>`).join("");
   const body = { sheet: () => gyToday(x) + gySheet(x), insights: () => gyInsights(x), badges: () => gyBadgesView(x), habits: () => gyHabitsTab(x) }[S.gy.tab]();
   return head + gyHero(x) + `<div class="gy-seg">${tabs}</div>` + body;
@@ -1085,6 +977,7 @@ async function gyValue(h, d, c) {
 }
 
 /* ---- habit form ---- */
+const PRE = ["Check economic calendar", "Mark key levels", "Mark HTF bias", "Review last trades", "Set max daily loss", "Read my trading rules", "Breathing / meditation"];
 const GSCHED = [["daily", "Every day", "Counts every single day"], ["weekdays", "Selected weekdays", "Pick the days, e.g. Mon · Wed · Fri"], ["weekly_count", "Days per week", "Do it N times a week on any days"], ["custom_week", "Custom weekly schedule", "Pick available days and how many you must complete"], ["interval", "Custom repeat interval", "Every N days from a first date, e.g. weigh-in every 7 days"]];
 
 async function gyHabitForm(h) {
@@ -1139,6 +1032,7 @@ async function gyTemplates() {
   const pick = await new Promise((resolve) => Swal.fire({ ...pop(), allowOutsideClick: true, showCloseButton: true, showCancelButton: false, showConfirmButton: false, title: "Templates",
     html: `<div class="gy-tp"><button data-t="p28"><b>28-Day Gym &amp; Health</b><small>Gym · No junk foods · Water 4.5L daily, plus Weight &amp; WM every 7 days (day 7, 14, 21, 28) like your tracker sheet</small></button>
       <button data-t="flex"><b>Flexible Fitness</b><small>Workout 4× a week · Stretching 3 of Mon–Sat · 10k steps · Sleep 8h · Weekly weigh-in</small></button>
+      <button data-t="pre"><b>Premarket routine</b><small>Your pre-trading checklist as habits: calendar, key levels, HTF bias, review… due Mon–Fri</small></button>
       <button data-t="copy"><b>Copy from last month</b><small>Bring last month's habits into ${gyMonthName(m)} and customise them</small></button>
       <button data-t="blank"><b>Custom habit</b><small>Choose any schedule yourself</small></button></div>`,
     didOpen: () => document.querySelectorAll("[data-t]").forEach((b) => (b.onclick = () => { resolve(b.dataset.t); Swal.close(); })), willClose: () => resolve(null) }));
@@ -1162,6 +1056,14 @@ async function gyTemplates() {
     return gyBulk([{ name: "Workout", sched_type: "weekly_count", sched: { target: 4 } }, { name: "Stretching", sched_type: "custom_week", sched: { days: [1, 2, 3, 4, 5, 6], target: 3 } }, { name: "10k steps", sched_type: "daily" }, { name: "Sleep 8h", sched_type: "daily" },
       { name: "Weigh-in", kind: "value", unit: "kg", sched_type: "interval", sched: { every: 7, anchor: s } }].map((h) => ({ start_date: s, ...h })), "Flexible Fitness created");
   }
+  if (pick === "pre") {
+    const r = await Swal.fire({ ...pop(), allowOutsideClick: true, title: "Premarket routine", confirmButtonText: "Create habits",
+      html: `<div class="f"><div class="full lbl">Tick the activities you want. They are due Mon–Fri. You can edit or delete any of them later in the Habits tab.</div><div class="full">${PRE.map((x, i) => `<label class="chk" style="display:flex;color:var(--text);font-size:15px"><input type="checkbox" data-pre="${i}" checked><span>${esc(x)}</span></label>`).join("")}</div><div class="full"><label>Start date</label><input type="date" id="t1" value="${today()}"></div></div>`,
+      preConfirm: () => { const sel = [...document.querySelectorAll("[data-pre]")].filter((c) => c.checked).map((c) => PRE[+c.dataset.pre]); if (!sel.length) { Swal.showValidationMessage("Pick at least one activity"); return false; } return { sel, start: $("#t1").value }; } });
+    if (!r.isConfirmed || !r.value.start) return;
+    S.gy.m = r.value.start.slice(0, 7);
+    return gyBulk(r.value.sel.map((name) => ({ name, sched_type: "weekdays", sched: { days: [1, 2, 3, 4, 5] }, start_date: r.value.start })), "Premarket routine created");
+  }
   if (pick === "copy") {
     const first = m + "-01", last = gMEnd(m), pl = gMEnd(pm.slice(0, 7));
     const src = S.habits.filter((h) => h.start_date <= pl && (!h.end_date || h.end_date >= pm) && h.end_date && h.end_date < first);
@@ -1179,6 +1081,7 @@ function gyBind() {
   document.querySelectorAll("[data-ghd]").forEach((b) => (b.onclick = async () => { const h = S.habits.find((x) => x.id == b.dataset.ghd); if (await ask(`Delete “${h.name}”?`, "All of its check-ins are deleted too. To keep the history, set an end date instead.")) { await api("/api/habits/" + h.id, "DELETE"); await gyReload(); render(); toast("Habit deleted"); } }));
   document.querySelectorAll("[data-gc]").forEach((b) => (b.onclick = () => { const [id, d] = b.dataset.gc.split("|"); gyTap(+id, d); }));
   const mv = (n) => { const d = new Date(Date.UTC(+gyM().slice(0, 4), +gyM().slice(5, 7) - 1 + n, 1)); S.gy.m = gS(d).slice(0, 7); S.gy.sc = null; render(); };
+  if ($("#gxl")) $("#gxl").onclick = exportGymXlsx;
   if ($("#gprev")) { $("#gprev").onclick = () => mv(-1); $("#gnext").onclick = () => mv(1); }
   const box = $(".gy-sheet");
   if (box) { if (S.gy.sc) { box.scrollTop = S.gy.sc[0]; box.scrollLeft = S.gy.sc[1]; } else if ($("#gy-now")) box.scrollTop = Math.max(0, $("#gy-now").offsetTop - 130); }
@@ -1200,7 +1103,7 @@ function authView() {
   $("#go").onclick = go; $("#pw").onkeydown = (e) => { if (e.key === "Enter") go(); };
 }
 
-const VIEWS = ["dashboard", "calendar", "premarket", "gym", "journal"], vlabel = (v) => (v === "premarket" ? "Routine" : v === "gym" ? "Gym tracker" : v[0].toUpperCase() + v.slice(1));
+const VIEWS = ["dashboard", "calendar", "gym", "journal"], vlabel = (v) => (v === "gym" ? "Gym tracker" : v[0].toUpperCase() + v.slice(1));
 const go = (v) => { S.view = v; render(); scrollTo(0, 0); };
 
 function exportPdf(list, st) {
@@ -1346,51 +1249,37 @@ function exportPdf(list, st) {
   toast("PDF downloaded");
 }
 
-async function exportRoutineXlsx() {
+async function exportGymXlsx() {
   if (!window.ExcelJS) return toast("Excel library failed to load. Check internet and refresh.", "error");
-  const L = [...S.logs].sort((a, b) => a.log_date.localeCompare(b.log_date));
-  if (!L.length) return toast("No routine days to export", "error");
+  const x = gyX(), m = gyM(), first = m + "-01", last = gMEnd(m), H = x.H.filter((h) => h.start_date <= last && (!h.end_date || h.end_date >= first));
+  if (!H.length) return toast("No habits in this month to export", "error");
   const wb = new ExcelJS.Workbook(); wb.creator = "NasLog"; wb.created = new Date();
   const edge = { style: "thin", color: { argb: "FFE3DFF1" } }, grid = { top: edge, left: edge, bottom: edge, right: edge };
   const tone = (p) => (p >= 80 ? { f: "FFDCFCE7", c: "FF166534" } : p >= 50 ? { f: "FFDBEAFE", c: "FF1E40AF" } : { f: "FFFEE2E2", c: "FF991B1B" });
   const paint = (cell, t) => { cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: t.f } }; cell.font = { bold: true, color: { argb: t.c } }; };
-  const sheet = (name, cols, height = 26) => {
-    const ws = wb.addWorksheet(name, { views: [{ state: "frozen", ySplit: 1 }], properties: { defaultRowHeight: 20 } });
-    ws.columns = cols; const h = ws.getRow(1); h.height = height;
+  const sheet = (name, cols) => {
+    const ws = wb.addWorksheet(name, { views: [{ state: "frozen", ySplit: 1, xSplit: 1 }] }); ws.columns = cols; const h = ws.getRow(1); h.height = 40;
     h.eachCell((c) => { c.font = { bold: true, color: { argb: "FFFFFFFF" }, size: 11 }; c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF7C3AED" } }; c.alignment = { vertical: "middle", horizontal: "center", wrapText: true }; c.border = grid; });
     return ws;
   };
-  const style = (ws, left = []) => ws.eachRow((r, n) => { if (n > 1) r.eachCell({ includeEmpty: true }, (c, i) => { c.border = grid; c.alignment = { vertical: "middle", horizontal: left.includes(i) ? "left" : "center", wrapText: left.includes(i) }; }); });
-  const byDay = {}; fwd().forEach((t) => (byDay[t.trade_date] = byDay[t.trade_date] || []).push(t));
+  const style = (ws) => ws.eachRow((r, n) => { if (n > 1) r.eachCell({ includeEmpty: true }, (c) => { c.border = grid; c.alignment = { vertical: "middle", horizontal: "center" }; }); });
+  const cellOf = (h, d) => { if (!gySched(h, d)) return "–"; const c = x.C[h.id]?.[d]; if (c?.status === "done") return c.value != null ? gyNum(c.value) : "✓"; if (c?.status === "skip") return x.ok.has(h.id + "|" + d) ? "S" : "✗"; return gyDay(h) && d < x.today ? "✗" : ""; };
 
-  // 1) one row per day
-  const w1 = sheet("Daily routine", [{ header: "Date", key: "d", width: 13 }, { header: "Day", key: "w", width: 8 }, { header: "Done", key: "n", width: 9 }, { header: "Total", key: "t", width: 9 }, { header: "Score", key: "s", width: 10 }, { header: "Status", key: "st", width: 11 }, { header: "Trades", key: "tr", width: 9 }, { header: "Result (R)", key: "r", width: 12 }, { header: "Notes", key: "no", width: 48 }]);
-  L.forEach((l) => { const tr = byDay[l.log_date] || [], r = tr.reduce((a, t) => a + rv(t), 0);
-    const row = w1.addRow({ d: l.log_date, w: DAYS[new Date(l.log_date + "T00:00").getDay()], n: l.done, t: l.total, s: l.score / 100, st: l.score >= 80 ? "Strong" : l.score >= 50 ? "OK" : "Weak", tr: tr.length || "", r: tr.length ? +r.toFixed(2) : "", no: l.notes || "" });
-    row.getCell("s").numFmt = "0%"; row.getCell("r").numFmt = '+0.00;-0.00;0.00'; });
-  const avg = L.reduce((a, l) => a + l.score, 0) / L.length;
-  const last = w1.addRow({ d: "Average", s: avg / 100, st: `${L.length} days` }); last.getCell("s").numFmt = "0%";
-  style(w1, [9]);
-  w1.eachRow((r, n) => { if (n > 1) { const sc = n - 2 < L.length ? L[n - 2].score : avg; paint(r.getCell("s"), tone(sc)); paint(r.getCell("st"), tone(sc)); const rc = r.getCell("r"); if (typeof rc.value === "number" && rc.value !== 0) rc.font = { bold: true, color: { argb: rc.value > 0 ? "FF166534" : "FF991B1B" } }; } });
-  last.eachCell({ includeEmpty: true }, (c) => { c.font = { bold: true, color: c.font?.color }; c.border = { ...grid, top: { style: "medium", color: { argb: "FF7C3AED" } } }; });
-  w1.autoFilter = { from: "A1", to: "I1" };
+  const w1 = sheet(gyMonthName(m), [{ header: "Date", key: "d", width: 13 }, { header: "Day", key: "w", width: 8 }, ...H.map((h, i) => ({ header: h.name, key: "h" + i, width: Math.min(24, Math.max(13, h.name.length * 0.9)) })), { header: "Score", key: "s", width: 10 }]);
+  const scores = [];
+  for (let d = first; d <= last; d = gAdd(d, 1)) {
+    const r = d <= x.today ? gyRange(d, d, x, false) : null, tot = r ? r.done + r.fail + r.pend : 0, sc = tot ? (r.done / tot) * 100 : null, o = { d, w: GWD[gDow(d)], s: sc == null ? "" : sc / 100 };
+    H.forEach((h, i) => (o["h" + i] = cellOf(h, d))); scores.push(sc); w1.addRow(o).getCell(H.length + 3).numFmt = "0%";
+  }
+  style(w1);
+  w1.eachRow((r, n) => { if (n > 1) { r.eachCell((c) => { if (c.value === "✓") c.font = { bold: true, color: { argb: "FF166534" } }; else if (c.value === "✗") c.font = { bold: true, color: { argb: "FF991B1B" } }; else if (c.value === "S") c.font = { bold: true, color: { argb: "FF1E40AF" } }; }); if (scores[n - 2] != null) paint(r.getCell(H.length + 3), tone(scores[n - 2])); } });
 
-  // 2) checklist grid: one column per activity, tick or cross per day
-  const titles = []; L.forEach((l) => l.items.forEach((i) => { if (!titles.includes(i.title)) titles.push(i.title); }));
-  const w2 = sheet("Checklist", [{ header: "Date", key: "d", width: 13 }, ...titles.map((t, i) => ({ header: t, key: "a" + i, width: Math.min(24, Math.max(13, t.length * 0.9)) })), { header: "Score", key: "s", width: 10 }], 44);
-  L.forEach((l) => { const o = { d: l.log_date, s: l.score / 100 }; titles.forEach((t, i) => { const x = l.items.find((y) => y.title === t); o["a" + i] = x ? (x.done ? "✓" : "✗") : ""; }); const row = w2.addRow(o); row.getCell(titles.length + 2).numFmt = "0%"; });
-  style(w2);
-  w2.eachRow((r, n) => { if (n > 1) { r.eachCell((c, i) => { if (c.value === "✓") c.font = { bold: true, color: { argb: "FF166534" } }; else if (c.value === "✗") c.font = { bold: true, color: { argb: "FF991B1B" } }; }); paint(r.getCell(titles.length + 2), tone(L[n - 2].score)); } });
-  w2.getColumn(1).alignment = { horizontal: "center" };
-
-  // 3) which activities you skip most (weakest first)
-  const cons = titles.map((t) => { let a = 0, d = 0; L.forEach((l) => { const x = l.items.find((y) => y.title === t); if (x) { a++; if (x.done) d++; } }); return { t, a, d, p: a ? (d / a) * 100 : 0 }; }).sort((x, y) => x.p - y.p);
-  const w3 = sheet("Consistency", [{ header: "Activity", key: "t", width: 38 }, { header: "Days tracked", key: "a", width: 14 }, { header: "Days done", key: "d", width: 12 }, { header: "Completion", key: "p", width: 13 }]);
-  cons.forEach((c) => { const row = w3.addRow({ t: c.t, a: c.a, d: c.d, p: c.p / 100 }); row.getCell("p").numFmt = "0%"; });
-  style(w3, [1]); w3.eachRow((r, n) => { if (n > 1) paint(r.getCell("p"), tone(cons[n - 2].p)); });
+  const w2 = sheet("Habits", [{ header: "Habit", key: "n", width: 28 }, { header: "Schedule", key: "s", width: 30 }, { header: "Streak", key: "c", width: 10 }, { header: "Longest", key: "b", width: 10 }, { header: "Done", key: "d", width: 10 }, { header: "Skipped", key: "k", width: 10 }, { header: "Missed", key: "f", width: 10 }, { header: "Completion", key: "p", width: 13 }]);
+  x.H.forEach((h) => { const r = gyHabitStats(h, x); w2.addRow({ n: h.name, s: gyDesc(h), c: r.cur, b: r.best, d: r.cd, k: r.skip, f: r.fail, p: r.pct == null ? "" : r.pct / 100 }).getCell("p").numFmt = "0%"; });
+  style(w2); w2.eachRow((r, n) => { if (n > 1) { const p = r.getCell("p").value; if (typeof p === "number") paint(r.getCell("p"), tone(p * 100)); } });
 
   const buf = await wb.xlsx.writeBuffer(), url = URL.createObjectURL(new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" })), a = document.createElement("a");
-  a.href = url; a.download = `NasLog_Daily_Routine_${today()}.xlsx`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 2000);
+  a.href = url; a.download = `NasLog_Gym_Tracker_${m}.xlsx`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 2000);
   toast("Excel file downloaded");
 }
 
@@ -1399,21 +1288,16 @@ function render() {
   const list = filtered(), st = stats(list);
   const nav = VIEWS.map((v) => `<button class="pill ${S.view === v ? "on" : ""}" data-nav="${v}">${vlabel(v)}</button>`).join("");
   const tabs = VIEWS.map((v) => `<button class="${S.view === v ? "on" : ""}" data-nav="${v}">${ICON[v]}<span>${v === "gym" ? "Gym" : vlabel(v)}</span></button>`).join("");
-  const head = `<div class="top"><div class="logo"><i></i>NasLog</div><div class="nav">${nav}</div><button class="btn p addbtn ${["dashboard", "premarket", "gym"].includes(S.view) ? "nomob" : ""}" id="add">+ New trade</button><button class="pill outb" id="out" title="Log out">${ICON.out}<span>Log out</span></button></div>`;
-  const body = S.view === "dashboard" ? dash() : S.view === "calendar" ? calView() : S.view === "premarket" ? preView() : S.view === "gym" ? gymView() : journalView(list, st);
+  const head = `<div class="top"><div class="logo"><i></i>NasLog</div><div class="nav">${nav}</div><button class="btn p addbtn ${["dashboard", "gym"].includes(S.view) ? "nomob" : ""}" id="add">+ New trade</button><button class="pill outb" id="out" title="Log out">${ICON.out}<span>Log out</span></button></div>`;
+  const body = S.view === "dashboard" ? dash() : S.view === "calendar" ? calView() : S.view === "gym" ? gymView() : journalView(list, st);
   $("#app").innerHTML = head + body + `<nav class="tabbar">${tabs}</nav>`;
   document.querySelectorAll("[data-nav]").forEach((b) => (b.onclick = () => go(b.dataset.nav)));
   document.querySelectorAll("[data-rg]").forEach((b) => (b.onclick = () => { S.range = b.dataset.rg; render(); }));
   $("#out").onclick = logout; $("#add").onclick = () => openForm();
-  if ($("#np")) $("#np").onclick = () => openPerf();
-  if ($("#exportXls")) $("#exportXls").onclick = exportRoutineXlsx;
-  if ($("#pk")) $("#pk").onclick = () => openPerf();
   document.querySelectorAll("[data-jt]").forEach((b) => (b.onclick = () => { S.jt = b.dataset.jt; render(); }));
   document.querySelectorAll("[data-fk]").forEach((b) => (b.onclick = () => { const k = b.dataset.fk; S.jc.sel.has(k) ? S.jc.sel.delete(k) : S.jc.sel.add(k); render(); }));
   document.querySelectorAll("[data-fm]").forEach((b) => (b.onclick = () => { S.jc.mode = b.dataset.fm; render(); }));
   if ($("#jco")) $("#jco").onclick = () => { S.jc.open = !S.jc.open; render(); };
-  document.querySelectorAll("[data-pe]").forEach((b) => (b.onclick = () => openPerf(b.dataset.pe)));
-  document.querySelectorAll("[data-pd]").forEach((b) => (b.onclick = async () => { if (await ask("Delete this day's performance?", "This can't be undone.")) { await api("/api/routine/logs/" + b.dataset.pd, "DELETE"); S.logs = await api("/api/routine/logs"); render(); toast("Performance deleted"); } }));
   if ($("#cp")) { $("#cp").onclick = () => { if (--S.cal.m < 0) { S.cal.m = 11; S.cal.y--; } render(); }; $("#cn").onclick = () => { if (++S.cal.m > 11) { S.cal.m = 0; S.cal.y++; } render(); }; }
   document.querySelectorAll("[data-day]").forEach((c) => (c.onclick = () => { S.f = { ...F0(), from: c.dataset.day, to: c.dataset.day }; S.jt = "forward"; S.jc.sel = new Set(); go("journal"); }));
   document.querySelectorAll("[data-e]").forEach((b) => (b.onclick = () => openForm(S.trades.find((t) => t.id == b.dataset.e))));

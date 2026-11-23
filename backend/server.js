@@ -25,14 +25,6 @@ await db.batch([
     entry_time TEXT, close_time TEXT, duration_min INTEGER,
     setup TEXT, emotion TEXT, notes TEXT, created_at TEXT DEFAULT CURRENT_TIMESTAMP)`,
   `CREATE INDEX IF NOT EXISTS idx_trades_user ON trades(user_id, entry_time)`,
-  `CREATE TABLE IF NOT EXISTS routine_items (
-    id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, title TEXT NOT NULL,
-    position INTEGER DEFAULT 0, created_at TEXT DEFAULT CURRENT_TIMESTAMP)`,
-  `CREATE INDEX IF NOT EXISTS idx_routine_items_user ON routine_items(user_id, position)`,
-  `CREATE TABLE IF NOT EXISTS routine_logs (
-    id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, log_date TEXT NOT NULL,
-    items TEXT, total INTEGER, done INTEGER, score REAL, created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(user_id, log_date))`,
 ]);
 
 // Auto-migrate: adds new columns to an existing database without losing data
@@ -42,7 +34,6 @@ for (const [c, t] of Object.entries(NEW)) { try { await db.execute(`ALTER TABLE 
 // trade_type = forward | backtest. confluences = JSON of ticked confluences per timeframe
 try { await db.execute("ALTER TABLE trades ADD COLUMN trade_type TEXT DEFAULT 'forward'"); } catch {}
 try { await db.execute("ALTER TABLE trades ADD COLUMN confluences TEXT"); } catch {}
-try { await db.execute("ALTER TABLE routine_logs ADD COLUMN notes TEXT"); } catch {}
 
 // Gym tracker: habits (with a schedule) and one check-in per habit per day
 await db.batch([
@@ -142,62 +133,6 @@ app.delete("/api/trades/:id", auth, async (req, res) => {
   await db.execute({ sql: "DELETE FROM trades WHERE id=? AND user_id=?", args: [req.params.id, req.uid] });
   res.json({ ok: true });
 });
-// ---------- Premarket routine ----------
-// One routine template per user. Daily performance logs keep a snapshot of the activities, so old scores never change when the template is edited.
-const cleanTitle = (v) => String(v || "").trim().slice(0, 120);
-
-app.get("/api/routine", auth, async (req, res) => {
-  const r = await db.execute({ sql: "SELECT id,title FROM routine_items WHERE user_id=? ORDER BY position,id", args: [req.uid] });
-  res.json(r.rows);
-});
-app.post("/api/routine", auth, async (req, res) => {
-  const title = cleanTitle(req.body.title);
-  if (!title) return res.status(400).json({ error: "Type an activity name" });
-  const p = await db.execute({ sql: "SELECT COALESCE(MAX(position),0)+1 AS p FROM routine_items WHERE user_id=?", args: [req.uid] });
-  const r = await db.execute({ sql: "INSERT INTO routine_items (user_id,title,position) VALUES (?,?,?)", args: [req.uid, title, p.rows[0].p] });
-  res.json({ id: Number(r.lastInsertRowid), title });
-});
-app.post("/api/routine/reorder", auth, async (req, res) => {
-  const ids = (Array.isArray(req.body.ids) ? req.body.ids : []).map(Number).filter(Number.isInteger);
-  if (ids.length) await db.batch(ids.map((id, i) => ({ sql: "UPDATE routine_items SET position=? WHERE id=? AND user_id=?", args: [i + 1, id, req.uid] })));
-  res.json({ ok: true });
-});
-app.put("/api/routine/:id", auth, async (req, res) => {
-  const title = cleanTitle(req.body.title);
-  if (!title) return res.status(400).json({ error: "Type an activity name" });
-  await db.execute({ sql: "UPDATE routine_items SET title=? WHERE id=? AND user_id=?", args: [title, req.params.id, req.uid] });
-  res.json({ ok: true });
-});
-app.delete("/api/routine/:id", auth, async (req, res) => {
-  await db.execute({ sql: "DELETE FROM routine_items WHERE id=? AND user_id=?", args: [req.params.id, req.uid] });
-  res.json({ ok: true });
-});
-
-app.get("/api/routine/logs", auth, async (req, res) => {
-  const r = await db.execute({ sql: "SELECT * FROM routine_logs WHERE user_id=? ORDER BY log_date DESC", args: [req.uid] });
-  res.json(r.rows.map((l) => ({ ...l, items: JSON.parse(l.items || "[]") })));
-});
-app.post("/api/routine/logs", auth, async (req, res) => {
-  const date = String(req.body.log_date || "").slice(0, 10);
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return res.status(400).json({ error: "Pick a valid date" });
-  const notes = String(req.body.notes || "").trim().slice(0, 1000);
-  const doneIds = new Set((Array.isArray(req.body.done_ids) ? req.body.done_ids : []).map(Number));
-  const it = await db.execute({ sql: "SELECT id,title FROM routine_items WHERE user_id=? ORDER BY position,id", args: [req.uid] });
-  if (!it.rows.length) return res.status(400).json({ error: "Add at least one activity first" });
-  const snap = it.rows.map((r) => ({ id: r.id, title: r.title, done: doneIds.has(Number(r.id)) }));
-  const done = snap.filter((x) => x.done).length, total = snap.length, score = +((done / total) * 100).toFixed(1);
-  await db.execute({
-    sql: `INSERT INTO routine_logs (user_id,log_date,items,total,done,score,notes) VALUES (?,?,?,?,?,?,?)
-          ON CONFLICT(user_id,log_date) DO UPDATE SET items=excluded.items,total=excluded.total,done=excluded.done,score=excluded.score,notes=excluded.notes`,
-    args: [req.uid, date, JSON.stringify(snap), total, done, score, notes],
-  });
-  res.json({ ok: true, done, total, score });
-});
-app.delete("/api/routine/logs/:id", auth, async (req, res) => {
-  await db.execute({ sql: "DELETE FROM routine_logs WHERE id=? AND user_id=?", args: [req.params.id, req.uid] });
-  res.json({ ok: true });
-});
-
 // ---------- Entry confluences ----------
 // Each trade stores the confluences ticked on every timeframe BEFORE entering.
 const CONF = {
