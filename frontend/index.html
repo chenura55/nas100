@@ -8,9 +8,7 @@
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='16' fill='%237c3aed'/%3E%3Cpath d='M16 16V0A16 16 0 0 1 32 16Z' fill='%23e9e0ff'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11.14.5/dist/sweetalert2.min.css">
-<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.4/dist/jspdf.plugin.autotable.min.js"></script>
 <style>
 :root{--bg:#08080a;--card:#16161a;--card2:#212127;--line:#2b2b33;--text:#f4f4f6;--mute:#8e8e9a;--p:#7c3aed;--p2:#a78bfa;--lime:#c6f432;--red:#f0627a;--blue:#38bdf8}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -19,7 +17,8 @@ body{margin:0;color:var(--text);font:15px/1.45 "DM Sans",system-ui,sans-serif;mi
   background:radial-gradient(90% 45% at 0% 0%,#3c2a6b 0,transparent 65%),radial-gradient(60% 35% at 100% 0%,#173a4d66 0,transparent 65%),var(--bg) fixed}
 button,input,select,textarea{font:inherit;color:inherit}
 button{cursor:pointer}
-svg.ic{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+svg.ic{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;flex:none}
+svg.hi{width:1.15em;height:1.15em;vertical-align:-.2em;flex:none}.hi.fire{color:#fb923c}.hi.ok{color:var(--lime)}.hi.no{color:var(--red)}.hi.gold{color:#fbbf24}.huge .hi{width:.78em;height:.78em;vertical-align:-.04em}.btn .hi{margin-right:6px}.pill .hi{width:1.3em;height:1.3em;vertical-align:-.3em}.tk i .hi{width:13px;height:13px}.gy-b .hi{width:60%;height:60%;vertical-align:middle}.empty .hi.big{width:46px;height:46px;vertical-align:baseline}
 .wrap{max-width:1200px;margin:0 auto;padding:22px}
 
 /* top bar + nav */
@@ -242,6 +241,8 @@ input[type=date]::-webkit-date-and-time-value,input[type=time]::-webkit-date-and
 .gy-t td small{color:var(--mute);margin-left:5px;font-size:11px}
 .gy-t tfoot td{background:#1a1a20;font-size:13px;color:var(--text);vertical-align:top;padding:10px 5px}.gy-t tfoot td:first-child{color:var(--mute);font-size:12px}
 .gy-off{color:#3d3d47}
+.gy-b.opt{color:#6a6a76;border-style:dashed;background:none}
+.gy-t tr.gy-miss td:first-child{background:#3a1c27}
 .gy-b{width:38px;height:38px;border-radius:12px;border:1.5px solid #3a3a44;background:var(--card2);color:transparent;font-weight:700;font-size:14px;display:inline-grid;place-items:center;padding:0;transition:.12s}
 .gy-b.sm{font-size:11px}
 .gy-b.done{background:var(--lime);border-color:var(--lime);color:#000}
@@ -308,16 +309,19 @@ const wCol = (w) => (w >= 50 ? "var(--lime)" : "var(--red)");
 const isMob = () => innerWidth <= 700;
 
 const ICON = {
-  dashboard: `<svg class="ic" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="2"/><rect x="14" y="3" width="7" height="5" rx="2"/><rect x="14" y="12" width="7" height="9" rx="2"/><rect x="3" y="16" width="7" height="5" rx="2"/></svg>`,
-  calendar: `<svg class="ic" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="3"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>`,
-  journal: `<svg class="ic" viewBox="0 0 24 24"><path d="M4 4h12a4 4 0 014 4v12H8a4 4 0 01-4-4z"/><path d="M8 9h8M8 13h6"/></svg>`,
-  gym: `<svg class="ic" viewBox="0 0 24 24"><path d="M6.5 6.5v11M17.5 6.5v11M3 9v6M21 9v6M6.5 12h11"/></svg>`,
-  out: `<svg class="ic" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>`,
+  dashboard: `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z"/></svg>`,
+  calendar: `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5m-9-6h.008v.008H12v-.008ZM12 15h.008v.008H12V15Zm0 2.25h.008v.008H12v-.008ZM9.75 15h.008v.008H9.75V15Zm0 2.25h.008v.008H9.75v-.008ZM7.5 15h.008v.008H7.5V15Zm0 2.25h.008v.008H7.5v-.008Zm6.75-4.5h.008v.008h-.008v-.008Zm0 2.25h.008v.008h-.008V15Zm0 2.25h.008v.008h-.008v-.008Zm2.25-4.5h.008v.008H16.5v-.008Zm0 2.25h.008v.008H16.5V15Z"/></svg>`,
+  gym: `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m3.75 13.5 10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75Z"/></svg>`,
+  journal: `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25"/></svg>`,
+  out: `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9"/></svg>`,
 };
+// Heroicons (v2, MIT) - 20px solid set, used inline in text and buttons
+const HI = {"fire": "<path fill-rule=\"evenodd\" d=\"M13.5 4.938a7 7 0 1 1-9.006 1.737c.202-.257.59-.218.793.039.278.352.594.672.943.954.332.269.786-.049.773-.476a5.977 5.977 0 0 1 .572-2.759 6.026 6.026 0 0 1 2.486-2.665c.247-.14.55-.016.677.238A6.967 6.967 0 0 0 13.5 4.938ZM14 12a4 4 0 0 1-4 4c-1.913 0-3.52-1.398-3.91-3.182-.093-.429.44-.643.814-.413a4.043 4.043 0 0 0 1.601.564c.303.038.531-.24.51-.544a5.975 5.975 0 0 1 1.315-4.192.447.447 0 0 1 .431-.16A4.001 4.001 0 0 1 14 12Z\" clip-rule=\"evenodd\"/>", "check-circle": "<path fill-rule=\"evenodd\" d=\"M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm3.857-9.809a.75.75 0 0 0-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 1 0-1.06 1.061l2.5 2.5a.75.75 0 0 0 1.137-.089l4-5.5Z\" clip-rule=\"evenodd\"/>", "x-circle": "<path fill-rule=\"evenodd\" d=\"M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16ZM8.28 7.22a.75.75 0 0 0-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 1 0 1.06 1.06L10 11.06l1.72 1.72a.75.75 0 1 0 1.06-1.06L11.06 10l1.72-1.72a.75.75 0 0 0-1.06-1.06L10 8.94 8.28 7.22Z\" clip-rule=\"evenodd\"/>", "trophy": "<path fill-rule=\"evenodd\" d=\"M10 1c-1.828 0-3.623.149-5.371.435a.75.75 0 0 0-.629.74v.387c-.827.157-1.642.345-2.445.564a.75.75 0 0 0-.552.698 5 5 0 0 0 4.503 5.152 6 6 0 0 0 2.946 1.822A6.451 6.451 0 0 1 7.768 13H7.5A1.5 1.5 0 0 0 6 14.5V17h-.75C4.56 17 4 17.56 4 18.25c0 .414.336.75.75.75h10.5a.75.75 0 0 0 .75-.75c0-.69-.56-1.25-1.25-1.25H14v-2.5a1.5 1.5 0 0 0-1.5-1.5h-.268a6.453 6.453 0 0 1-.684-2.202 6 6 0 0 0 2.946-1.822 5 5 0 0 0 4.503-5.152.75.75 0 0 0-.552-.698A31.804 31.804 0 0 0 16 2.562v-.387a.75.75 0 0 0-.629-.74A33.227 33.227 0 0 0 10 1ZM2.525 4.422C3.012 4.3 3.504 4.19 4 4.09V5c0 .74.134 1.448.38 2.103a3.503 3.503 0 0 1-1.855-2.68Zm14.95 0a3.503 3.503 0 0 1-1.854 2.68C15.866 6.449 16 5.74 16 5v-.91c.496.099.988.21 1.475.332Z\" clip-rule=\"evenodd\"/>", "check": "<path fill-rule=\"evenodd\" d=\"M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.05-.143Z\" clip-rule=\"evenodd\"/>", "chevron-left": "<path fill-rule=\"evenodd\" d=\"M11.78 5.22a.75.75 0 0 1 0 1.06L8.06 10l3.72 3.72a.75.75 0 1 1-1.06 1.06l-4.25-4.25a.75.75 0 0 1 0-1.06l4.25-4.25a.75.75 0 0 1 1.06 0Z\" clip-rule=\"evenodd\"/>", "chevron-right": "<path fill-rule=\"evenodd\" d=\"M8.22 5.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 0 1-1.06-1.06L11.94 10 8.22 6.28a.75.75 0 0 1 0-1.06Z\" clip-rule=\"evenodd\"/>", "chevron-up": "<path fill-rule=\"evenodd\" d=\"M9.47 6.47a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 1 1-1.06 1.06L10 8.06l-3.72 3.72a.75.75 0 0 1-1.06-1.06l4.25-4.25Z\" clip-rule=\"evenodd\"/>", "chevron-down": "<path fill-rule=\"evenodd\" d=\"M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z\" clip-rule=\"evenodd\"/>", "moon": "<path fill-rule=\"evenodd\" d=\"M7.455 2.004a.75.75 0 0 1 .26.77 7 7 0 0 0 9.958 7.967.75.75 0 0 1 1.067.853A8.5 8.5 0 1 1 6.647 1.921a.75.75 0 0 1 .808.083Z\" clip-rule=\"evenodd\"/>", "bolt": "<path d=\"M11.983 1.907a.75.75 0 0 0-1.292-.657l-8.5 9.5A.75.75 0 0 0 2.75 12h6.572l-1.305 6.093a.75.75 0 0 0 1.292.657l8.5-9.5A.75.75 0 0 0 17.25 8h-6.572l1.305-6.093Z\"/>", "plus": "<path d=\"M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5Z\"/>", "arrow-down-tray": "<path d=\"M10.75 2.75a.75.75 0 0 0-1.5 0v8.614L6.295 8.235a.75.75 0 1 0-1.09 1.03l4.25 4.5a.75.75 0 0 0 1.09 0l4.25-4.5a.75.75 0 0 0-1.09-1.03l-2.955 3.129V2.75Z\"/><path d=\"M3.5 12.75a.75.75 0 0 0-1.5 0v2.5A2.75 2.75 0 0 0 4.75 18h10.5A2.75 2.75 0 0 0 18 15.25v-2.5a.75.75 0 0 0-1.5 0v2.5c0 .69-.56 1.25-1.25 1.25H4.75c-.69 0-1.25-.56-1.25-1.25v-2.5Z\"/>"};
+const ico = (n, c = "") => `<svg class="hi ${c}" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">${HI[n]}</svg>`;
 
 async function load() {
   const [t, hb, ck] = await Promise.all([api("/api/trades"), api("/api/habits").catch(() => []), api("/api/checkins").catch(() => [])]);
-  S.trades = t; S.habits = Array.isArray(hb) ? hb : []; S.checkins = Array.isArray(ck) ? ck : []; render();
+  S.trades = t; S.habits = Array.isArray(hb) ? hb : []; S.checkins = Array.isArray(ck) ? ck.filter((c) => c.status === "done") : []; render();
 }
 
 /* ---------- popups (SweetAlert2) ---------- */
@@ -461,7 +465,7 @@ function dash() {
   const L = rangeTrades(), st = stats(L), tot = st.n || 1;
   const td = fwd().filter((t) => t.trade_date === today()), tp = td.reduce((a, t) => a + rv(t), 0);
   const hr = new Date().getHours(), greet = hr < 12 ? "Good morning" : hr < 18 ? "Good afternoon" : "Good evening";
-  const gx = gyX(), gt = gyRange(today(), today(), gx, false), gtot = gt.done + gt.pend + gt.fail, gp = gtot ? (gt.done / gtot) * 100 : 0, gov = gyOverall(gx), gmo = gyRange(gM1(today()), gMEnd(today().slice(0, 7)), gx), nm = esc(S.user?.name || "trader");
+  const gx = gyX(), gt = gyRange(today(), today(), gx, false), gtot = gt.done + gt.pend + gt.fail, gp = gtot ? (gt.done / gtot) * 100 : 0, gov = gyOverall(gx), gmo = gyRange(gM1(today()), gMEnd(today().slice(0, 7)), gx), gdt = gyDayTally(gM1(today()), today(), gx), nm = esc(S.user?.name || "trader");
   const rng = [["all", "All"], ["90", "90D"], ["30", "30D"], ["7", "7D"]].map(([k, l]) => `<button class="${S.range === k ? "on" : ""}" data-rg="${k}">${l}</button>`).join("");
   const wins = st.tp, loss = st.sl;
   const recent = fwd().slice(0, 5).map((t) => `<div class="rt"><span class="tag ${t.direction}">${t.direction}</span><div class="m"><b>${t.entry_price} → ${t.exit_price}</b><small>${t.trade_date} · ${dur(t.duration_min)}${t.setup ? " · " + esc(t.setup) : ""}</small></div><span class="tag ${t.outcome}">${t.outcome}</span><b class="${cls(rv(t))}" style="min-width:64px;text-align:right">${t.r_multiple != null ? rs(t.r_multiple) : "-"}</b></div>`).join("");
@@ -489,7 +493,7 @@ function dash() {
     <div class="card"><div class="ct">More insights</div><div class="kv" style="grid-template-columns:1fr">
       ${kv("Best / worst trade", `<span class="up">${rs(st.best)}</span> / <span class="dn">${rs(st.worst)}</span>`)}${kv("Max win / loss streak", `<span class="up">${st.ws}</span> / <span class="dn">${st.ls}</span>`)}
       ${kv("Avg SL / TP distance", `${st.avgSL.toFixed(1)} / ${st.avgTP.toFixed(1)} pts`)}${kv("Avg win / loss duration", `${dur(st.wDur)} / ${dur(st.lDur)}`)}
-      ${kv("Avg MAE (heat taken)", `${st.avgMae.toFixed(1)} pts`)}${kv("Habit streak (now / best)", `<b>${gov.cur}</b> / ${gov.best} days`)}${kv("Habits this month", gyPct(gmo.pct))}
+      ${kv("Avg MAE (heat taken)", `${st.avgMae.toFixed(1)} pts`)}${kv("Habit streak (now / best)", `<b>${gov.cur}</b> / ${gov.best} days`)}${kv("Habits this month", gyPct(gmo.pct))}${kv("Perfect / missed days (month)", `<span class="up">${gdt.perfect}</span> / <span class="dn">${gdt.miss}</span>`)}
       </div></div></div>
   ${periodCard(L, st, S.range === "all" ? "All time" : "Last " + S.range + " days", "16px 0 0")}
   ${gyTradeLink(gx, L, "16px 0 0")}
@@ -510,7 +514,7 @@ function calView() {
     grid += `<div class="cd wk"><span class="dnum">Week ${w / 7 + 1}</span>${wn ? `<b class="${cls(wp)}">${rs(wp)}</b><small>${wn} trade${wn > 1 ? "s" : ""}</small>` : ""}</div>`;
   }
   const name = new Date(y, m, 1).toLocaleString("en", { month: "long", year: "numeric" });
-  return `<div style="display:flex;align-items:center;gap:12px;margin-bottom:6px"><button class="pill" id="cp">‹</button><h1 style="margin:0;font-size:28px;flex:1;text-align:center">${name}</h1><button class="pill" id="cn">›</button></div>
+  return `<div style="display:flex;align-items:center;gap:12px;margin-bottom:6px"><button class="pill" id="cp">${ico("chevron-left")}</button><h1 style="margin:0;font-size:28px;flex:1;text-align:center">${name}</h1><button class="pill" id="cn">${ico("chevron-right")}</button></div>
   <p class="sub" style="text-align:center">Total <b class="${cls(tot)}">${rs(tot)}</b> · ${cnt} trades · ${gd} green · ${rd} red. Tap a day to open its trades.</p><div class="card"><div class="cal">${grid}</div></div>`;
 }
 
@@ -547,7 +551,7 @@ function journalView(list, st) {
       <p class="lbl" style="margin:8px 0 6px">Tap confluences one by one and the win rate above updates. <b>All</b> = every selected one was present (e.g. 15min SCB + 1H SCB). <b>Any</b> = at least one. Tapping a timeframe name = any confluence on that timeframe.</p>${frows}</div>` : "";
   const active = keys.length && !f.open ? `<div class="lbl" style="margin:-4px 0 12px">Confluence filter (${f.mode === "all" ? "ALL" : "ANY"}): ${keys.map((k) => esc(k.replace("|*", " (any)").replace("|", " "))).join(" · ")}</div>` : "";
   return `<div class="ph"><div><h1>Journal</h1><p class="sub">${st.n} trades · <b class="${cls(st.total)}">${rs(st.total)}</b> · ${st.win.toFixed(0)}% win rate · avg ${dur(st.avgDur)}</p></div>
-    <button class="btn g" id="exportPdf" ${list.length ? "" : "disabled"} title="Export filtered trades to PDF">Export PDF</button></div>
+    <button class="btn g" id="exportJ" ${list.length ? "" : "disabled"} title="Export the filtered trades to an Excel file">${ico("arrow-down-tray")}Export Excel</button></div>
     <div class="chips" style="margin:0 0 14px">${tabs}</div>
     <div class="kpis">${kp("Win rate", `<span class="${st.n ? (st.win >= 50 ? "up" : "dn") : ""}">${st.n ? st.win.toFixed(1) + "%" : "-"}</span>`, `${st.tp} TP · ${st.sl} SL · ${st.be} BE`, "var(--lime)")}${kp("Trades", st.n, `of ${S.trades.length} total`, "var(--p2)")}${kp("Total R", `<span class="${cls(st.total)}">${rs(st.total)}</span>`, "matching filter", "var(--blue)")}${kp("Expectancy", `<span class="${cls(st.exp)}">${rs(st.exp)}</span>`, `per trade · Avg R ${sign(st.avgR)}`, "var(--blue)")}${kp("Profit factor", st.pf === Infinity ? "∞" : st.pf.toFixed(2), `Max DD ${st.dd ? "-" : ""}${st.dd.toFixed(2)}R`, "var(--p2)", "wide")}</div>
     ${periodCard(list, st, periodLbl, "0 0 16px")}
@@ -565,7 +569,7 @@ function journalView(list, st) {
 function cbody() {
   const M = S.cfm;
   $("#cb").innerHTML = TFS.map((tf) => { const n = M.data[tf].size, open = M.open === tf;
-    return `<button type="button" class="tfh ${open ? "open" : ""}" data-ot="${tf}"><b>${tf}</b>${n ? `<span class="n">${n} ticked</span>` : ""}<span class="lbl">${open ? "▲" : "▼"}</span></button>${open ? `<div class="cchips">${CONF[tf].map((c) => `<button type="button" class="cc ${M.data[tf].has(c) ? "on" : ""}" data-cc="${tf}|${esc(c)}">${esc(c)}</button>`).join("")}</div>` : ""}`; }).join("");
+    return `<button type="button" class="tfh ${open ? "open" : ""}" data-ot="${tf}"><b>${tf}</b>${n ? `<span class="n">${n} ticked</span>` : ""}<span class="lbl">${ico(open ? "chevron-up" : "chevron-down")}</span></button>${open ? `<div class="cchips">${CONF[tf].map((c) => `<button type="button" class="cc ${M.data[tf].has(c) ? "on" : ""}" data-cc="${tf}|${esc(c)}">${esc(c)}</button>`).join("")}</div>` : ""}`; }).join("");
   document.querySelectorAll("[data-ot]").forEach((b) => (b.onclick = () => { M.open = M.open === b.dataset.ot ? null : b.dataset.ot; cbody(); }));
   document.querySelectorAll("[data-cc]").forEach((b) => (b.onclick = () => { const i = b.dataset.cc.indexOf("|"), tf = b.dataset.cc.slice(0, i), c = b.dataset.cc.slice(i + 1), set = M.data[tf]; set.has(c) ? set.delete(c) : set.add(c); cbody(); }));
 }
@@ -595,7 +599,7 @@ function formHtml() {
 
 // Entry pattern, market context, invalidation and SL reason. All tick based, state lives in S.xs
 function xbody() {
-  const X = S.xs, tk = (k, l, on) => `<button type="button" class="tk ${on ? "on" : ""}" data-x="${k}"><i>✓</i>${esc(l)}</button>`, two = (k, a, cur) => `<div class="tks">${a.map((c) => tk(k + "|" + c, c, cur === c)).join("")}</div>`;
+  const X = S.xs, tk = (k, l, on) => `<button type="button" class="tk ${on ? "on" : ""}" data-x="${k}"><i>${ico("check")}</i>${esc(l)}</button>`, two = (k, a, cur) => `<div class="tks">${a.map((c) => tk(k + "|" + c, c, cur === c)).join("")}</div>`;
   $("#xb").innerHTML = `<div class="sec"><div class="lbl">Entry pattern</div>${two("pat", PATTERNS, X.pat)}</div>
   <div class="sec"><div class="lbl">Market context</div>${tk("ath", "Market at all-time high (ATH)", X.ath)}${tk("ib", "Inside bar present", X.ib)}
     ${X.ib ? `<div class="sub2"><div class="lbl">Inside bar timeframe</div>${two("ibtf", ["1D", "1H", "15min"], X.ibtf)}<div class="lbl">Does it support the bias?</div><div class="tks">${tk("ibb|Yes", "Supports bias", X.ibb === "Yes")}${tk("ibb|No", "Doesn't support bias", X.ibb === "No")}</div></div>` : ""}
@@ -663,26 +667,15 @@ function gySched(h, d) {
   if (h.sched_type === "interval") { const a = s.anchor || h.start_date; return d >= a && gDiff(d, a) % (s.every || 7) === 0; }
   return true; // daily, weekly_count
 }
-// Context: check-ins indexed by habit/date + the skip days that are inside the monthly allowance
+// Context: check-ins indexed by habit/date. Only "done" check-ins exist: a day that is not ticked is a miss.
 function gyCtx(H, K, t) {
-  const C = {}; K.forEach((c) => ((C[c.habit_id] = C[c.habit_id] || {})[c.check_date] = c));
-  const ok = new Set();
-  H.forEach((h) => {
-    const used = {};
-    Object.keys(C[h.id] || {}).sort().forEach((d) => {
-      if (C[h.id][d].status !== "skip" || !gySched(h, d)) return;
-      const m = d.slice(0, 7); used[m] = (used[m] || 0) + 1;
-      if (used[m] <= (h.skips_per_month ?? 2)) ok.add(h.id + "|" + d);
-    });
-  });
-  return { H, C, ok, today: t };
+  const C = {}; K.forEach((c) => { if (c.status === "done") (C[c.habit_id] = C[c.habit_id] || {})[c.check_date] = c; });
+  return { H, C, today: t };
 }
-// Outcome of one scheduled day for a daily-type habit: done | skip | fail | pending | null (not scheduled)
+// Outcome of one scheduled day for a daily-type habit: done | fail | pending | null (not scheduled)
 function gyOut(h, d, x) {
   if (!gySched(h, d)) return null;
-  const c = x.C[h.id]?.[d];
-  if (c?.status === "done") return "done";
-  if (c?.status === "skip") return x.ok.has(h.id + "|" + d) ? "skip" : "fail"; // skips over the monthly limit count as a miss
+  if (x.C[h.id]?.[d]) return "done";
   return d >= x.today ? "pending" : "fail";
 }
 // Outcome of one Mon-Sun week for a weekly habit
@@ -690,53 +683,60 @@ function gyWeek(h, mon, x) {
   const s = h.sched || {}, av = [];
   for (let i = 0; i < 7; i++) { const d = gAdd(mon, i); if (gySched(h, d)) av.push(d); }
   if (!av.length) return null;
-  let done = 0, sk = 0, rem = 0;
-  av.forEach((d) => { const c = x.C[h.id]?.[d]; if (c?.status === "done") done++; else if (c?.status === "skip") { if (x.ok.has(h.id + "|" + d)) sk++; } else if (d >= x.today) rem++; });
-  const need = Math.max(0, Math.min(s.target || 1, av.length - sk));
-  return { status: need === 0 ? "skip" : done >= need ? "ok" : done + rem < need ? "fail" : "pending", done, need, avail: av.length };
+  let done = 0, rem = 0;
+  av.forEach((d) => { if (x.C[h.id]?.[d]) done++; else if (d >= x.today) rem++; });
+  const need = Math.min(s.target || 1, av.length);
+  return { status: done >= need ? "ok" : done + rem < need ? "fail" : "pending", done, need, avail: av.length };
 }
 // Per habit: current streak, longest streak, completion %
 function gyHabitStats(h, x) {
-  const to = h.end_date && h.end_date < x.today ? h.end_date : x.today, r = { cur: 0, best: 0, done: 0, fail: 0, skip: 0, cd: 0, ce: 0, unit: gyDay(h) ? "day" : "week" };
+  const to = h.end_date && h.end_date < x.today ? h.end_date : x.today, r = { cur: 0, best: 0, done: 0, fail: 0, cd: 0, ce: 0, unit: gyDay(h) ? "day" : "week" };
   if (gyDay(h)) {
     for (let d = h.start_date; d <= to; d = gAdd(d, 1)) {
       const o = gyOut(h, d, x); if (!o) continue;
       if (o === "done") { r.cur++; r.best = Math.max(r.best, r.cur); r.done++; r.cd++; r.ce++; }
       else if (o === "fail") { r.cur = 0; r.fail++; r.ce++; }
-      else if (o === "skip") r.skip++;
     }
   } else {
     for (let m = gMon(h.start_date); m <= to; m = gAdd(m, 7)) {
       const w = gyWeek(h, m, x); if (!w) continue;
       if (w.status === "ok") { r.cur++; r.best = Math.max(r.best, r.cur); r.done++; r.cd += Math.min(w.done, w.need); r.ce += w.need; }
       else if (w.status === "fail") { r.cur = 0; r.fail++; r.cd += Math.min(w.done, w.need); r.ce += w.need; }
-      else if (w.status === "skip") r.skip++;
     }
   }
   r.pct = r.ce ? (r.cd / r.ce) * 100 : null;
   return r;
 }
-// Overall streak: a "perfect day" = every daily-type habit scheduled that day is done (or skipped inside the allowance)
+// Overall streak. A day is PERFECT only when every daily-type habit scheduled that day is ticked. One missed habit = a missed day.
 function gyOverall(x) {
-  const dh = x.H.filter(gyDay), r = { cur: 0, best: 0, days: 0 };
+  const dh = x.H.filter(gyDay), r = { cur: 0, best: 0, days: 0, miss: 0 };
   if (!dh.length) return r;
   const first = dh.reduce((a, h) => (h.start_date < a ? h.start_date : a), "9999-99-99");
   for (let d = first; d <= x.today; d = gAdd(d, 1)) {
     const o = dh.map((h) => gyOut(h, d, x)).filter(Boolean); if (!o.length) continue;
-    if (o.includes("fail")) r.cur = 0;
+    if (o.includes("fail")) { r.cur = 0; r.miss++; }
     else if (o.includes("pending")) continue;
-    else if (o.includes("done")) { r.cur++; r.days++; r.best = Math.max(r.best, r.cur); }
+    else { r.cur++; r.days++; r.best = Math.max(r.best, r.cur); }
+  }
+  return r;
+}
+// Perfect / missed days inside a date range (today is not counted until every habit is ticked)
+function gyDayTally(from, to, x) {
+  const dh = x.H.filter(gyDay), r = { perfect: 0, miss: 0 };
+  for (let d = from; d <= to; d = gAdd(d, 1)) {
+    const o = dh.map((h) => gyOut(h, d, x)).filter(Boolean); if (!o.length) continue;
+    if (o.includes("fail")) r.miss++; else if (!o.includes("pending")) r.perfect++;
   }
   return r;
 }
 // Everything in a date range. weekly habits count in a range when the Thursday of their week is inside it.
 function gyRange(from, to, x, weekly = true) {
-  const r = { done: 0, fail: 0, pend: 0, skip: 0, cd: 0, ce: 0 };
+  const r = { done: 0, fail: 0, pend: 0, cd: 0, ce: 0 };
   x.H.forEach((h) => {
     if (gyDay(h)) {
       for (let d = from; d <= to; d = gAdd(d, 1)) {
         const o = gyOut(h, d, x); if (!o) continue;
-        if (o === "done") { r.done++; r.cd++; r.ce++; } else if (o === "fail") { r.fail++; r.ce++; } else if (o === "skip") r.skip++; else r.pend++;
+        if (o === "done") { r.done++; r.cd++; r.ce++; } else if (o === "fail") { r.fail++; r.ce++; } else r.pend++;
       }
     } else if (weekly) {
       for (let m = gMon(from); m <= to; m = gAdd(m, 7)) {
@@ -744,7 +744,7 @@ function gyRange(from, to, x, weekly = true) {
         const w = gyWeek(h, m, x); if (!w) continue;
         if (w.status === "ok") { r.done++; r.cd += Math.min(w.done, w.need); r.ce += w.need; }
         else if (w.status === "fail") { r.fail++; r.cd += Math.min(w.done, w.need); r.ce += w.need; }
-        else if (w.status === "skip") r.skip++; else r.pend++;
+        else r.pend++;
       }
     }
   });
@@ -787,8 +787,6 @@ function gyShort(h) {
   const t = ({ daily: "daily", weekdays: gyDays(s).map((d) => d.slice(0, 2)).join(" "), weekly_count: `${s.target}×/week`, custom_week: `${s.target} of ${(s.days || []).length} days`, interval: `every ${s.every}d` })[h.sched_type] || "daily";
   return t + (h.kind === "value" && h.unit ? " · " + h.unit : "");
 }
-const gySkipUsed = (h, m) => S.checkins.filter((c) => c.habit_id === h.id && c.status === "skip" && c.check_date.slice(0, 7) === m).length;
-const gySkipsLeft = (h, m, except) => (h.skips_per_month ?? 2) - S.checkins.filter((c) => c.habit_id === h.id && c.status === "skip" && c.check_date.slice(0, 7) === m && c.check_date !== except).length;
 
 const GBADGE = [
   { k: "week", name: "Week Warrior", tier: "bronze", glyph: "7D", desc: "Finish every scheduled habit for a whole week" },
@@ -802,48 +800,52 @@ function gyMedal(tier, glyph, locked, size = 84) {
 const gyBadgeTotals = () => { const B = gyBadges(gyX()); return { week: B.week.length, month: B.month.length, year: B.year.length }; };
 
 // One tick box. Used in the sheet and the Today card.
-function gyBtn(h, d, x, big) {
-  const c = x.C[h.id]?.[d], fut = d > x.today;
+function gyBtn(h, d, x, big, opt) {
+  const c = x.C[h.id]?.[d], fut = d > x.today, val = c && c.value != null ? gyNum(c.value) : "";
   let k = "", txt = "";
-  if (c?.status === "done") { k = "done"; txt = c.value != null ? gyNum(c.value) : "✓"; }
-  else if (c?.status === "skip") { const ok = x.ok.has(h.id + "|" + d); k = ok ? "skip" : "over"; txt = ok ? "S" : "!"; }
+  if (c) { k = "done"; txt = val !== "" ? val : ico("check"); }
+  else if (opt) { k = "opt"; txt = ico("plus"); }
   else if (gyDay(h) && d < x.today) { k = "miss"; txt = "·"; }
-  return `<button class="gy-b ${k} ${big ? "big" : ""} ${String(txt).length > 3 ? "sm" : ""}" data-gc="${h.id}|${d}" ${fut ? "disabled" : ""}>${txt}</button>`;
+  return `<button class="gy-b ${k} ${big ? "big" : ""} ${String(val).length > 3 ? "sm" : ""}" data-gc="${h.id}|${d}" ${fut ? "disabled" : ""}>${txt}</button>`;
 }
 
 function gyToday(x) {
-  const t = x.today, items = x.H.filter((h) => gySched(h, t));
+  const t = x.today, items = x.H.filter((h) => gySched(h, t)), extra = x.H.filter((h) => h.kind === "value" && !gySched(h, t) && h.start_date <= t && (!h.end_date || h.end_date >= t));
   const sub = (h) => {
     if (!gyDay(h)) { const w = gyWeek(h, gMon(t), x); return w ? `${w.done}/${w.need} this week` : ""; }
-    const st = gyHabitStats(h, x), left = gySkipsLeft(h, t.slice(0, 7));
-    return `🔥 ${st.cur}-day streak · ${Math.max(0, left)} skip${left === 1 ? "" : "s"} left`;
+    return `${ico("fire", "fire")} ${gyHabitStats(h, x).cur}-day streak`;
   };
-  return `<div class="card" style="margin-bottom:16px"><div class="ct">Today · ${nice(t).split(",")[0]} ${+t.slice(8)}</div>${items.length ? items.map((h) => `<div class="gy-ti"><div class="m"><b>${esc(h.name)}</b><small>${esc(gyShort(h))} · ${sub(h)}</small></div>${gyBtn(h, t, x, true)}</div>`).join("") : `<div class="empty sm">Nothing scheduled today. Enjoy your rest day 💤</div>`}</div>`;
+  const outs = items.filter(gyDay).map((h) => gyOut(h, t, x)), left = outs.filter((o) => o !== "done").length;
+  const note = outs.length ? (left ? ` · ${left} left for a perfect day` : " · Perfect day!") : "";
+  return `<div class="card" style="margin-bottom:16px"><div class="ct">Today · ${nice(t).split(",")[0]} ${+t.slice(8)}${note}</div>${items.map((h) => `<div class="gy-ti"><div class="m"><b>${esc(h.name)}</b><small>${esc(gyShort(h))} · ${sub(h)}</small></div>${gyBtn(h, t, x, true)}</div>`).join("")}${extra.map((h) => `<div class="gy-ti"><div class="m"><b>${esc(h.name)}</b><small>Optional entry · not due today</small></div>${gyBtn(h, t, x, true, true)}</div>`).join("")}${!items.length && !extra.length ? `<div class="empty sm">Nothing scheduled today. Enjoy your rest day ${ico("moon")}</div>` : ""}</div>`;
 }
 
 function gySheet(x) {
   const m = gyM(), first = m + "-01", last = gMEnd(m), t = x.today;
   const H = x.H.filter((h) => h.start_date <= last && (!h.end_date || h.end_date >= first));
-  const nav = `<div class="gy-mnav"><button class="pill" id="gprev">‹</button><h2>${gyMonthName(m)}</h2><button class="pill" id="gnext">›</button></div>`;
+  const nav = `<div class="gy-mnav"><button class="pill" id="gprev">${ico("chevron-left")}</button><h2>${gyMonthName(m)}</h2><button class="pill" id="gnext">${ico("chevron-right")}</button></div>`;
   if (!H.length) return nav + `<div class="card empty">No habits are active in this month.<br><br><button class="btn p" data-gtp>Set up this month</button></div>`;
   const st = {}; H.forEach((h) => (st[h.id] = gyHabitStats(h, x)));
+  const dayH = H.filter(gyDay), tally = gyDayTally(first, last < t ? last : t, x);
   let rows = "";
   for (let d = first; d <= last; d = gAdd(d, 1)) {
     const dow = gDow(d), med = dow === 0 && d <= t && gyRange(gAdd(d, -6), d, x).complete;
-    rows += `<tr class="${d === t ? "gy-today" : ""} ${dow === 0 ? "gy-sun" : ""}" ${d === t ? 'id="gy-now"' : ""}><td><b>${+d.slice(8)}</b><small>${GWD[dow]}</small>${med ? " 🏅" : ""}</td>${H.map((h) => (gySched(h, d) ? `<td>${gyBtn(h, d, x)}</td>` : `<td class="gy-off">–</td>`)).join("")}</tr>`;
+    const outs = d <= t ? dayH.map((h) => gyOut(h, d, x)).filter(Boolean) : [], bad = outs.includes("fail"), good = outs.length && !bad && !outs.includes("pending");
+    rows += `<tr class="${d === t ? "gy-today" : ""} ${dow === 0 ? "gy-sun" : ""} ${bad ? "gy-miss" : ""}" ${d === t ? 'id="gy-now"' : ""}><td><b>${+d.slice(8)}</b><small>${GWD[dow]}</small>${bad ? " " + ico("x-circle", "no") : good ? " " + ico("check-circle", "ok") : ""}${med ? " " + ico("trophy", "gold") : ""}</td>${H.map((h) => (gySched(h, d) ? `<td>${gyBtn(h, d, x)}</td>` : h.kind === "value" ? `<td>${gyBtn(h, d, x, false, true)}</td>` : `<td class="gy-off">–</td>`)).join("")}</tr>`;
   }
   const foot = (lab, f) => `<tr><td>${lab}</td>${H.map((h) => `<td>${f(h)}</td>`).join("")}</tr>`;
-  return nav + `<div class="gy-sheet"><table class="gy-t"><thead><tr><th>Day</th>${H.map((h) => `<th><div class="gy-hn">${esc(h.name)}</div><div class="gy-hs">${esc(gyShort(h))}</div></th>`).join("")}</tr></thead><tbody>${rows}</tbody>
-    <tfoot>${foot("Streak", (h) => `🔥 ${st[h.id].cur}<br><span class="gy-hs">best ${st[h.id].best}</span>`)}${foot("Done", (h) => `${st[h.id].done}<span class="gy-hs"> ${st[h.id].unit}s</span>`)}${foot("Skips left", (h) => `${Math.max(0, (h.skips_per_month ?? 2) - gySkipUsed(h, m))}<span class="gy-hs"> / ${h.skips_per_month ?? 2}</span>`)}</tfoot></table></div>
-    <p class="lbl" style="margin:10px 2px">Tap a box: ✓ done → S skip → clear. Each habit has a monthly skip limit. Missing a scheduled day, or skipping more than the limit, resets that streak to 0.</p>`;
+  return nav + `<p class="lbl" style="margin:0 2px 10px">This month: <b class="up">${tally.perfect} perfect day${tally.perfect === 1 ? "" : "s"}</b> · <b class="dn">${tally.miss} missed day${tally.miss === 1 ? "" : "s"}</b>. A day counts as missed if even one habit is not ticked.</p>
+    <div class="gy-sheet"><table class="gy-t"><thead><tr><th>Day</th>${H.map((h) => `<th><div class="gy-hn">${esc(h.name)}</div><div class="gy-hs">${esc(gyShort(h))}</div></th>`).join("")}</tr></thead><tbody>${rows}</tbody>
+    <tfoot>${foot("Streak", (h) => `${ico("fire", "fire")} ${st[h.id].cur}<br><span class="gy-hs">best ${st[h.id].best}</span>`)}${foot("Done", (h) => `${st[h.id].done}<span class="gy-hs"> ${st[h.id].unit}s</span>`)}</tfoot></table></div>
+    <p class="lbl" style="margin:10px 2px">Tap a box to tick it, tap again to clear. If even one habit is not ticked on a scheduled day, the whole day is missed and every streak that habit had resets to 0. The dashed “+” boxes (weight etc.) are optional extra entries on days they are not due.</p>`;
 }
 
 function gyHero(x) {
   const t = x.today, ov = gyOverall(x), mon = gMon(t), first = x.H.reduce((a, h) => (h.start_date < a ? h.start_date : a), "9999-99-99");
   const wk = gyRange(mon, gAdd(mon, 6), x), mo = gyRange(gM1(t), gMEnd(t.slice(0, 7)), x), all = first <= t ? gyRange(first, t, x) : { pct: null };
   const ring = (r, lab) => { const tot = r.done + r.pend + r.fail, p = tot ? r.done / tot : 0; return `<div style="text-align:center">${donut([{ v: p, c: r.fail ? "#f0627a" : "#c6f432" }], Math.round(p * 100) + "%", "", 96)}<div class="lbl" style="color:#ffffffb3;margin-top:2px">${lab}</div></div>`; };
-  return `<div class="card hero gy-hero"><div><div class="lbl">Current streak</div><div class="huge" style="margin-top:4px">🔥 ${ov.cur}<span style="font-size:20px;font-weight:500;opacity:.8"> day${ov.cur === 1 ? "" : "s"}</span></div>
-    <div class="hchips"><span class="chip">Longest ${ov.best}</span><span class="chip">Perfect days ${ov.days}</span><span class="chip">Consistency ${gyPct(all.pct)}</span></div></div>
+  return `<div class="card hero gy-hero"><div><div class="lbl">Current streak</div><div class="huge" style="margin-top:4px">${ico("fire", "fire")} ${ov.cur}<span style="font-size:20px;font-weight:500;opacity:.8"> day${ov.cur === 1 ? "" : "s"}</span></div>
+    <div class="hchips"><span class="chip">Longest ${ov.best}</span><span class="chip">Perfect days ${ov.days}</span><span class="chip">Missed days ${ov.miss}</span><span class="chip">Consistency ${gyPct(all.pct)}</span></div></div>
     <div class="gy-rings">${ring(wk, "This week")}${ring(mo, "This month")}</div></div>`;
 }
 
@@ -853,12 +855,10 @@ function gyHeat(x) {
   const t = x.today, mon = gMon(t); let cells = "";
   for (let d = gAdd(mon, -7 * 25); d <= gAdd(mon, 6); d = gAdd(d, 1)) {
     if (d > t) { cells += "<i></i>"; continue; }
-    let cd = 0, ce = 0;
-    x.H.forEach((h) => { if (gyDay(h)) { const o = gyOut(h, d, x); if (o === "done") { cd++; ce++; } else if (o === "fail") ce++; } else if (x.C[h.id]?.[d]?.status === "done") { cd++; ce++; } });
-    const p = ce ? cd / ce : null, l = p == null ? "" : p === 0 ? "l1" : p < 0.5 ? "l2" : p < 1 ? "l3" : "l4";
-    cells += `<i class="${l}" title="${d}: ${p == null ? "nothing scheduled" : Math.round(p * 100) + "%"}"></i>`;
+    const outs = x.H.filter(gyDay).map((h) => gyOut(h, d, x)).filter(Boolean), l = !outs.length ? "" : outs.includes("fail") ? "l1" : outs.includes("pending") ? "l3" : "l4";
+    cells += `<i class="${l}" title="${d}: ${!outs.length ? "nothing scheduled" : l === "l1" ? "missed day" : l === "l3" ? "in progress" : "perfect day"}"></i>`;
   }
-  return `<div class="gy-hwrap"><div class="gy-heat">${cells}</div></div><div class="lbl" style="margin-top:8px;display:flex;gap:10px;flex-wrap:wrap;align-items:center">Last 26 weeks (Mon–Sun) <span class="gy-lg"><i style="background:#f0627a66"></i>0%</span><span class="gy-lg"><i style="background:#38bdf855"></i>&lt;50%</span><span class="gy-lg"><i style="background:#38bdf8cc"></i>&lt;100%</span><span class="gy-lg"><i style="background:var(--lime)"></i>100%</span></div>`;
+  return `<div class="gy-hwrap"><div class="gy-heat">${cells}</div></div><div class="lbl" style="margin-top:8px;display:flex;gap:10px;flex-wrap:wrap;align-items:center">Last 26 weeks (Mon–Sun) <span class="gy-lg"><i style="background:#f0627a66"></i>Missed day</span><span class="gy-lg"><i style="background:#38bdf8cc"></i>In progress</span><span class="gy-lg"><i style="background:var(--lime)"></i>Perfect day</span></div>`;
 }
 
 function gyLine(pts, unit) {
@@ -884,18 +884,17 @@ function gyTradeLink(x, L, margin) {
 function gyInsights(x) {
   const t = x.today, mon = gMon(t), first = x.H.reduce((a, h) => (h.start_date < a ? h.start_date : a), "9999-99-99");
   const td = gyRange(t, t, x, false), wk = gyRange(mon, gAdd(mon, 6), x), mo = gyRange(gM1(t), gMEnd(t.slice(0, 7)), x), all = first <= t ? gyRange(first, t, x) : { pct: null }, ov = gyOverall(x);
-  const months = []; if (first <= t) for (let m = gM1(first); m <= t; m = gNextM(m)) months.push({ m, r: gyRange(m, gMEnd(m), x) });
+  const months = []; if (first <= t) for (let m = gM1(first); m <= t; m = gNextM(m)) months.push({ m, r: gyRange(m, gMEnd(m), x), dt: gyDayTally(m, gMEnd(m) < t ? gMEnd(m) : t, x) });
   const best = months.filter((o) => o.r.ce).sort((a, b) => b.r.pct - a.r.pct || b.r.ce - a.r.ce)[0];
-  const totalDone = S.checkins.filter((c) => c.status === "done" && S.habits.some((h) => h.id === c.habit_id)).length;
   const kp = (a, b, c, col) => `<div class="card kpi" style="--a:${col}"><div class="lbl">${a}</div><div class="big">${b}</div><div class="lbl">${c}</div></div>`;
   const wb = [], mb = [];
   for (let i = 11; i >= 0; i--) { const m = gAdd(mon, -7 * i); wb.push({ l: m.slice(5).replace("-", "/"), v: gyRange(m, gAdd(m, 6), x).pct }); }
   for (let i = 11; i >= 0; i--) { const d = new Date(Date.UTC(+t.slice(0, 4), +t.slice(5, 7) - 1 - i, 1)), m1 = gS(d); mb.push({ l: d.toLocaleDateString("en", { month: "short", timeZone: "UTC" }), v: gyRange(m1, gMEnd(m1), x).pct }); }
   const perf = x.H.map((h) => { const r = gyHabitStats(h, x); return `<div class="gy-hp"><div><b>${esc(h.name)}</b><div class="lbl">${esc(gyShort(h))}</div></div><div class="bar slim"><span style="width:${r.pct || 0}%;background:${scCol(r.pct || 0)}"></span></div><b style="text-align:right">${gyPct(r.pct)}</b>
-    <div class="st"><span>🔥 ${r.cur} ${r.unit}${r.cur === 1 ? "" : "s"}</span><span>Longest ${r.best}</span><span>Done ${r.cd}/${r.ce}</span><span>Skipped ${r.skip}</span><span>Missed ${r.fail}</span></div></div>`; }).join("");
-  const hist = [...months].reverse().map(({ m, r }) => `<div class="gy-hp" style="grid-template-columns:110px 1fr 48px"><b>${new Date(m + "T12:00:00Z").toLocaleDateString("en", { month: "short", year: "numeric", timeZone: "UTC" })}${r.complete ? " 🏅" : ""}</b><div class="bar slim"><span style="width:${r.pct || 0}%;background:${scCol(r.pct || 0)}"></span></div><b style="text-align:right">${gyPct(r.pct)}</b><div class="st"><span>Done ${r.cd}/${r.ce}</span><span>Skipped ${r.skip}</span><span>Missed ${r.fail}</span></div></div>`).join("");
+    <div class="st"><span>${ico("fire", "fire")} ${r.cur} ${r.unit}${r.cur === 1 ? "" : "s"}</span><span>Longest ${r.best}</span><span>Done ${r.cd}/${r.ce}</span><span>Missed ${r.fail}</span></div></div>`; }).join("");
+  const hist = [...months].reverse().map(({ m, r, dt }) => `<div class="gy-hp" style="grid-template-columns:110px 1fr 48px"><b>${new Date(m + "T12:00:00Z").toLocaleDateString("en", { month: "short", year: "numeric", timeZone: "UTC" })}${r.complete ? " " + ico("trophy", "gold") : ""}</b><div class="bar slim"><span style="width:${r.pct || 0}%;background:${scCol(r.pct || 0)}"></span></div><b style="text-align:right">${gyPct(r.pct)}</b><div class="st"><span>Perfect days ${dt.perfect}</span><span>Missed days ${dt.miss}</span><span>Done ${r.cd}/${r.ce}</span></div></div>`).join("");
   const trend = x.H.filter((h) => h.kind === "value").map((h) => ({ h, pts: S.checkins.filter((c) => c.habit_id === h.id && c.status === "done" && c.value != null).sort((a, b) => (a.check_date < b.check_date ? -1 : 1)).map((c) => ({ d: c.check_date, v: +c.value })) })).filter((o) => o.pts.length >= 2);
-  return `<div class="kpis">${kp("Today", gyPct(td.pct), `${td.cd}/${td.ce} done`, "var(--lime)")}${kp("This week", gyPct(wk.pct), `${wk.cd}/${wk.ce} done`, "var(--blue)")}${kp("This month", gyPct(mo.pct), `${mo.cd}/${mo.ce} done`, "var(--p2)")}${kp("All time", gyPct(all.pct), `${all.cd || 0}/${all.ce || 0} done`, "var(--lime)")}${kp("Total completed", totalDone, "habit check-ins", "var(--blue)")}
+  return `<div class="kpis">${kp("Today", gyPct(td.pct), `${td.cd}/${td.ce} done`, "var(--lime)")}${kp("This week", gyPct(wk.pct), `${wk.cd}/${wk.ce} done`, "var(--blue)")}${kp("This month", gyPct(mo.pct), `${mo.cd}/${mo.ce} done`, "var(--p2)")}${kp("All time", gyPct(all.pct), `${all.cd || 0}/${all.ce || 0} done`, "var(--lime)")}${kp("Missed days", ov.miss, "any habit not ticked", "var(--red)")}
     ${kp("Current streak", ov.cur + " <span class='lbl'>days</span>", "perfect days in a row", "var(--p2)")}${kp("Longest streak", ov.best + " <span class='lbl'>days</span>", `${ov.days} perfect days total`, "var(--p2)")}${kp("Best month", best ? gyPct(best.r.pct) : "–", best ? gyMonthName(best.m.slice(0, 7)) : "no data yet", "var(--lime)")}</div>
   ${gyTradeLink(x, fwd(), "0 0 16px")}
   <div class="card" style="margin-bottom:16px"><div class="ct">Calendar heatmap</div>${gyHeat(x)}</div>
@@ -914,13 +913,13 @@ function gyBadgesView(x) {
     return `<div class="card gy-bg">${gyMedal(b.tier, b.glyph, !cnt[b.k])}<div><h3>${b.name}</h3><div class="n">${cnt[b.k] ? `Earned ×${cnt[b.k]}` : "Not earned yet"}</div><div class="lbl" style="margin:6px 0">${b.desc}</div><div class="bar slim" style="margin:8px 0"><span style="width:${p}%;background:var(--p2)"></span></div><div class="lbl">${prog[b.k]}</div></div></div>`; }).join("");
   const earned = GBADGE.flatMap((b) => B[b.k].map((e) => ({ ...b, ...e }))).sort((a, b) => (a.to < b.to ? 1 : -1)).slice(0, 40);
   const lab = (e) => e.k === "week" ? `Week of ${e.from}` : e.k === "month" ? gyMonthName(e.from.slice(0, 7)) : `${gyMonthName(e.from.slice(0, 7))} → ${gyMonthName(e.to.slice(0, 7))}`;
-  return `<div class="gy-bgs">${cards}</div><div class="card"><div class="ct">Earned badges</div>${earned.map((e) => `<div class="gy-er">${gyMedal(e.tier, e.glyph, false, 34)}<div style="flex:1"><b>${e.name}</b><div class="lbl">${lab(e)}</div></div><span class="lbl">${e.to > t ? t : e.to}</span></div>`).join("") || `<div class="empty sm">Finish a full week of your habits to earn your first badge 💪</div>`}</div>
-  <p class="lbl" style="margin:12px 2px">Rules: a week or month counts when every scheduled habit is done (skips inside the monthly limit are fine). Any miss, or a skip over the limit, resets that habit's streak to 0.</p>`;
+  return `<div class="gy-bgs">${cards}</div><div class="card"><div class="ct">Earned badges</div>${earned.map((e) => `<div class="gy-er">${gyMedal(e.tier, e.glyph, false, 34)}<div style="flex:1"><b>${e.name}</b><div class="lbl">${lab(e)}</div></div><span class="lbl">${e.to > t ? t : e.to}</span></div>`).join("") || `<div class="empty sm">${ico("trophy", "gold")} Finish a full week of your habits to earn your first badge</div>`}</div>
+  <p class="lbl" style="margin:12px 2px">Rules: a week or month counts only when every scheduled habit is ticked. Any missed habit makes that day a missed day and resets the streak to 0.</p>`;
 }
 
 function gyHabitsTab(x) {
   const t = x.today, row = (h) => { const r = gyHabitStats(h, x), status = h.end_date && h.end_date < t ? `Ended ${h.end_date}` : h.start_date > t ? `Starts ${h.start_date}` : "Active";
-    return `<div class="gy-hr"><div class="m"><b>${esc(h.name)}</b> ${h.kind === "value" ? `<span class="tag">${esc(h.unit || "value")}</span>` : ""}<div class="lbl">${esc(gyDesc(h))} · ${h.start_date} → ${h.end_date || "ongoing"} · ${h.skips_per_month ?? 2} skips/month</div></div><span class="tag">${status}</span><span class="lbl">🔥 ${r.cur} · best ${r.best}</span><span><button class="x" data-ghe="${h.id}">Edit</button><button class="x" data-ghd="${h.id}">Delete</button></span></div>`; };
+    return `<div class="gy-hr"><div class="m"><b>${esc(h.name)}</b> ${h.kind === "value" ? `<span class="tag">${esc(h.unit || "value")}</span>` : ""}<div class="lbl">${esc(gyDesc(h))} · ${h.start_date} → ${h.end_date || "ongoing"}</div></div><span class="tag">${status}</span><span class="lbl">${ico("fire", "fire")} ${r.cur} · best ${r.best}</span><span><button class="x" data-ghe="${h.id}">Edit</button><button class="x" data-ghd="${h.id}">Delete</button></span></div>`; };
   const act = x.H.filter((h) => !h.end_date || h.end_date >= t), old = x.H.filter((h) => h.end_date && h.end_date < t);
   return `<div class="card" style="margin-bottom:16px"><div class="ct">Active habits</div>${act.map(row).join("") || `<div class="empty sm">No active habits</div>`}</div>${old.length ? `<div class="card"><div class="ct">Ended habits (history is kept)</div>${old.map(row).join("")}</div>` : ""}
   <p class="lbl" style="margin:12px 2px">Tip: to customise a month, use Templates → “Copy from last month”, or give a habit an end date and add new ones for the next month.</p>`;
@@ -928,20 +927,20 @@ function gyHabitsTab(x) {
 
 function gymView() {
   const x = gyX();
-  const head = `<div class="ph"><div><h1>Gym <span>tracker</span></h1><p class="sub">${nice(today())}</p></div><div style="display:flex;gap:8px"><button class="btn g" id="gxl" title="Download this month as an Excel file">Export Excel</button><button class="btn g" data-gtp>Templates</button><button class="btn p" data-gah>+ Habit</button></div></div>`;
-  if (!S.habits.length) return head + `<div class="card empty" style="padding:44px 20px"><div style="font-size:44px">🏋️</div><h2 style="margin:8px 0">Build your habit tracker</h2><p class="lbl" style="max-width:380px;margin:0 auto 18px">Track gym, food, water, weight, your premarket routine and anything else. Start from the 28-day Gym &amp; Health sheet or create your own habits with custom schedules.</p><button class="btn p" data-gtp>Choose a template</button> <button class="btn g" data-gah>Add a habit</button></div>`;
+  const head = `<div class="ph"><div><h1>Gym <span>tracker</span></h1><p class="sub">${nice(today())}</p></div><div style="display:flex;gap:8px"><button class="btn g" id="gxl" title="Download this month as an Excel file">${ico("arrow-down-tray")}Export Excel</button><button class="btn g" data-gtp>Templates</button><button class="btn p" data-gah>+ Habit</button></div></div>`;
+  if (!S.habits.length) return head + `<div class="card empty" style="padding:44px 20px"><div style="color:var(--p2)">${ico("bolt", "big")}</div><h2 style="margin:8px 0">Build your habit tracker</h2><p class="lbl" style="max-width:380px;margin:0 auto 18px">Track gym, food, water, weight, your premarket routine and anything else. Start from the 28-day Gym &amp; Health sheet or create your own habits with custom schedules.</p><button class="btn p" data-gtp>Choose a template</button> <button class="btn g" data-gah>Add a habit</button></div>`;
   const tabs = [["sheet", "Sheet"], ["insights", "Insights"], ["badges", "Badges"], ["habits", "Habits"]].map(([k, l]) => `<button class="${S.gy.tab === k ? "on" : ""}" data-gt="${k}">${l}</button>`).join("");
   const body = { sheet: () => gyToday(x) + gySheet(x), insights: () => gyInsights(x), badges: () => gyBadgesView(x), habits: () => gyHabitsTab(x) }[S.gy.tab]();
   return head + gyHero(x) + `<div class="gy-seg">${tabs}</div>` + body;
 }
 
 /* ---- actions ---- */
-const gyReload = async () => { const [h, k] = await Promise.all([api("/api/habits"), api("/api/checkins")]); S.habits = h; S.checkins = k; };
+const gyReload = async () => { const [h, k] = await Promise.all([api("/api/habits"), api("/api/checkins")]); S.habits = h; S.checkins = k.filter((c) => c.status === "done"); };
 
 async function gyCelebrate(list) {
   if (!window.Swal || !list.length) return;
   const b = list[list.length - 1];
-  await Swal.fire({ ...SW, customClass: { popup: "nl-pop", confirmButton: "nl-ok" }, showCancelButton: false, confirmButtonText: "Keep going 💪", timer: 9000, timerProgressBar: true,
+  await Swal.fire({ ...SW, customClass: { popup: "nl-pop", confirmButton: "nl-ok" }, showCancelButton: false, confirmButtonText: "Keep going", timer: 9000, timerProgressBar: true,
     html: `<div style="text-align:center">${gyMedal(b.tier, b.glyph, false, 120)}<h2 style="margin:6px 0 4px;color:var(--text)">${b.name} unlocked!</h2><p style="margin:0">${b.desc}. Amazing consistency!</p></div>` });
 }
 
@@ -961,19 +960,19 @@ async function gyTap(hid, d) {
   const h = S.habits.find((x) => x.id === hid); if (!h || d > today()) return;
   const c = S.checkins.find((k) => k.habit_id === hid && k.check_date === d);
   if (h.kind === "value") return gyValue(h, d, c);
-  let next = !c ? "done" : c.status === "done" ? "skip" : null;
-  if (next === "skip" && gySkipsLeft(h, d.slice(0, 7), d) <= 0) { next = null; toast(`No skips left this month for ${h.name}`, "error"); }
-  gySet(h, d, next);
+  gySet(h, d, c ? null : "done");
 }
 
+// Value habits (weight, waist…). Same popup style as the other forms, with a plain text box that always accepts typing.
 async function gyValue(h, d, c) {
   if (!window.Swal) return noSwal();
-  const left = gySkipsLeft(h, d.slice(0, 7), d), canSkip = !c && left > 0;
-  const r = await Swal.fire({ ...SW, customClass: { popup: "nl-pop", confirmButton: "nl-ok", cancelButton: "nl-cancel", denyButton: "nl-cancel", input: "swal2-input" }, title: h.name, text: nice(d), input: "number", inputValue: c?.value ?? "",
-    inputAttributes: { step: "0.01", inputmode: "decimal", placeholder: `Value${h.unit ? " (" + h.unit + ")" : ""}` }, showCancelButton: true, showDenyButton: !!c || canSkip, denyButtonText: c ? "Clear" : `Skip (${left} left)`, confirmButtonText: "Save",
-    inputValidator: (v) => (v === "" || !Number.isFinite(+v) ? "Enter a number" : null) });
-  if (r.isConfirmed) gySet(h, d, "done", r.value);
-  else if (r.isDenied) gySet(h, d, c ? null : "skip");
+  const base = pop("nl-form");
+  const res = await Swal.fire({ ...base, customClass: { ...base.customClass, denyButton: "nl-cancel" }, title: h.name, confirmButtonText: "Save", showDenyButton: !!c, denyButtonText: "Clear",
+    html: `<div class="f"><div class="full lbl">${nice(d)}</div><div class="full"><label>Value${h.unit ? " (" + esc(h.unit) + ")" : ""}</label><input id="gv" type="text" inputmode="decimal" autocomplete="off" placeholder="e.g. 72.5" value="${c?.value != null ? gyNum(c.value) : ""}"></div></div>`,
+    didOpen: () => { const i = $("#gv"); i.focus(); i.select(); i.onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); Swal.clickConfirm(); } }; },
+    preConfirm: () => { const v = $("#gv").value.trim().replace(",", "."); if (v === "" || !Number.isFinite(+v)) { Swal.showValidationMessage("Enter a number"); return false; } return +v; } });
+  if (res.isConfirmed) gySet(h, d, "done", res.value);
+  else if (res.isDenied) gySet(h, d, null);
 }
 
 /* ---- habit form ---- */
@@ -991,7 +990,7 @@ async function gyHabitForm(h) {
     <div class="full gy-det" id="hd"></div>
     <div><label>Starts</label><input type="date" id="hst" value="${h?.start_date || dflt}"></div><div><label>Ends (optional)</label><input type="date" id="hen" value="${h?.end_date || ""}"></div>
     <div class="full chips" style="margin:0"><button type="button" class="pill sm" id="hmo">This month only</button><button type="button" class="pill sm" id="hon">Ongoing</button></div>
-    <div class="full"><label>Skip days allowed per month</label><select id="hsk">${[0, 1, 2, 3, 4, 5].map((n) => `<option ${n === (h?.skips_per_month ?? 2) ? "selected" : ""}>${n}</option>`).join("")}</select><div class="lbl" style="margin-top:4px">A skip keeps your streak. More skips than this in a month count as a miss and reset the streak to 0.</div></div></div>`;
+    </div>`;
   const res = await Swal.fire({ ...pop("nl-form"), title: h ? "Edit habit" : "New habit", html, confirmButtonText: h ? "Save changes" : "Add habit",
     didOpen: () => {
       const det = () => {
@@ -1016,7 +1015,7 @@ async function gyHabitForm(h) {
       paint(); det();
     },
     preConfirm: async () => {
-      const body = { name: $("#hn").value, kind: st.kind, unit: $("#hun").value, sched_type: st.type, sched: { days: [...st.days], target: st.target, every: st.every, anchor: st.anchor || $("#hst").value }, start_date: $("#hst").value, end_date: $("#hen").value || null, skips_per_month: +$("#hsk").value };
+      const body = { name: $("#hn").value, kind: st.kind, unit: $("#hun").value, sched_type: st.type, sched: { days: [...st.days], target: st.target, every: st.every, anchor: st.anchor || $("#hst").value }, start_date: $("#hst").value, end_date: $("#hen").value || null };
       try { await api("/api/habits" + (h ? "/" + h.id : ""), h ? "PUT" : "POST", body); await gyReload(); return true; } catch (e) { Swal.showValidationMessage(e.message); return false; }
     } });
   if (res.isConfirmed) { render(); toast(h ? "Habit updated" : "Habit added"); }
@@ -1024,7 +1023,7 @@ async function gyHabitForm(h) {
 
 /* ---- templates ---- */
 async function gyBulk(list, msg) {
-  try { await api("/api/habits/bulk", "POST", { habits: list.map((h) => ({ skips_per_month: 2, kind: "check", sched: {}, ...h })) }); await gyReload(); render(); toast(msg); } catch (e) { toast(e.message, "error"); }
+  try { await api("/api/habits/bulk", "POST", { habits: list.map((h) => ({ kind: "check", sched: {}, ...h })) }); await gyReload(); render(); toast(msg); } catch (e) { toast(e.message, "error"); }
 }
 async function gyTemplates() {
   if (!window.Swal) return noSwal();
@@ -1068,7 +1067,7 @@ async function gyTemplates() {
     const first = m + "-01", last = gMEnd(m), pl = gMEnd(pm.slice(0, 7));
     const src = S.habits.filter((h) => h.start_date <= pl && (!h.end_date || h.end_date >= pm) && h.end_date && h.end_date < first);
     if (!src.length) return toast("Nothing to copy. Habits that are still running continue automatically.", "error");
-    return gyBulk(src.map((h) => ({ name: h.name, kind: h.kind, unit: h.unit, sched_type: h.sched_type, skips_per_month: h.skips_per_month, start_date: first, end_date: last,
+    return gyBulk(src.map((h) => ({ name: h.name, kind: h.kind, unit: h.unit, sched_type: h.sched_type, start_date: first, end_date: last,
       sched: h.sched_type === "interval" ? { ...h.sched, anchor: gAdd(first, Math.max(0, gDiff(h.sched.anchor || h.start_date, h.start_date))) } : h.sched })), `${src.length} habit${src.length > 1 ? "s" : ""} copied to ${gyMonthName(m)}`);
   }
 }
@@ -1106,147 +1105,39 @@ function authView() {
 const VIEWS = ["dashboard", "calendar", "gym", "journal"], vlabel = (v) => (v === "gym" ? "Gym tracker" : v[0].toUpperCase() + v.slice(1));
 const go = (v) => { S.view = v; render(); scrollTo(0, 0); };
 
-function exportPdf(list, st) {
-  if (!window.jspdf) { toast("PDF library failed to load. Check internet and refresh.", "error"); return; }
-  if (!list.length) { toast("No trades to export", "error"); return; }
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
-  const pageW = doc.internal.pageSize.getWidth();
-  const pageH = doc.internal.pageSize.getHeight();
-  const margin = 14;
-  const nm = S.user?.name || "Trader";
-  const from = S.f.from || (list.length ? list[list.length - 1].trade_date : "");
-  const to = S.f.to || (list.length ? list[0].trade_date : "");
-  const rangeTxt = from && to ? (from + "  to  " + to) : from || to || "All dates";
-  const keys = [...S.jc.sel], filt = [S.jt === "all" ? "" : S.jt === "forward" ? "Forward testing" : "Backtesting", S.f.dir, S.f.out, S.f.pat, S.f.ph, [...S.f.rr].map((k) => "reached 1:" + k + "+").join(""), keys.length ? (S.jc.mode === "all" ? "ALL: " : "ANY: ") + keys.map((k) => k.replace("|*", "").replace("|", " ")).join(", ") : ""].filter(Boolean).join(" · ") || "No filters";
-  const exported = new Date().toLocaleString("en", { dateStyle: "medium", timeStyle: "short" });
+async function exportJournalXlsx(list, st) {
+  if (!window.ExcelJS) return toast("Excel library failed to load. Check internet and refresh.", "error");
+  if (!list.length) return toast("No trades to export", "error");
+  const L = [...list].sort((a, b) => (a.entry_time < b.entry_time ? -1 : 1)), wb = new ExcelJS.Workbook(); wb.creator = "NasLog"; wb.created = new Date();
+  const edge = { style: "thin", color: { argb: "FFE3DFF1" } }, grid = { top: edge, left: edge, bottom: edge, right: edge };
+  const G = { f: "FFDCFCE7", c: "FF166534" }, R = { f: "FFFEE2E2", c: "FF991B1B" }, B = { f: "FFDBEAFE", c: "FF1E40AF" };
+  const paint = (cell, t) => { cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: t.f } }; cell.font = { bold: true, color: { argb: t.c } }; };
+  const head = (ws) => { const h = ws.getRow(1); h.height = 30; h.eachCell((c) => { c.font = { bold: true, color: { argb: "FFFFFFFF" }, size: 11 }; c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF7C3AED" } }; c.alignment = { vertical: "middle", horizontal: "center", wrapText: true }; c.border = grid; }); };
+  const cf = (t) => TFS.filter((tf) => (t.confluences?.[tf] || []).length).map((tf) => tf + ": " + t.confluences[tf].join(", ")).join("\n");
+  const C = [["Date", "d", 12], ["Type", "ty", 10], ["Side", "sd", 8], ["Result", "oc", 9], ["Entry", "en", 11], ["Exit", "ex", 11], ["SL", "sl", 11], ["TP", "tp", 11], ["SL pts", "slp", 9], ["TP pts", "tpp", 9], ["Plan RR", "prr", 9], ["R", "r", 9], ["MFE", "mfe", 9], ["MAE", "mae", 9],
+    ["Entry time", "et", 17], ["Close time", "ct", 17], ["Duration", "du", 11], ["Rev. lag", "lg", 14], ["NY phase", "ph", 18], ["Pattern", "pt", 16], ["Confluences", "cf", 34], ["Flags", "fl", 26], ["SL reason", "sr", 18], ["Liquidity pt", "lq", 16], ["Plan?", "pl", 8], ["Mistake", "mi", 16], ["Emotion", "em", 14], ["Rating", "rt", 8], ["Screenshot", "sc", 24], ["Notes", "nt", 40]];
+  const w1 = wb.addWorksheet("Trades", { views: [{ state: "frozen", ySplit: 1, xSplit: 1 }] });
+  w1.columns = C.map(([header, key, width]) => ({ header, key, width }));
+  L.forEach((t) => w1.addRow({ d: t.trade_date, ty: (t.trade_type || "forward") === "backtest" ? "Backtest" : "Forward", sd: t.direction, oc: t.outcome, en: t.entry_price, ex: t.exit_price, sl: t.sl_price ?? "", tp: t.tp_price ?? "", slp: t.sl_points ?? "", tpp: t.tp_points ?? "", prr: t.planned_rr ? "1:" + t.planned_rr : "", r: t.r_multiple ?? "", mfe: t.mfe ?? "", mae: t.mae ?? "",
+    et: fmtT(t.entry_time), ct: fmtT(t.close_time), du: dur(t.duration_min), lg: t.reversal_gap_min == null ? "" : lagTxt(t), ph: t.session || "", pt: t.entry_pattern || "", cf: cf(t), fl: flagList(t).join(", "), sr: t.sl_pd_array || "", lq: t.liq_point || "", pl: t.followed_plan || "", mi: t.mistake || "", em: t.emotion || "", rt: t.rating ? t.rating + "/5" : "", sc: t.screenshot || "", nt: t.notes || "" }));
+  head(w1);
+  const left = [C.findIndex((c) => c[1] === "cf") + 1, C.findIndex((c) => c[1] === "fl") + 1, C.findIndex((c) => c[1] === "nt") + 1, C.findIndex((c) => c[1] === "sc") + 1];
+  w1.eachRow((r, n) => { if (n < 2) return; r.eachCell({ includeEmpty: true }, (c, i) => { c.border = grid; c.alignment = { vertical: "middle", horizontal: left.includes(i) ? "left" : "center", wrapText: left.includes(i) }; });
+    const t = L[n - 2], rc = r.getCell("r"); if (typeof rc.value === "number") { rc.numFmt = "+0.00;-0.00;0.00"; rc.font = { bold: true, color: { argb: rc.value > 0 ? G.c : rc.value < 0 ? R.c : B.c } }; }
+    paint(r.getCell("sd"), t.direction === "BUY" ? G : R); paint(r.getCell("oc"), t.outcome === "TP" ? G : t.outcome === "SL" ? R : B); });
+  w1.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: C.length } };
 
-  // Background
-  doc.setFillColor(248, 247, 252);
-  doc.rect(0, 0, pageW, pageH, "F");
+  const keys = [...S.jc.sel], from = S.f.from || L[0].trade_date, to = S.f.to || L[L.length - 1].trade_date;
+  const filt = [S.jt === "all" ? "" : S.jt === "forward" ? "Forward testing" : "Backtesting", S.f.dir, S.f.out, S.f.pat, S.f.ph, [...S.f.rr].map((k) => "reached 1:" + k + "+").join(""), keys.length ? (S.jc.mode === "all" ? "ALL: " : "ANY: ") + keys.map((k) => k.replace("|*", "").replace("|", " ")).join(", ") : ""].filter(Boolean).join(" · ") || "No filters";
+  const w2 = wb.addWorksheet("Summary"); w2.columns = [{ header: "Metric", key: "a", width: 30 }, { header: "Value", key: "b", width: 40 }];
+  [["Trader", S.user?.name || "Trader"], ["Period", from + "  to  " + to], ["Filter", filt], ["Trades", st.n], ["Win rate", st.n ? st.win.toFixed(1) + "%" : "-"], ["TP / SL / BE", `${st.tp} / ${st.sl} / ${st.be}`], ["Buy / Sell", `${st.buys} / ${st.sells}`], ["Total R", rs(st.total)], ["Average R", rs(st.avgR)], ["Expectancy / trade", rs(st.exp)], ["Profit factor", st.pf === Infinity ? "∞" : st.pf.toFixed(2)], ["R:R factor", rf(st.rrf)],
+    ["Avg win R:R (actual)", st.avgWRR ? "1:" + st.avgWRR.toFixed(2) : "-"], ["Max drawdown", (st.dd ? "-" : "") + st.dd.toFixed(2) + "R"], ["Max win streak", st.ws], ["Max losing streak", st.ls], ["Avg duration", dur(st.avgDur)], ["Avg entry after reversal", st.avgLag != null ? dur(Math.round(st.avgLag)) : "-"], ["Exported", new Date().toLocaleString("en", { dateStyle: "medium", timeStyle: "short" })]].forEach(([a, b]) => w2.addRow({ a, b }));
+  head(w2); w2.eachRow((r, n) => { if (n > 1) { r.eachCell((c, i) => { c.border = grid; c.alignment = { vertical: "middle", horizontal: "left", wrapText: true }; if (i === 1) c.font = { bold: true }; }); } });
+  const tr = w2.getRow(9); if (tr.getCell(1).value === "Total R") paint(tr.getCell(2), st.total >= 0 ? G : R);
 
-  // Purple header with soft curve
-  doc.setFillColor(124, 58, 237);
-  doc.rect(0, 0, pageW, 48, "F");
-  doc.setFillColor(109, 40, 217);
-  doc.ellipse(pageW * 0.75, 48, pageW * 0.55, 18, "F");
-  doc.setFillColor(248, 247, 252);
-  doc.ellipse(pageW * 0.25, 52, pageW * 0.5, 16, "F");
-
-  // Logo + brand
-  doc.setFillColor(233, 224, 255);
-  doc.circle(margin + 5, 16, 5, "F");
-  doc.setFillColor(124, 58, 237);
-  doc.circle(margin + 5, 16, 5, "S");
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(18);
-  doc.setFont("helvetica", "bold");
-  doc.text("NasLog", margin + 14, 14);
-  doc.setFontSize(9);
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(233, 224, 255);
-  doc.text("NAS100 Trading Journal", margin + 14, 20);
-
-  // Right side title
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(22);
-  doc.setFont("helvetica", "bold");
-  doc.text("Trade Report", pageW - margin, 16, { align: "right" });
-  doc.setFontSize(9);
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(233, 224, 255);
-  doc.text(exported, pageW - margin, 23, { align: "right" });
-
-  // Info card (white rounded)
-  const cardY = 42;
-  doc.setFillColor(255, 255, 255);
-  doc.roundedRect(margin, cardY, pageW - margin * 2, 28, 4, 4, "F");
-  // subtle shadow line
-  doc.setDrawColor(230, 226, 245);
-  doc.setLineWidth(0.3);
-  doc.roundedRect(margin, cardY, pageW - margin * 2, 28, 4, 4, "S");
-
-  doc.setTextColor(100, 100, 115);
-  doc.setFontSize(8);
-  doc.setFont("helvetica", "normal");
-  doc.text("TRADER", margin + 6, cardY + 8);
-  doc.text("PERIOD", margin + 55, cardY + 8);
-  doc.text("FILTER", margin + 120, cardY + 8);
-  doc.setTextColor(30, 30, 40);
-  doc.setFontSize(11);
-  doc.setFont("helvetica", "bold");
-  doc.text(nm, margin + 6, cardY + 16);
-  doc.setFontSize(10);
-  doc.text(rangeTxt, margin + 55, cardY + 16);
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(9);
-  doc.setTextColor(80, 80, 95);
-  doc.text(filt, margin + 120, cardY + 16, { maxWidth: pageW - margin * 2 - 126 });
-
-  // Summary KPI pills
-  const kpis = [
-    { label: "Trades", val: String(st.n) },
-    { label: "Total R", val: rs(st.total), color: st.total >= 0 ? [34, 160, 60] : [200, 50, 70] },
-    { label: "Win rate", val: st.win.toFixed(1) + "%" },
-    { label: "Profit factor", val: st.pf === Infinity ? "∞" : st.pf.toFixed(2) },
-    { label: "Expectancy", val: rs(st.exp) }, { label: "R:R factor", val: rf(st.rrf) },
-    { label: "Max DD", val: (st.dd ? "-" : "") + st.dd.toFixed(2) + "R" },
-  ];
-  const pillW = (pageW - margin * 2 - (kpis.length - 1) * 4) / kpis.length;
-  let px = margin;
-  kpis.forEach((k) => {
-    doc.setFillColor(255, 255, 255);
-    doc.roundedRect(px, cardY + 34, pillW, 16, 3, 3, "F");
-    doc.setDrawColor(230, 226, 245);
-    doc.roundedRect(px, cardY + 34, pillW, 16, 3, 3, "S");
-    doc.setTextColor(120, 120, 135);
-    doc.setFontSize(7);
-    doc.setFont("helvetica", "normal");
-    doc.text(k.label, px + pillW / 2, cardY + 40, { align: "center" });
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "bold");
-    if (k.color) doc.setTextColor(...k.color);
-    else doc.setTextColor(30, 30, 40);
-    doc.text(k.val, px + pillW / 2, cardY + 46.5, { align: "center" });
-    px += pillW + 4;
-  });
-
-  // Table
-  const cf = (t) => TFS.filter((tf) => (t.confluences?.[tf] || []).length).map((tf) => tf + ": " + t.confluences[tf].join(", ")).join("\n") || "-";
-  const head = [["Date", "Type", "Side", "Result", "Entry", "Exit", "R", "Plan RR", "Dur", "Rev lag", "Session", "Pattern", "Confluences", "Flags", "Plan", "Mistake"]];
-  const body = list.map((t) => [
-    t.trade_date, (t.trade_type || "forward") === "backtest" ? "Backtest" : "Forward", t.direction, t.outcome, t.entry_price, t.exit_price,
-    t.r_multiple != null ? rs(t.r_multiple) : "-", t.planned_rr ? "1:" + t.planned_rr : "-", dur(t.duration_min), lagTxt(t),
-    t.session || "-", t.entry_pattern || "-", cf(t), flagList(t).join(", ") || "-", t.followed_plan || "-", (t.mistake || "-").slice(0, 12),
-  ]);
-
-  doc.autoTable({
-    startY: cardY + 56, head, body, margin: { left: margin, right: margin },
-    styles: { fontSize: 7.5, cellPadding: 2.2, overflow: "linebreak", textColor: [45, 45, 55], lineColor: [235, 232, 245], lineWidth: 0.2, font: "helvetica" },
-    headStyles: { fillColor: [124, 58, 237], textColor: 255, fontStyle: "bold", fontSize: 8, cellPadding: 2.5 },
-    alternateRowStyles: { fillColor: [255, 255, 255] },
-    bodyStyles: { fillColor: [252, 251, 255] },
-    columnStyles: { 0: { cellWidth: 22 }, 1: { cellWidth: 16 }, 2: { cellWidth: 13 }, 3: { cellWidth: 14 }, 6: { halign: "right", fontStyle: "bold" }, 12: { cellWidth: 40 } },
-    didParseCell: (data) => {
-      if (data.section !== "body") return;
-      const raw = data.cell.raw, i = data.column.index;
-      if (i === 6) { const v = parseFloat(String(raw).replace("+", "")); if (v > 0) data.cell.styles.textColor = [34, 160, 60]; else if (v < 0) data.cell.styles.textColor = [200, 50, 70]; }
-      if (i === 2) { if (raw === "BUY") data.cell.styles.textColor = [34, 160, 60]; if (raw === "SELL") data.cell.styles.textColor = [200, 50, 70]; }
-      if (i === 3) { if (raw === "TP") data.cell.styles.textColor = [34, 160, 60]; if (raw === "SL") data.cell.styles.textColor = [200, 50, 70]; if (raw === "BE") data.cell.styles.textColor = [30, 140, 200]; }
-    },
-    didDrawPage: (data) => {
-      doc.setFillColor(124, 58, 237);
-      doc.rect(0, pageH - 12, pageW, 12, "F");
-      doc.setFontSize(8);
-      doc.setTextColor(255, 255, 255);
-      doc.setFont("helvetica", "normal");
-      doc.text("NasLog  ·  Confidential trading journal", margin, pageH - 5);
-      doc.text(`Page ${data.pageNumber}`, pageW - margin, pageH - 5, { align: "right" });
-    },
-  });
-
-  doc.save(`NasLog_Journal_${from || "all"}_${to || "all"}.pdf`.replace(/\s+/g, "_"));
-  toast("PDF downloaded");
+  const buf = await wb.xlsx.writeBuffer(), url = URL.createObjectURL(new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" })), a = document.createElement("a");
+  a.href = url; a.download = `NasLog_Journal_${from}_${to}.xlsx`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 2000);
+  toast("Excel file downloaded");
 }
 
 async function exportGymXlsx() {
@@ -1263,19 +1154,19 @@ async function exportGymXlsx() {
     return ws;
   };
   const style = (ws) => ws.eachRow((r, n) => { if (n > 1) r.eachCell({ includeEmpty: true }, (c) => { c.border = grid; c.alignment = { vertical: "middle", horizontal: "center" }; }); });
-  const cellOf = (h, d) => { if (!gySched(h, d)) return "–"; const c = x.C[h.id]?.[d]; if (c?.status === "done") return c.value != null ? gyNum(c.value) : "✓"; if (c?.status === "skip") return x.ok.has(h.id + "|" + d) ? "S" : "✗"; return gyDay(h) && d < x.today ? "✗" : ""; };
+  const cellOf = (h, d) => { if (!gySched(h, d)) { const e = x.C[h.id]?.[d]; return e && e.value != null ? gyNum(e.value) : "–"; } const c = x.C[h.id]?.[d]; if (c?.status === "done") return c.value != null ? gyNum(c.value) : "✓"; return gyDay(h) && d < x.today ? "✗" : ""; };
 
-  const w1 = sheet(gyMonthName(m), [{ header: "Date", key: "d", width: 13 }, { header: "Day", key: "w", width: 8 }, ...H.map((h, i) => ({ header: h.name, key: "h" + i, width: Math.min(24, Math.max(13, h.name.length * 0.9)) })), { header: "Score", key: "s", width: 10 }]);
+  const w1 = sheet(gyMonthName(m), [{ header: "Date", key: "d", width: 13 }, { header: "Day", key: "w", width: 8 }, ...H.map((h, i) => ({ header: h.name, key: "h" + i, width: Math.min(24, Math.max(13, h.name.length * 0.9)) })), { header: "Score", key: "s", width: 10 }, { header: "Day result", key: "res", width: 13 }]);
   const scores = [];
   for (let d = first; d <= last; d = gAdd(d, 1)) {
-    const r = d <= x.today ? gyRange(d, d, x, false) : null, tot = r ? r.done + r.fail + r.pend : 0, sc = tot ? (r.done / tot) * 100 : null, o = { d, w: GWD[gDow(d)], s: sc == null ? "" : sc / 100 };
+    const r = d <= x.today ? gyRange(d, d, x, false) : null, tot = r ? r.done + r.fail + r.pend : 0, sc = tot ? (r.done / tot) * 100 : null, outs = d <= x.today ? x.H.filter(gyDay).map((h) => gyOut(h, d, x)).filter(Boolean) : [], o = { d, w: GWD[gDow(d)], s: sc == null ? "" : sc / 100, res: outs.includes("fail") ? "Missed" : outs.length && !outs.includes("pending") ? "Perfect" : "" };
     H.forEach((h, i) => (o["h" + i] = cellOf(h, d))); scores.push(sc); w1.addRow(o).getCell(H.length + 3).numFmt = "0%";
   }
   style(w1);
-  w1.eachRow((r, n) => { if (n > 1) { r.eachCell((c) => { if (c.value === "✓") c.font = { bold: true, color: { argb: "FF166534" } }; else if (c.value === "✗") c.font = { bold: true, color: { argb: "FF991B1B" } }; else if (c.value === "S") c.font = { bold: true, color: { argb: "FF1E40AF" } }; }); if (scores[n - 2] != null) paint(r.getCell(H.length + 3), tone(scores[n - 2])); } });
+  w1.eachRow((r, n) => { if (n > 1) { r.eachCell((c) => { if (c.value === "✓") c.font = { bold: true, color: { argb: "FF166534" } }; else if (c.value === "✗") c.font = { bold: true, color: { argb: "FF991B1B" } }; else if (c.value === "S") c.font = { bold: true, color: { argb: "FF1E40AF" } }; }); if (scores[n - 2] != null) paint(r.getCell(H.length + 3), tone(scores[n - 2])); const dr = r.getCell(H.length + 4); if (dr.value === "Missed") paint(dr, tone(0)); else if (dr.value === "Perfect") paint(dr, tone(100)); } });
 
-  const w2 = sheet("Habits", [{ header: "Habit", key: "n", width: 28 }, { header: "Schedule", key: "s", width: 30 }, { header: "Streak", key: "c", width: 10 }, { header: "Longest", key: "b", width: 10 }, { header: "Done", key: "d", width: 10 }, { header: "Skipped", key: "k", width: 10 }, { header: "Missed", key: "f", width: 10 }, { header: "Completion", key: "p", width: 13 }]);
-  x.H.forEach((h) => { const r = gyHabitStats(h, x); w2.addRow({ n: h.name, s: gyDesc(h), c: r.cur, b: r.best, d: r.cd, k: r.skip, f: r.fail, p: r.pct == null ? "" : r.pct / 100 }).getCell("p").numFmt = "0%"; });
+  const w2 = sheet("Habits", [{ header: "Habit", key: "n", width: 28 }, { header: "Schedule", key: "s", width: 30 }, { header: "Streak", key: "c", width: 10 }, { header: "Longest", key: "b", width: 10 }, { header: "Done", key: "d", width: 10 }, { header: "Missed", key: "f", width: 10 }, { header: "Completion", key: "p", width: 13 }]);
+  x.H.forEach((h) => { const r = gyHabitStats(h, x); w2.addRow({ n: h.name, s: gyDesc(h), c: r.cur, b: r.best, d: r.cd, f: r.fail, p: r.pct == null ? "" : r.pct / 100 }).getCell("p").numFmt = "0%"; });
   style(w2); w2.eachRow((r, n) => { if (n > 1) { const p = r.getCell("p").value; if (typeof p === "number") paint(r.getCell("p"), tone(p * 100)); } });
 
   const buf = await wb.xlsx.writeBuffer(), url = URL.createObjectURL(new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" })), a = document.createElement("a");
@@ -1307,7 +1198,7 @@ function render() {
   document.querySelectorAll("[data-rr]").forEach((b) => (b.onclick = () => { const k = b.dataset.rr; S.f.rr = new Set(S.f.rr.has(k) ? [] : [k]); render(); }));
   if ($("#mfo")) $("#mfo").onclick = () => { S.mf = !S.mf; render(); };
   if ($("#clearF")) $("#clearF").onclick = () => { S.f = F0(); S.jc.sel = new Set(); render(); };
-  if ($("#exportPdf")) $("#exportPdf").onclick = () => exportPdf(list, st);
+  if ($("#exportJ")) $("#exportJ").onclick = () => exportJournalXlsx(list, st);
   if (S.view === "gym") gyBind();
 }
 

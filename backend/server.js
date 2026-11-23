@@ -176,7 +176,7 @@ function cleanHabit(b) {
   else if (type === "custom_week") { if (!days.length) return { error: "Pick at least one weekday" }; sched = { days, target: clampInt(s.target, 1, days.length, days.length) }; }
   else if (type === "interval") sched = { every: clampInt(s.every, 2, 365, 7), anchor: isDate(s.anchor) ? s.anchor : b.start_date };
   const kind = b.kind === "value" ? "value" : "check";
-  return { row: [name, kind, kind === "value" ? String(b.unit || "").trim().slice(0, 12) : "", type, JSON.stringify(sched), b.start_date, end, clampInt(b.skips_per_month, 0, 10, 2)] };
+  return { row: [name, kind, kind === "value" ? String(b.unit || "").trim().slice(0, 12) : "", type, JSON.stringify(sched), b.start_date, end, 0] };
 }
 const habitOut = (h) => ({ ...h, sched: parseJson(h.sched) });
 const nextPos = async (uid) => (await db.execute({ sql: "SELECT COALESCE(MAX(position),0)+1 AS p FROM habits WHERE user_id=?", args: [uid] })).rows[0].p;
@@ -218,7 +218,7 @@ app.get("/api/checkins", auth, async (req, res) => {
   const r = await db.execute({ sql: "SELECT habit_id,check_date,status,value FROM habit_checkins WHERE user_id=?", args: [req.uid] });
   res.json(r.rows);
 });
-// status "done" or "skip" saves the day, an empty status clears it
+// status "done" ticks the day, an empty status clears it (there is no skip: not ticked = missed)
 app.put("/api/checkins", auth, async (req, res) => {
   const { habit_id, date, status, value } = req.body;
   if (!isDate(date)) return res.status(400).json({ error: "Invalid date" });
@@ -226,12 +226,12 @@ app.put("/api/checkins", auth, async (req, res) => {
   const h = await db.execute({ sql: "SELECT id FROM habits WHERE id=? AND user_id=?", args: [habit_id, req.uid] });
   if (!h.rows.length) return res.status(404).json({ error: "Habit not found" });
   if (!status) await db.execute({ sql: "DELETE FROM habit_checkins WHERE habit_id=? AND check_date=? AND user_id=?", args: [habit_id, date, req.uid] });
-  else if (["done", "skip"].includes(status)) {
+  else if (status === "done") {
     const v = value === "" || value == null || !Number.isFinite(+value) ? null : +value;
     await db.execute({
       sql: `INSERT INTO habit_checkins (user_id,habit_id,check_date,status,value) VALUES (?,?,?,?,?)
             ON CONFLICT(habit_id,check_date) DO UPDATE SET status=excluded.status,value=excluded.value`,
-      args: [req.uid, habit_id, date, status, status === "done" ? v : null],
+      args: [req.uid, habit_id, date, status, v],
     });
   } else return res.status(400).json({ error: "Invalid status" });
   res.json({ ok: true });
