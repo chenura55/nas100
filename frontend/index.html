@@ -223,6 +223,56 @@ input[type=date]::-webkit-date-and-time-value,input[type=time]::-webkit-date-and
   .tabbar button{font-size:10px}.nl-form{padding:16px 12px 0!important}.nl-form .swal2-actions{margin:14px -12px 0!important;padding:10px 12px calc(10px + env(safe-area-inset-bottom))!important}
 }
 @media(max-height:480px) and (orientation:landscape){.tabbar{position:static}.wrap{padding-bottom:22px}.addbtn{bottom:14px}}
+
+/* ---------- gym tracker ---------- */
+.gy-seg{display:flex;gap:4px;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:4px;margin:0 0 16px;overflow-x:auto;scrollbar-width:none}.gy-seg::-webkit-scrollbar{display:none}
+.gy-seg button{flex:1;border:0;background:none;color:var(--mute);padding:9px 16px;border-radius:999px;white-space:nowrap;font-weight:500}.gy-seg button.on{background:#fff;color:#000}
+.gy-hero{display:grid;grid-template-columns:1.2fr 1fr;gap:18px;align-items:center;margin-bottom:16px}.gy-hero .huge{font-size:52px}
+.gy-rings{display:flex;gap:18px;justify-content:flex-end}
+.gy-mnav{display:flex;align-items:center;gap:10px;margin-bottom:12px}.gy-mnav h2{margin:0;flex:1;text-align:center;font-size:20px;font-weight:600}
+.gy-sheet{overflow:auto;max-height:68vh;border:1px solid var(--line);border-radius:18px;background:#121216;-webkit-overflow-scrolling:touch}
+.gy-t{border-collapse:separate;border-spacing:0;min-width:100%}
+.gy-t th,.gy-t td{padding:6px 5px;text-align:center;border-top:1px solid var(--line);white-space:nowrap}
+.gy-t thead th{position:sticky;top:0;z-index:3;background:#1a1a20;border-top:0;vertical-align:bottom;min-width:86px;padding:10px 6px}
+.gy-t th:first-child,.gy-t td:first-child{position:sticky;left:0;z-index:2;background:#17171c;text-align:left;min-width:78px;padding-left:12px}
+.gy-t thead th:first-child{z-index:4}
+.gy-hn{font-weight:600;font-size:13px;white-space:normal;line-height:1.2;color:var(--text)}.gy-hs{color:var(--mute);font-size:11px;font-weight:400;margin-top:2px}
+.gy-t tr.gy-today td{background:#7c3aed22}.gy-t tr.gy-today td:first-child{background:#2a2050}
+.gy-t tr.gy-sun td{border-bottom:2px solid #ffffff14}
+.gy-t td small{color:var(--mute);margin-left:5px;font-size:11px}
+.gy-t tfoot td{background:#1a1a20;font-size:13px;color:var(--text);vertical-align:top;padding:10px 5px}.gy-t tfoot td:first-child{color:var(--mute);font-size:12px}
+.gy-off{color:#3d3d47}
+.gy-b{width:38px;height:38px;border-radius:12px;border:1.5px solid #3a3a44;background:var(--card2);color:transparent;font-weight:700;font-size:14px;display:inline-grid;place-items:center;padding:0;transition:.12s}
+.gy-b.sm{font-size:11px}
+.gy-b.done{background:var(--lime);border-color:var(--lime);color:#000}
+.gy-b.skip{background:#38bdf822;border-color:var(--blue);color:var(--blue)}
+.gy-b.over{background:#f0627a22;border-color:var(--red);color:var(--red)}
+.gy-b.miss{color:#f0627acc;border-style:dashed;border-color:#f0627a55}
+.gy-b:disabled{opacity:.22;cursor:default}
+.gy-b.big{width:54px;height:54px;border-radius:16px;font-size:18px}
+.gy-ti{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--line)}.gy-ti:first-of-type{border-top:0}.gy-ti .m{flex:1;min-width:0}.gy-ti small{display:block;color:var(--mute);font-size:12px}
+.gy-hwrap{overflow-x:auto;padding-bottom:6px}
+.gy-heat{display:grid;grid-auto-flow:column;grid-template-rows:repeat(7,15px);grid-auto-columns:15px;gap:3px;width:max-content}.gy-heat i{border-radius:4px;background:var(--card2)}
+.gy-heat i.l1{background:#f0627a66}.gy-heat i.l2{background:#38bdf855}.gy-heat i.l3{background:#38bdf8cc}.gy-heat i.l4{background:var(--lime)}
+.gy-lg{display:inline-flex;align-items:center;gap:5px}.gy-lg i{width:11px;height:11px;border-radius:3px;display:inline-block}
+.gy-bars{display:flex;gap:6px;align-items:flex-end;height:160px}.gy-bc{flex:1;min-width:0;display:flex;flex-direction:column;height:100%;text-align:center}
+.gy-bw{flex:1;display:flex;align-items:flex-end;background:var(--card2);border-radius:8px;overflow:hidden}.gy-bf{width:100%;border-radius:8px 8px 0 0}
+.gy-bt{font-size:10px;color:var(--mute);height:14px}.gy-bl{font-size:10px;color:var(--mute);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gy-hp{display:grid;grid-template-columns:minmax(90px,1.2fr) 1.4fr 48px;gap:8px 12px;align-items:center;padding:12px 0;border-top:1px solid var(--line)}
+.gy-hp .st{grid-column:1/-1;display:flex;gap:14px;flex-wrap:wrap;color:var(--mute);font-size:12px}
+.gy-bgs{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:16px}
+.gy-bg{text-align:center}.gy-bg h3{margin:8px 0 2px;font-size:18px}.gy-bg .n{font-size:13px;color:var(--p2);font-weight:600}
+.gy-er{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--line)}.gy-er:first-of-type{border-top:0}
+.gy-hr{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:14px 0;border-top:1px solid var(--line)}.gy-hr:first-of-type{border-top:0}.gy-hr .m{flex:1;min-width:200px}
+.gy-tp{display:grid;gap:10px;text-align:left}.gy-tp button{text-align:left;background:var(--card2);border:1px solid var(--line);border-radius:16px;padding:14px 16px;color:var(--text)}.gy-tp button:hover{border-color:var(--p2)}.gy-tp b{display:block;font-size:16px;margin-bottom:2px}.gy-tp small{color:var(--mute);font-size:13px}
+.gy-opts{display:grid;gap:8px}.gy-opts button{text-align:left;background:var(--card2);border:1px solid var(--line);border-radius:14px;padding:11px 14px;color:var(--text)}.gy-opts button.on{border-color:var(--p2);background:#7c3aed33}.gy-opts small{display:block;color:var(--mute);font-size:12px}
+.gy-det{background:var(--card2);border-radius:14px;padding:12px;display:grid;gap:10px}
+@media(max-width:1000px){.gy-hero{grid-template-columns:1fr}.gy-rings{justify-content:flex-start}}
+@media(max-width:700px){
+  .gy-hero .huge{font-size:44px}.gy-bgs{grid-template-columns:1fr}.gy-bg{display:flex;align-items:center;gap:16px;text-align:left}.gy-bg svg{flex:none}
+  .gy-sheet{max-height:64dvh}.gy-t thead th{min-width:80px}.gy-bars{gap:3px;height:140px}.gy-hp{grid-template-columns:minmax(80px,1fr) 1fr 44px}
+  .gy-b{width:40px;height:40px}.gy-mnav h2{font-size:18px}.gy-hr .m{min-width:100%}
+}
 </style>
 </head>
 <body>
@@ -233,7 +283,7 @@ const API = location.hostname === "localhost" || location.protocol === "file:" ?
 
 const $ = (s) => document.querySelector(s);
 function F0() { return { dir: "", out: "", from: "", to: "", pat: "", ph: "", emo: "", ath: "", ib: "", ibtf: "", ibb: "", inv: "", liq: "", rr: new Set() }; }
-let S = { token: localStorage.token, user: JSON.parse(localStorage.user || "null"), trades: [], routine: [], logs: [], jt: "all", jc: { mode: "all", sel: new Set(), open: false }, cfm: null, pm: { done: new Set() }, view: "dashboard", range: "all", mode: "login", f: F0(), mf: false, xs: null, editing: null, cal: { y: new Date().getFullYear(), m: new Date().getMonth() } };
+let S = { token: localStorage.token, user: JSON.parse(localStorage.user || "null"), trades: [], routine: [], logs: [], habits: [], checkins: [], gy: { m: "", tab: "sheet", sc: null }, jt: "all", jc: { mode: "all", sel: new Set(), open: false }, cfm: null, pm: { done: new Set() }, view: "dashboard", range: "all", mode: "login", f: F0(), mf: false, xs: null, editing: null, cal: { y: new Date().getFullYear(), m: new Date().getMonth() } };
 
 async function api(path, method = "GET", body) {
   const r = await fetch(API + path, { method, headers: { "Content-Type": "application/json", Authorization: "Bearer " + S.token }, body: body && JSON.stringify(body) });
@@ -262,12 +312,13 @@ const ICON = {
   calendar: `<svg class="ic" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="3"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>`,
   premarket: `<svg class="ic" viewBox="0 0 24 24"><path d="M12 3v3M4.9 6.9l2.1 2.1M19.1 6.9L17 9M2 16h2M20 16h2M7 16a5 5 0 0110 0M3 20h18"/></svg>`,
   journal: `<svg class="ic" viewBox="0 0 24 24"><path d="M4 4h12a4 4 0 014 4v12H8a4 4 0 01-4-4z"/><path d="M8 9h8M8 13h6"/></svg>`,
+  gym: `<svg class="ic" viewBox="0 0 24 24"><path d="M6.5 6.5v11M17.5 6.5v11M3 9v6M21 9v6M6.5 12h11"/></svg>`,
   out: `<svg class="ic" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>`,
 };
 
 async function load() {
-  const [t, r, g] = await Promise.all([api("/api/trades"), api("/api/routine"), api("/api/routine/logs")]);
-  S.trades = t; S.routine = r; S.logs = g; render();
+  const [t, r, g, hb, ck] = await Promise.all([api("/api/trades"), api("/api/routine"), api("/api/routine/logs"), api("/api/habits").catch(() => []), api("/api/checkins").catch(() => [])]);
+  S.trades = t; S.routine = r; S.logs = g; S.habits = Array.isArray(hb) ? hb : []; S.checkins = Array.isArray(ck) ? ck : []; render();
 }
 
 /* ---------- popups (SweetAlert2) ---------- */
@@ -711,6 +762,428 @@ async function openForm(t) {
 }
 
 /* ---------- auth + shell ---------- */
+/* ================= GYM TRACKER ================= */
+/*GYM-ENGINE-START*/
+/* Engine: pure functions. Everything is calculated from the habits + check-ins saved in the database. */
+const gD = (s) => { const [y, m, d] = s.split("-").map(Number); return Date.UTC(y, m - 1, d); };
+const gS = (t) => new Date(t).toISOString().slice(0, 10);
+const gAdd = (s, n) => gS(gD(s) + n * 864e5);
+const gDiff = (a, b) => Math.round((gD(a) - gD(b)) / 864e5);
+const gDow = (s) => new Date(gD(s)).getUTCDay();
+const gMon = (s) => gAdd(s, -((gDow(s) + 6) % 7));
+const gM1 = (s) => s.slice(0, 7) + "-01";
+const gMEnd = (m) => gS(Date.UTC(+m.slice(0, 4), +m.slice(5, 7), 0));
+const gNextM = (m1) => gS(Date.UTC(+m1.slice(0, 4), +m1.slice(5, 7), 1));
+const gyDay = (h) => ["daily", "weekdays", "interval"].includes(h.sched_type);
+
+// Is the habit scheduled (or available, for weekly habits) on this date?
+function gySched(h, d) {
+  if (d < h.start_date || (h.end_date && d > h.end_date)) return false;
+  const s = h.sched || {}, w = gDow(d);
+  if (h.sched_type === "weekdays" || h.sched_type === "custom_week") return (s.days || []).includes(w);
+  if (h.sched_type === "interval") { const a = s.anchor || h.start_date; return d >= a && gDiff(d, a) % (s.every || 7) === 0; }
+  return true; // daily, weekly_count
+}
+// Context: check-ins indexed by habit/date + the skip days that are inside the monthly allowance
+function gyCtx(H, K, t) {
+  const C = {}; K.forEach((c) => ((C[c.habit_id] = C[c.habit_id] || {})[c.check_date] = c));
+  const ok = new Set();
+  H.forEach((h) => {
+    const used = {};
+    Object.keys(C[h.id] || {}).sort().forEach((d) => {
+      if (C[h.id][d].status !== "skip" || !gySched(h, d)) return;
+      const m = d.slice(0, 7); used[m] = (used[m] || 0) + 1;
+      if (used[m] <= (h.skips_per_month ?? 2)) ok.add(h.id + "|" + d);
+    });
+  });
+  return { H, C, ok, today: t };
+}
+// Outcome of one scheduled day for a daily-type habit: done | skip | fail | pending | null (not scheduled)
+function gyOut(h, d, x) {
+  if (!gySched(h, d)) return null;
+  const c = x.C[h.id]?.[d];
+  if (c?.status === "done") return "done";
+  if (c?.status === "skip") return x.ok.has(h.id + "|" + d) ? "skip" : "fail"; // skips over the monthly limit count as a miss
+  return d >= x.today ? "pending" : "fail";
+}
+// Outcome of one Mon-Sun week for a weekly habit
+function gyWeek(h, mon, x) {
+  const s = h.sched || {}, av = [];
+  for (let i = 0; i < 7; i++) { const d = gAdd(mon, i); if (gySched(h, d)) av.push(d); }
+  if (!av.length) return null;
+  let done = 0, sk = 0, rem = 0;
+  av.forEach((d) => { const c = x.C[h.id]?.[d]; if (c?.status === "done") done++; else if (c?.status === "skip") { if (x.ok.has(h.id + "|" + d)) sk++; } else if (d >= x.today) rem++; });
+  const need = Math.max(0, Math.min(s.target || 1, av.length - sk));
+  return { status: need === 0 ? "skip" : done >= need ? "ok" : done + rem < need ? "fail" : "pending", done, need, avail: av.length };
+}
+// Per habit: current streak, longest streak, completion %
+function gyHabitStats(h, x) {
+  const to = h.end_date && h.end_date < x.today ? h.end_date : x.today, r = { cur: 0, best: 0, done: 0, fail: 0, skip: 0, cd: 0, ce: 0, unit: gyDay(h) ? "day" : "week" };
+  if (gyDay(h)) {
+    for (let d = h.start_date; d <= to; d = gAdd(d, 1)) {
+      const o = gyOut(h, d, x); if (!o) continue;
+      if (o === "done") { r.cur++; r.best = Math.max(r.best, r.cur); r.done++; r.cd++; r.ce++; }
+      else if (o === "fail") { r.cur = 0; r.fail++; r.ce++; }
+      else if (o === "skip") r.skip++;
+    }
+  } else {
+    for (let m = gMon(h.start_date); m <= to; m = gAdd(m, 7)) {
+      const w = gyWeek(h, m, x); if (!w) continue;
+      if (w.status === "ok") { r.cur++; r.best = Math.max(r.best, r.cur); r.done++; r.cd += Math.min(w.done, w.need); r.ce += w.need; }
+      else if (w.status === "fail") { r.cur = 0; r.fail++; r.cd += Math.min(w.done, w.need); r.ce += w.need; }
+      else if (w.status === "skip") r.skip++;
+    }
+  }
+  r.pct = r.ce ? (r.cd / r.ce) * 100 : null;
+  return r;
+}
+// Overall streak: a "perfect day" = every daily-type habit scheduled that day is done (or skipped inside the allowance)
+function gyOverall(x) {
+  const dh = x.H.filter(gyDay), r = { cur: 0, best: 0, days: 0 };
+  if (!dh.length) return r;
+  const first = dh.reduce((a, h) => (h.start_date < a ? h.start_date : a), "9999-99-99");
+  for (let d = first; d <= x.today; d = gAdd(d, 1)) {
+    const o = dh.map((h) => gyOut(h, d, x)).filter(Boolean); if (!o.length) continue;
+    if (o.includes("fail")) r.cur = 0;
+    else if (o.includes("pending")) continue;
+    else if (o.includes("done")) { r.cur++; r.days++; r.best = Math.max(r.best, r.cur); }
+  }
+  return r;
+}
+// Everything in a date range. weekly habits count in a range when the Thursday of their week is inside it.
+function gyRange(from, to, x, weekly = true) {
+  const r = { done: 0, fail: 0, pend: 0, skip: 0, cd: 0, ce: 0 };
+  x.H.forEach((h) => {
+    if (gyDay(h)) {
+      for (let d = from; d <= to; d = gAdd(d, 1)) {
+        const o = gyOut(h, d, x); if (!o) continue;
+        if (o === "done") { r.done++; r.cd++; r.ce++; } else if (o === "fail") { r.fail++; r.ce++; } else if (o === "skip") r.skip++; else r.pend++;
+      }
+    } else if (weekly) {
+      for (let m = gMon(from); m <= to; m = gAdd(m, 7)) {
+        const th = gAdd(m, 3); if (th < from || th > to) continue;
+        const w = gyWeek(h, m, x); if (!w) continue;
+        if (w.status === "ok") { r.done++; r.cd += Math.min(w.done, w.need); r.ce += w.need; }
+        else if (w.status === "fail") { r.fail++; r.cd += Math.min(w.done, w.need); r.ce += w.need; }
+        else if (w.status === "skip") r.skip++; else r.pend++;
+      }
+    }
+  });
+  r.pct = r.ce ? (r.cd / r.ce) * 100 : null;
+  r.complete = r.done > 0 && r.fail === 0 && r.pend === 0;
+  return r;
+}
+// Badges: Week Warrior = a full week, Monthly Master = a full calendar month, Annual Legend = 12 complete months in a row
+function gyBadges(x) {
+  const B = { week: [], month: [], year: [], run: 0 };
+  if (!x.H.length) return B;
+  const first = x.H.reduce((a, h) => (h.start_date < a ? h.start_date : a), "9999-99-99"), t = x.today;
+  for (let m = gMon(first); m <= t; m = gAdd(m, 7)) if (gyRange(m, gAdd(m, 6), x).complete) B.week.push({ from: m, to: gAdd(m, 6) });
+  let run = [];
+  for (let m = gM1(first); m <= t; m = gNextM(m)) {
+    const to = gMEnd(m), r = gyRange(m, to, x);
+    if (r.complete) { B.month.push({ from: m, to }); run.push(m); if (run.length === 12) { B.year.push({ from: run[0], to }); run = []; } }
+    else if (m === gM1(t) && r.fail === 0) { /* current month still in progress */ }
+    else run = [];
+  }
+  B.run = run.length;
+  return B;
+}
+/*GYM-ENGINE-END*/
+
+/* ---- UI ---- */
+const GWD = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"], GORD = [1, 2, 3, 4, 5, 6, 0];
+const gyNum = (v) => +(+v).toFixed(2);
+const gyM = () => S.gy.m || today().slice(0, 7);
+const gyX = () => gyCtx(S.habits, S.checkins, today());
+const gyMonthName = (m) => new Date(m + "-01T12:00:00Z").toLocaleDateString("en", { month: "long", year: "numeric", timeZone: "UTC" });
+const gyDays = (s) => GORD.filter((d) => (s.days || []).includes(d)).map((d) => GWD[d]);
+const gyPct = (p) => (p == null ? "–" : Math.round(p) + "%");
+function gyDesc(h) {
+  const s = h.sched || {};
+  return ({ daily: "Every day", weekdays: gyDays(s).join(" · "), weekly_count: `${s.target}× per week, any days`, custom_week: `${s.target} of ${gyDays(s).join("/")} each week`, interval: `Every ${s.every} days from ${s.anchor}` })[h.sched_type] || "Every day";
+}
+function gyShort(h) {
+  const s = h.sched || {};
+  const t = ({ daily: "daily", weekdays: gyDays(s).map((d) => d.slice(0, 2)).join(" "), weekly_count: `${s.target}×/week`, custom_week: `${s.target} of ${(s.days || []).length} days`, interval: `every ${s.every}d` })[h.sched_type] || "daily";
+  return t + (h.kind === "value" && h.unit ? " · " + h.unit : "");
+}
+const gySkipUsed = (h, m) => S.checkins.filter((c) => c.habit_id === h.id && c.status === "skip" && c.check_date.slice(0, 7) === m).length;
+const gySkipsLeft = (h, m, except) => (h.skips_per_month ?? 2) - S.checkins.filter((c) => c.habit_id === h.id && c.status === "skip" && c.check_date.slice(0, 7) === m && c.check_date !== except).length;
+
+const GBADGE = [
+  { k: "week", name: "Week Warrior", tier: "bronze", glyph: "7D", desc: "Finish every scheduled habit for a whole week" },
+  { k: "month", name: "Monthly Master", tier: "silver", glyph: "1M", desc: "Complete a full calendar month with no missed days" },
+  { k: "year", name: "Annual Legend", tier: "gold", glyph: "1Y", desc: "Complete 12 months in a row" },
+];
+function gyMedal(tier, glyph, locked, size = 84) {
+  const c = { bronze: ["#f0b27a", "#9a5a22"], silver: ["#f3f6fa", "#8493a8"], gold: ["#ffe38a", "#c98a00"] }[tier], id = "gm" + ++gid;
+  return `<svg viewBox="0 0 100 124" width="${size}" height="${Math.round(size * 1.24)}" style="${locked ? "filter:grayscale(1) opacity(.3)" : `filter:drop-shadow(0 6px 14px ${c[1]}99)`}"><defs><linearGradient id="${id}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${c[0]}"/><stop offset="1" stop-color="${c[1]}"/></linearGradient></defs><path d="M28 0h17l15 46H43zM72 0H55L40 46h17z" fill="#7c3aed"/><circle cx="50" cy="78" r="38" fill="url(#${id})"/><circle cx="50" cy="78" r="30" fill="none" stroke="#fff" stroke-opacity=".6" stroke-width="3"/><text x="50" y="88" text-anchor="middle" font-size="${glyph.length > 1 ? 25 : 32}" font-weight="700" fill="#2a1a00" font-family="DM Sans,sans-serif">${glyph}</text></svg>`;
+}
+const gyBadgeTotals = () => { const B = gyBadges(gyX()); return { week: B.week.length, month: B.month.length, year: B.year.length }; };
+
+// One tick box. Used in the sheet and the Today card.
+function gyBtn(h, d, x, big) {
+  const c = x.C[h.id]?.[d], fut = d > x.today;
+  let k = "", txt = "";
+  if (c?.status === "done") { k = "done"; txt = c.value != null ? gyNum(c.value) : "✓"; }
+  else if (c?.status === "skip") { const ok = x.ok.has(h.id + "|" + d); k = ok ? "skip" : "over"; txt = ok ? "S" : "!"; }
+  else if (gyDay(h) && d < x.today) { k = "miss"; txt = "·"; }
+  return `<button class="gy-b ${k} ${big ? "big" : ""} ${String(txt).length > 3 ? "sm" : ""}" data-gc="${h.id}|${d}" ${fut ? "disabled" : ""}>${txt}</button>`;
+}
+
+function gyToday(x) {
+  const t = x.today, items = x.H.filter((h) => gySched(h, t));
+  const sub = (h) => {
+    if (!gyDay(h)) { const w = gyWeek(h, gMon(t), x); return w ? `${w.done}/${w.need} this week` : ""; }
+    const st = gyHabitStats(h, x), left = gySkipsLeft(h, t.slice(0, 7));
+    return `🔥 ${st.cur}-day streak · ${Math.max(0, left)} skip${left === 1 ? "" : "s"} left`;
+  };
+  return `<div class="card" style="margin-bottom:16px"><div class="ct">Today · ${nice(t).split(",")[0]} ${+t.slice(8)}</div>${items.length ? items.map((h) => `<div class="gy-ti"><div class="m"><b>${esc(h.name)}</b><small>${esc(gyShort(h))} · ${sub(h)}</small></div>${gyBtn(h, t, x, true)}</div>`).join("") : `<div class="empty sm">Nothing scheduled today. Enjoy your rest day 💤</div>`}</div>`;
+}
+
+function gySheet(x) {
+  const m = gyM(), first = m + "-01", last = gMEnd(m), t = x.today;
+  const H = x.H.filter((h) => h.start_date <= last && (!h.end_date || h.end_date >= first));
+  const nav = `<div class="gy-mnav"><button class="pill" id="gprev">‹</button><h2>${gyMonthName(m)}</h2><button class="pill" id="gnext">›</button></div>`;
+  if (!H.length) return nav + `<div class="card empty">No habits are active in this month.<br><br><button class="btn p" data-gtp>Set up this month</button></div>`;
+  const st = {}; H.forEach((h) => (st[h.id] = gyHabitStats(h, x)));
+  let rows = "";
+  for (let d = first; d <= last; d = gAdd(d, 1)) {
+    const dow = gDow(d), med = dow === 0 && d <= t && gyRange(gAdd(d, -6), d, x).complete;
+    rows += `<tr class="${d === t ? "gy-today" : ""} ${dow === 0 ? "gy-sun" : ""}" ${d === t ? 'id="gy-now"' : ""}><td><b>${+d.slice(8)}</b><small>${GWD[dow]}</small>${med ? " 🏅" : ""}</td>${H.map((h) => (gySched(h, d) ? `<td>${gyBtn(h, d, x)}</td>` : `<td class="gy-off">–</td>`)).join("")}</tr>`;
+  }
+  const foot = (lab, f) => `<tr><td>${lab}</td>${H.map((h) => `<td>${f(h)}</td>`).join("")}</tr>`;
+  return nav + `<div class="gy-sheet"><table class="gy-t"><thead><tr><th>Day</th>${H.map((h) => `<th><div class="gy-hn">${esc(h.name)}</div><div class="gy-hs">${esc(gyShort(h))}</div></th>`).join("")}</tr></thead><tbody>${rows}</tbody>
+    <tfoot>${foot("Streak", (h) => `🔥 ${st[h.id].cur}<br><span class="gy-hs">best ${st[h.id].best}</span>`)}${foot("Done", (h) => `${st[h.id].done}<span class="gy-hs"> ${st[h.id].unit}s</span>`)}${foot("Skips left", (h) => `${Math.max(0, (h.skips_per_month ?? 2) - gySkipUsed(h, m))}<span class="gy-hs"> / ${h.skips_per_month ?? 2}</span>`)}</tfoot></table></div>
+    <p class="lbl" style="margin:10px 2px">Tap a box: ✓ done → S skip → clear. Each habit has a monthly skip limit. Missing a scheduled day, or skipping more than the limit, resets that streak to 0.</p>`;
+}
+
+function gyHero(x) {
+  const t = x.today, ov = gyOverall(x), mon = gMon(t), first = x.H.reduce((a, h) => (h.start_date < a ? h.start_date : a), "9999-99-99");
+  const wk = gyRange(mon, gAdd(mon, 6), x), mo = gyRange(gM1(t), gMEnd(t.slice(0, 7)), x), all = first <= t ? gyRange(first, t, x) : { pct: null };
+  const ring = (r, lab) => { const tot = r.done + r.pend + r.fail, p = tot ? r.done / tot : 0; return `<div style="text-align:center">${donut([{ v: p, c: r.fail ? "#f0627a" : "#c6f432" }], Math.round(p * 100) + "%", "", 96)}<div class="lbl" style="color:#ffffffb3;margin-top:2px">${lab}</div></div>`; };
+  return `<div class="card hero gy-hero"><div><div class="lbl">Current streak</div><div class="huge" style="margin-top:4px">🔥 ${ov.cur}<span style="font-size:20px;font-weight:500;opacity:.8"> day${ov.cur === 1 ? "" : "s"}</span></div>
+    <div class="hchips"><span class="chip">Longest ${ov.best}</span><span class="chip">Perfect days ${ov.days}</span><span class="chip">Consistency ${gyPct(all.pct)}</span></div></div>
+    <div class="gy-rings">${ring(wk, "This week")}${ring(mo, "This month")}</div></div>`;
+}
+
+const gyBars = (items) => `<div class="gy-bars">${items.map((i) => `<div class="gy-bc"><div class="gy-bt">${i.v == null ? "" : Math.round(i.v)}</div><div class="gy-bw"><div class="gy-bf" style="height:${i.v == null ? 0 : Math.max(i.v, 3)}%;background:${i.v == null ? "transparent" : scCol(i.v)}"></div></div><div class="gy-bl">${i.l}</div></div>`).join("")}</div>`;
+
+function gyHeat(x) {
+  const t = x.today, mon = gMon(t); let cells = "";
+  for (let d = gAdd(mon, -7 * 25); d <= gAdd(mon, 6); d = gAdd(d, 1)) {
+    if (d > t) { cells += "<i></i>"; continue; }
+    let cd = 0, ce = 0;
+    x.H.forEach((h) => { if (gyDay(h)) { const o = gyOut(h, d, x); if (o === "done") { cd++; ce++; } else if (o === "fail") ce++; } else if (x.C[h.id]?.[d]?.status === "done") { cd++; ce++; } });
+    const p = ce ? cd / ce : null, l = p == null ? "" : p === 0 ? "l1" : p < 0.5 ? "l2" : p < 1 ? "l3" : "l4";
+    cells += `<i class="${l}" title="${d}: ${p == null ? "nothing scheduled" : Math.round(p * 100) + "%"}"></i>`;
+  }
+  return `<div class="gy-hwrap"><div class="gy-heat">${cells}</div></div><div class="lbl" style="margin-top:8px;display:flex;gap:10px;flex-wrap:wrap;align-items:center">Last 26 weeks (Mon–Sun) <span class="gy-lg"><i style="background:#f0627a66"></i>0%</span><span class="gy-lg"><i style="background:#38bdf855"></i>&lt;50%</span><span class="gy-lg"><i style="background:#38bdf8cc"></i>&lt;100%</span><span class="gy-lg"><i style="background:var(--lime)"></i>100%</span></div>`;
+}
+
+function gyLine(pts, unit) {
+  if (pts.length < 2) return "";
+  const vs = pts.map((p) => p.v), mn = Math.min(...vs), mx = Math.max(...vs), r = mx - mn || 1, W = 300, H = 70;
+  const d = pts.map((p, i) => `${i ? "L" : "M"}${((i / (pts.length - 1)) * W).toFixed(1)},${(H - 8 - ((p.v - mn) / r) * (H - 16)).toFixed(1)}`).join(" ");
+  const ch = vs[vs.length - 1] - vs[0];
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" height="70" preserveAspectRatio="none"><path d="${d}" fill="none" stroke="#a78bfa" stroke-width="2.5" vector-effect="non-scaling-stroke" stroke-linejoin="round"/></svg><div class="lbl">${gyNum(vs[0])} → <b style="color:var(--text)">${gyNum(vs[vs.length - 1])} ${esc(unit || "")}</b> (${ch > 0 ? "+" : ""}${gyNum(ch)}) · ${pts.length} records</div>`;
+}
+
+function gyInsights(x) {
+  const t = x.today, mon = gMon(t), first = x.H.reduce((a, h) => (h.start_date < a ? h.start_date : a), "9999-99-99");
+  const td = gyRange(t, t, x, false), wk = gyRange(mon, gAdd(mon, 6), x), mo = gyRange(gM1(t), gMEnd(t.slice(0, 7)), x), all = first <= t ? gyRange(first, t, x) : { pct: null }, ov = gyOverall(x);
+  const months = []; if (first <= t) for (let m = gM1(first); m <= t; m = gNextM(m)) months.push({ m, r: gyRange(m, gMEnd(m), x) });
+  const best = months.filter((o) => o.r.ce).sort((a, b) => b.r.pct - a.r.pct || b.r.ce - a.r.ce)[0];
+  const totalDone = S.checkins.filter((c) => c.status === "done" && S.habits.some((h) => h.id === c.habit_id)).length;
+  const kp = (a, b, c, col) => `<div class="card kpi" style="--a:${col}"><div class="lbl">${a}</div><div class="big">${b}</div><div class="lbl">${c}</div></div>`;
+  const wb = [], mb = [];
+  for (let i = 11; i >= 0; i--) { const m = gAdd(mon, -7 * i); wb.push({ l: m.slice(5).replace("-", "/"), v: gyRange(m, gAdd(m, 6), x).pct }); }
+  for (let i = 11; i >= 0; i--) { const d = new Date(Date.UTC(+t.slice(0, 4), +t.slice(5, 7) - 1 - i, 1)), m1 = gS(d); mb.push({ l: d.toLocaleDateString("en", { month: "short", timeZone: "UTC" }), v: gyRange(m1, gMEnd(m1), x).pct }); }
+  const perf = x.H.map((h) => { const r = gyHabitStats(h, x); return `<div class="gy-hp"><div><b>${esc(h.name)}</b><div class="lbl">${esc(gyShort(h))}</div></div><div class="bar slim"><span style="width:${r.pct || 0}%;background:${scCol(r.pct || 0)}"></span></div><b style="text-align:right">${gyPct(r.pct)}</b>
+    <div class="st"><span>🔥 ${r.cur} ${r.unit}${r.cur === 1 ? "" : "s"}</span><span>Longest ${r.best}</span><span>Done ${r.cd}/${r.ce}</span><span>Skipped ${r.skip}</span><span>Missed ${r.fail}</span></div></div>`; }).join("");
+  const hist = [...months].reverse().map(({ m, r }) => `<div class="gy-hp" style="grid-template-columns:110px 1fr 48px"><b>${new Date(m + "T12:00:00Z").toLocaleDateString("en", { month: "short", year: "numeric", timeZone: "UTC" })}${r.complete ? " 🏅" : ""}</b><div class="bar slim"><span style="width:${r.pct || 0}%;background:${scCol(r.pct || 0)}"></span></div><b style="text-align:right">${gyPct(r.pct)}</b><div class="st"><span>Done ${r.cd}/${r.ce}</span><span>Skipped ${r.skip}</span><span>Missed ${r.fail}</span></div></div>`).join("");
+  const trend = x.H.filter((h) => h.kind === "value").map((h) => ({ h, pts: S.checkins.filter((c) => c.habit_id === h.id && c.status === "done" && c.value != null).sort((a, b) => (a.check_date < b.check_date ? -1 : 1)).map((c) => ({ d: c.check_date, v: +c.value })) })).filter((o) => o.pts.length >= 2);
+  return `<div class="kpis">${kp("Today", gyPct(td.pct), `${td.cd}/${td.ce} done`, "var(--lime)")}${kp("This week", gyPct(wk.pct), `${wk.cd}/${wk.ce} done`, "var(--blue)")}${kp("This month", gyPct(mo.pct), `${mo.cd}/${mo.ce} done`, "var(--p2)")}${kp("All time", gyPct(all.pct), `${all.cd || 0}/${all.ce || 0} done`, "var(--lime)")}${kp("Total completed", totalDone, "habit check-ins", "var(--blue)")}
+    ${kp("Current streak", ov.cur + " <span class='lbl'>days</span>", "perfect days in a row", "var(--p2)")}${kp("Longest streak", ov.best + " <span class='lbl'>days</span>", `${ov.days} perfect days total`, "var(--p2)")}${kp("Best month", best ? gyPct(best.r.pct) : "–", best ? gyMonthName(best.m.slice(0, 7)) : "no data yet", "var(--lime)")}</div>
+  <div class="card" style="margin-bottom:16px"><div class="ct">Calendar heatmap</div>${gyHeat(x)}</div>
+  <div class="grid two" style="grid-template-columns:1fr 1fr;margin-bottom:16px"><div class="card"><div class="ct">Weekly completion (last 12 weeks, week start)</div>${gyBars(wb)}</div><div class="card"><div class="ct">Monthly progress (last 12 months)</div>${gyBars(mb)}</div></div>
+  <div class="card" style="margin-bottom:16px"><div class="ct">Habit-by-habit performance</div>${perf || `<div class="empty sm">No habits yet</div>`}</div>
+  ${trend.length ? `<div class="bkg" style="margin:0 0 16px">${trend.map((o) => `<div class="card"><div class="ct">${esc(o.h.name)} trend</div>${gyLine(o.pts, o.h.unit)}</div>`).join("")}</div>` : ""}
+  <div class="card"><div class="ct">Historical performance</div>${hist || `<div class="empty sm">No history yet</div>`}</div>`;
+}
+
+function gyBadgesView(x) {
+  const B = gyBadges(x), t = x.today, mon = gMon(t), wk = gyRange(mon, gAdd(mon, 6), x), mo = gyRange(gM1(t), gMEnd(t.slice(0, 7)), x);
+  const cnt = { week: B.week.length, month: B.month.length, year: B.year.length };
+  const prog = { week: `${wk.done}/${wk.done + wk.pend + wk.fail} done this week${wk.fail ? " · missed, next week is a fresh start" : ""}`, month: `${mo.done}/${mo.done + mo.pend + mo.fail} done this month${mo.fail ? " · missed, try next month" : ""}`, year: `${B.run}/12 months in a row` };
+  const pp = { week: wk, month: mo };
+  const cards = GBADGE.map((b) => { const p = b.k === "year" ? (B.run / 12) * 100 : (pp[b.k].done + pp[b.k].pend + pp[b.k].fail ? (pp[b.k].done / (pp[b.k].done + pp[b.k].pend + pp[b.k].fail)) * 100 : 0);
+    return `<div class="card gy-bg">${gyMedal(b.tier, b.glyph, !cnt[b.k])}<div><h3>${b.name}</h3><div class="n">${cnt[b.k] ? `Earned ×${cnt[b.k]}` : "Not earned yet"}</div><div class="lbl" style="margin:6px 0">${b.desc}</div><div class="bar slim" style="margin:8px 0"><span style="width:${p}%;background:var(--p2)"></span></div><div class="lbl">${prog[b.k]}</div></div></div>`; }).join("");
+  const earned = GBADGE.flatMap((b) => B[b.k].map((e) => ({ ...b, ...e }))).sort((a, b) => (a.to < b.to ? 1 : -1)).slice(0, 40);
+  const lab = (e) => e.k === "week" ? `Week of ${e.from}` : e.k === "month" ? gyMonthName(e.from.slice(0, 7)) : `${gyMonthName(e.from.slice(0, 7))} → ${gyMonthName(e.to.slice(0, 7))}`;
+  return `<div class="gy-bgs">${cards}</div><div class="card"><div class="ct">Earned badges</div>${earned.map((e) => `<div class="gy-er">${gyMedal(e.tier, e.glyph, false, 34)}<div style="flex:1"><b>${e.name}</b><div class="lbl">${lab(e)}</div></div><span class="lbl">${e.to > t ? t : e.to}</span></div>`).join("") || `<div class="empty sm">Finish a full week of your habits to earn your first badge 💪</div>`}</div>
+  <p class="lbl" style="margin:12px 2px">Rules: a week or month counts when every scheduled habit is done (skips inside the monthly limit are fine). Any miss, or a skip over the limit, resets that habit's streak to 0.</p>`;
+}
+
+function gyHabitsTab(x) {
+  const t = x.today, row = (h) => { const r = gyHabitStats(h, x), status = h.end_date && h.end_date < t ? `Ended ${h.end_date}` : h.start_date > t ? `Starts ${h.start_date}` : "Active";
+    return `<div class="gy-hr"><div class="m"><b>${esc(h.name)}</b> ${h.kind === "value" ? `<span class="tag">${esc(h.unit || "value")}</span>` : ""}<div class="lbl">${esc(gyDesc(h))} · ${h.start_date} → ${h.end_date || "ongoing"} · ${h.skips_per_month ?? 2} skips/month</div></div><span class="tag">${status}</span><span class="lbl">🔥 ${r.cur} · best ${r.best}</span><span><button class="x" data-ghe="${h.id}">Edit</button><button class="x" data-ghd="${h.id}">Delete</button></span></div>`; };
+  const act = x.H.filter((h) => !h.end_date || h.end_date >= t), old = x.H.filter((h) => h.end_date && h.end_date < t);
+  return `<div class="card" style="margin-bottom:16px"><div class="ct">Active habits</div>${act.map(row).join("") || `<div class="empty sm">No active habits</div>`}</div>${old.length ? `<div class="card"><div class="ct">Ended habits (history is kept)</div>${old.map(row).join("")}</div>` : ""}
+  <p class="lbl" style="margin:12px 2px">Tip: to customise a month, use Templates → “Copy from last month”, or give a habit an end date and add new ones for the next month.</p>`;
+}
+
+function gymView() {
+  const x = gyX();
+  const head = `<div class="ph"><div><h1>Gym <span>tracker</span></h1><p class="sub">${nice(today())}</p></div><div style="display:flex;gap:8px"><button class="btn g" data-gtp>Templates</button><button class="btn p" data-gah>+ Habit</button></div></div>`;
+  if (!S.habits.length) return head + `<div class="card empty" style="padding:44px 20px"><div style="font-size:44px">🏋️</div><h2 style="margin:8px 0">Build your habit tracker</h2><p class="lbl" style="max-width:380px;margin:0 auto 18px">Track gym, food, water, weight and anything else. Start from the 28-day Gym &amp; Health sheet or create your own habits with custom schedules.</p><button class="btn p" data-gtp>Choose a template</button> <button class="btn g" data-gah>Add a habit</button></div>`;
+  const tabs = [["sheet", "Sheet"], ["insights", "Insights"], ["badges", "Badges"], ["habits", "Habits"]].map(([k, l]) => `<button class="${S.gy.tab === k ? "on" : ""}" data-gt="${k}">${l}</button>`).join("");
+  const body = { sheet: () => gyToday(x) + gySheet(x), insights: () => gyInsights(x), badges: () => gyBadgesView(x), habits: () => gyHabitsTab(x) }[S.gy.tab]();
+  return head + gyHero(x) + `<div class="gy-seg">${tabs}</div>` + body;
+}
+
+/* ---- actions ---- */
+const gyReload = async () => { const [h, k] = await Promise.all([api("/api/habits"), api("/api/checkins")]); S.habits = h; S.checkins = k; };
+
+async function gyCelebrate(list) {
+  if (!window.Swal || !list.length) return;
+  const b = list[list.length - 1];
+  await Swal.fire({ ...SW, customClass: { popup: "nl-pop", confirmButton: "nl-ok" }, showCancelButton: false, confirmButtonText: "Keep going 💪", timer: 9000, timerProgressBar: true,
+    html: `<div style="text-align:center">${gyMedal(b.tier, b.glyph, false, 120)}<h2 style="margin:6px 0 4px;color:var(--text)">${b.name} unlocked!</h2><p style="margin:0">${b.desc}. Amazing consistency!</p></div>` });
+}
+
+async function gySet(h, d, status, value) {
+  const before = gyBadgeTotals();
+  try { await api("/api/checkins", "PUT", { habit_id: h.id, date: d, status: status || "", value: value ?? null }); } catch (e) { return toast(e.message, "error"); }
+  const i = S.checkins.findIndex((c) => c.habit_id === h.id && c.check_date === d);
+  if (i >= 0) S.checkins.splice(i, 1);
+  if (status) S.checkins.push({ habit_id: h.id, check_date: d, status, value: status === "done" && value != null ? +value : null });
+  const box = $(".gy-sheet"); if (box) S.gy.sc = [box.scrollTop, box.scrollLeft];
+  render();
+  const after = gyBadgeTotals(), won = GBADGE.filter((b) => after[b.k] > before[b.k]);
+  if (won.length) gyCelebrate(won);
+}
+
+async function gyTap(hid, d) {
+  const h = S.habits.find((x) => x.id === hid); if (!h || d > today()) return;
+  const c = S.checkins.find((k) => k.habit_id === hid && k.check_date === d);
+  if (h.kind === "value") return gyValue(h, d, c);
+  let next = !c ? "done" : c.status === "done" ? "skip" : null;
+  if (next === "skip" && gySkipsLeft(h, d.slice(0, 7), d) <= 0) { next = null; toast(`No skips left this month for ${h.name}`, "error"); }
+  gySet(h, d, next);
+}
+
+async function gyValue(h, d, c) {
+  if (!window.Swal) return noSwal();
+  const left = gySkipsLeft(h, d.slice(0, 7), d), canSkip = !c && left > 0;
+  const r = await Swal.fire({ ...SW, customClass: { popup: "nl-pop", confirmButton: "nl-ok", cancelButton: "nl-cancel", denyButton: "nl-cancel", input: "swal2-input" }, title: h.name, text: nice(d), input: "number", inputValue: c?.value ?? "",
+    inputAttributes: { step: "0.01", inputmode: "decimal", placeholder: `Value${h.unit ? " (" + h.unit + ")" : ""}` }, showCancelButton: true, showDenyButton: !!c || canSkip, denyButtonText: c ? "Clear" : `Skip (${left} left)`, confirmButtonText: "Save",
+    inputValidator: (v) => (v === "" || !Number.isFinite(+v) ? "Enter a number" : null) });
+  if (r.isConfirmed) gySet(h, d, "done", r.value);
+  else if (r.isDenied) gySet(h, d, c ? null : "skip");
+}
+
+/* ---- habit form ---- */
+const GSCHED = [["daily", "Every day", "Counts every single day"], ["weekdays", "Selected weekdays", "Pick the days, e.g. Mon · Wed · Fri"], ["weekly_count", "Days per week", "Do it N times a week on any days"], ["custom_week", "Custom weekly schedule", "Pick available days and how many you must complete"], ["interval", "Custom repeat interval", "Every N days from a first date, e.g. weigh-in every 7 days"]];
+
+async function gyHabitForm(h) {
+  if (!window.Swal) return noSwal();
+  const m = gyM(), dflt = m === today().slice(0, 7) ? today() : m + "-01", s = h?.sched || {};
+  const st = { kind: h?.kind || "check", type: h?.sched_type || "daily", days: new Set(s.days || [1, 2, 3, 4, 5]), target: s.target || 3, every: s.every || 7, anchor: s.anchor || "" };
+  const html = `<div class="f"><div class="full"><label>Habit name</label><input id="hn" maxlength="60" placeholder="e.g. Gym, No junk food, Water 4.5L, Weight" value="${esc(h?.name || "")}"></div>
+    <div class="full"><label>What do you record?</label><div class="seg ty" id="hk"><button type="button" data-v="check">Tick (done / not done)</button><button type="button" data-v="value">Value (weight, cm…)</button></div></div>
+    <div class="full" id="hu"><label>Unit</label><input id="hun" maxlength="12" placeholder="kg, cm, L" value="${esc(h?.unit || "")}"></div>
+    <div class="full"><label>Schedule</label><div class="gy-opts" id="hs">${GSCHED.map(([k, n, d]) => `<button type="button" data-s="${k}"><b>${n}</b><small>${d}</small></button>`).join("")}</div></div>
+    <div class="full gy-det" id="hd"></div>
+    <div><label>Starts</label><input type="date" id="hst" value="${h?.start_date || dflt}"></div><div><label>Ends (optional)</label><input type="date" id="hen" value="${h?.end_date || ""}"></div>
+    <div class="full chips" style="margin:0"><button type="button" class="pill sm" id="hmo">This month only</button><button type="button" class="pill sm" id="hon">Ongoing</button></div>
+    <div class="full"><label>Skip days allowed per month</label><select id="hsk">${[0, 1, 2, 3, 4, 5].map((n) => `<option ${n === (h?.skips_per_month ?? 2) ? "selected" : ""}>${n}</option>`).join("")}</select><div class="lbl" style="margin-top:4px">A skip keeps your streak. More skips than this in a month count as a miss and reset the streak to 0.</div></div></div>`;
+  const res = await Swal.fire({ ...pop("nl-form"), title: h ? "Edit habit" : "New habit", html, confirmButtonText: h ? "Save changes" : "Add habit",
+    didOpen: () => {
+      const det = () => {
+        const dc = [...GORD].map((d) => `<button type="button" class="cc sm ${st.days.has(d) ? "on" : ""}" data-wd="${d}">${GWD[d]}</button>`).join("");
+        const tg = (max) => `<select id="htg">${Array.from({ length: max }, (_, i) => `<option ${i + 1 === Math.min(st.target, max) ? "selected" : ""}>${i + 1}</option>`).join("")}</select>`;
+        const n = Math.max(1, st.days.size);
+        $("#hd").innerHTML = { daily: `<div class="lbl">This habit is due every day. Miss a day and the streak resets.</div>`,
+          weekdays: `<div class="lbl">Due on these days only. Other days never break the streak.</div><div class="cchips" style="padding:0">${dc}</div>`,
+          weekly_count: `<div class="lbl">How many days per week (any days)?</div>${tg(7)}<div class="lbl">The week counts when you reach this number. Missing it resets the weekly streak.</div>`,
+          custom_week: `<div class="lbl">Days you can do it</div><div class="cchips" style="padding:0">${dc}</div><div class="lbl">Must complete at least</div>${tg(n)}<div class="lbl">of those days each week.</div>`,
+          interval: `<div class="lbl">Repeat every (days)</div><input type="number" id="hev" min="2" max="365" value="${st.every}" inputmode="numeric"><div class="lbl">First due date</div><input type="date" id="han" value="${st.anchor || $("#hst").value}">` }[st.type];
+        document.querySelectorAll("[data-wd]").forEach((b) => (b.onclick = () => { const d = +b.dataset.wd; st.days.has(d) ? st.days.delete(d) : st.days.add(d); det(); }));
+        if ($("#htg")) $("#htg").onchange = () => (st.target = +$("#htg").value);
+        if ($("#hev")) $("#hev").oninput = () => (st.every = +$("#hev").value);
+        if ($("#han")) $("#han").onchange = () => (st.anchor = $("#han").value);
+      };
+      const paint = () => { document.querySelectorAll("#hk button").forEach((b) => b.classList.toggle("on", b.dataset.v === st.kind)); document.querySelectorAll("#hs button").forEach((b) => b.classList.toggle("on", b.dataset.s === st.type)); $("#hu").hidden = st.kind !== "value"; };
+      document.querySelectorAll("#hk button").forEach((b) => (b.onclick = () => { st.kind = b.dataset.v; paint(); }));
+      document.querySelectorAll("#hs button").forEach((b) => (b.onclick = () => { st.type = b.dataset.s; paint(); det(); }));
+      $("#hmo").onclick = () => { $("#hst").value = m + "-01"; $("#hen").value = gMEnd(m); };
+      $("#hon").onclick = () => { $("#hen").value = ""; };
+      paint(); det();
+    },
+    preConfirm: async () => {
+      const body = { name: $("#hn").value, kind: st.kind, unit: $("#hun").value, sched_type: st.type, sched: { days: [...st.days], target: st.target, every: st.every, anchor: st.anchor || $("#hst").value }, start_date: $("#hst").value, end_date: $("#hen").value || null, skips_per_month: +$("#hsk").value };
+      try { await api("/api/habits" + (h ? "/" + h.id : ""), h ? "PUT" : "POST", body); await gyReload(); return true; } catch (e) { Swal.showValidationMessage(e.message); return false; }
+    } });
+  if (res.isConfirmed) { render(); toast(h ? "Habit updated" : "Habit added"); }
+}
+
+/* ---- templates ---- */
+async function gyBulk(list, msg) {
+  try { await api("/api/habits/bulk", "POST", { habits: list.map((h) => ({ skips_per_month: 2, kind: "check", sched: {}, ...h })) }); await gyReload(); render(); toast(msg); } catch (e) { toast(e.message, "error"); }
+}
+async function gyTemplates() {
+  if (!window.Swal) return noSwal();
+  const m = gyM(), pm = gM1(gAdd(m + "-01", -1));
+  const pick = await new Promise((resolve) => Swal.fire({ ...pop(), allowOutsideClick: true, showCloseButton: true, showCancelButton: false, showConfirmButton: false, title: "Templates",
+    html: `<div class="gy-tp"><button data-t="p28"><b>28-Day Gym &amp; Health</b><small>Gym · No junk foods · Water 4.5L daily, plus Weight &amp; WM every 7 days (day 7, 14, 21, 28) like your tracker sheet</small></button>
+      <button data-t="flex"><b>Flexible Fitness</b><small>Workout 4× a week · Stretching 3 of Mon–Sat · 10k steps · Sleep 8h · Weekly weigh-in</small></button>
+      <button data-t="copy"><b>Copy from last month</b><small>Bring last month's habits into ${gyMonthName(m)} and customise them</small></button>
+      <button data-t="blank"><b>Custom habit</b><small>Choose any schedule yourself</small></button></div>`,
+    didOpen: () => document.querySelectorAll("[data-t]").forEach((b) => (b.onclick = () => { resolve(b.dataset.t); Swal.close(); })), willClose: () => resolve(null) }));
+  if (!pick) return;
+  if (pick === "blank") return gyHabitForm();
+  if (pick === "p28") {
+    const first = m === today().slice(0, 7) ? today() : m + "-01";
+    const r = await Swal.fire({ ...pop(), allowOutsideClick: true, title: "28-Day Gym & Health", confirmButtonText: "Create habits",
+      html: `<div class="f"><div class="full lbl">Creates Gym, No Junk Foods, Water 4.5L (daily) and Weight &amp; WM (every 7 days, starting day 7). You can edit any of them afterwards.</div><div class="full"><label>Day 1 (start date)</label><input type="date" id="t1" value="${first}"></div>
+      <label class="full" style="display:flex;gap:10px;align-items:center;color:var(--text)"><input type="checkbox" id="t2" checked style="width:20px;height:20px"> End after day 28 (untick to keep it going)</label></div>`,
+      preConfirm: () => ({ start: $("#t1").value, end: $("#t2").checked }) });
+    if (!r.isConfirmed || !r.value.start) return;
+    const s = r.value.start, e = r.value.end ? gAdd(s, 27) : null, a7 = gAdd(s, 6), base = { start_date: s, end_date: e };
+    S.gy.m = s.slice(0, 7);
+    return gyBulk([{ name: "Gym", sched_type: "daily" }, { name: "No Junk Foods", sched_type: "daily" }, { name: "Water 4.5L", sched_type: "daily" },
+      { name: "Weight", kind: "value", unit: "kg", sched_type: "interval", sched: { every: 7, anchor: a7 } }, { name: "WM (waist)", kind: "value", unit: "cm", sched_type: "interval", sched: { every: 7, anchor: a7 } }].map((h) => ({ ...base, ...h })), "28-day tracker created");
+  }
+  if (pick === "flex") {
+    const s = m === today().slice(0, 7) ? today() : m + "-01";
+    S.gy.m = s.slice(0, 7);
+    return gyBulk([{ name: "Workout", sched_type: "weekly_count", sched: { target: 4 } }, { name: "Stretching", sched_type: "custom_week", sched: { days: [1, 2, 3, 4, 5, 6], target: 3 } }, { name: "10k steps", sched_type: "daily" }, { name: "Sleep 8h", sched_type: "daily" },
+      { name: "Weigh-in", kind: "value", unit: "kg", sched_type: "interval", sched: { every: 7, anchor: s } }].map((h) => ({ start_date: s, ...h })), "Flexible Fitness created");
+  }
+  if (pick === "copy") {
+    const first = m + "-01", last = gMEnd(m), pl = gMEnd(pm.slice(0, 7));
+    const src = S.habits.filter((h) => h.start_date <= pl && (!h.end_date || h.end_date >= pm) && h.end_date && h.end_date < first);
+    if (!src.length) return toast("Nothing to copy. Habits that are still running continue automatically.", "error");
+    return gyBulk(src.map((h) => ({ name: h.name, kind: h.kind, unit: h.unit, sched_type: h.sched_type, skips_per_month: h.skips_per_month, start_date: first, end_date: last,
+      sched: h.sched_type === "interval" ? { ...h.sched, anchor: gAdd(first, Math.max(0, gDiff(h.sched.anchor || h.start_date, h.start_date))) } : h.sched })), `${src.length} habit${src.length > 1 ? "s" : ""} copied to ${gyMonthName(m)}`);
+  }
+}
+
+function gyBind() {
+  document.querySelectorAll("[data-gt]").forEach((b) => (b.onclick = () => { S.gy.tab = b.dataset.gt; S.gy.sc = null; render(); }));
+  document.querySelectorAll("[data-gah]").forEach((b) => (b.onclick = () => gyHabitForm()));
+  document.querySelectorAll("[data-gtp]").forEach((b) => (b.onclick = () => gyTemplates()));
+  document.querySelectorAll("[data-ghe]").forEach((b) => (b.onclick = () => gyHabitForm(S.habits.find((h) => h.id == b.dataset.ghe))));
+  document.querySelectorAll("[data-ghd]").forEach((b) => (b.onclick = async () => { const h = S.habits.find((x) => x.id == b.dataset.ghd); if (await ask(`Delete “${h.name}”?`, "All of its check-ins are deleted too. To keep the history, set an end date instead.")) { await api("/api/habits/" + h.id, "DELETE"); await gyReload(); render(); toast("Habit deleted"); } }));
+  document.querySelectorAll("[data-gc]").forEach((b) => (b.onclick = () => { const [id, d] = b.dataset.gc.split("|"); gyTap(+id, d); }));
+  const mv = (n) => { const d = new Date(Date.UTC(+gyM().slice(0, 4), +gyM().slice(5, 7) - 1 + n, 1)); S.gy.m = gS(d).slice(0, 7); S.gy.sc = null; render(); };
+  if ($("#gprev")) { $("#gprev").onclick = () => mv(-1); $("#gnext").onclick = () => mv(1); }
+  const box = $(".gy-sheet");
+  if (box) { if (S.gy.sc) { box.scrollTop = S.gy.sc[0]; box.scrollLeft = S.gy.sc[1]; } else if ($("#gy-now")) box.scrollTop = Math.max(0, $("#gy-now").offsetTop - 130); }
+}
+
 function authView() {
   const reg = S.mode === "register";
   $("#app").innerHTML = `<div class="auth card"><div class="logo" style="margin-bottom:18px"><i></i>NasLog</div><h1 style="font-size:28px">${reg ? "Create account" : "Welcome back"}</h1><p class="sub">NAS100 trading journal</p>
@@ -727,7 +1200,7 @@ function authView() {
   $("#go").onclick = go; $("#pw").onkeydown = (e) => { if (e.key === "Enter") go(); };
 }
 
-const VIEWS = ["dashboard", "calendar", "premarket", "journal"], vlabel = (v) => (v === "premarket" ? "Routine" : v[0].toUpperCase() + v.slice(1));
+const VIEWS = ["dashboard", "calendar", "premarket", "gym", "journal"], vlabel = (v) => (v === "premarket" ? "Routine" : v === "gym" ? "Gym tracker" : v[0].toUpperCase() + v.slice(1));
 const go = (v) => { S.view = v; render(); scrollTo(0, 0); };
 
 function exportPdf(list, st) {
@@ -925,9 +1398,9 @@ function render() {
   if (!S.token) return authView();
   const list = filtered(), st = stats(list);
   const nav = VIEWS.map((v) => `<button class="pill ${S.view === v ? "on" : ""}" data-nav="${v}">${vlabel(v)}</button>`).join("");
-  const tabs = VIEWS.map((v) => `<button class="${S.view === v ? "on" : ""}" data-nav="${v}">${ICON[v]}<span>${vlabel(v)}</span></button>`).join("");
-  const head = `<div class="top"><div class="logo"><i></i>NasLog</div><div class="nav">${nav}</div><button class="btn p addbtn ${S.view === "dashboard" || S.view === "premarket" ? "nomob" : ""}" id="add">+ New trade</button><button class="pill outb" id="out" title="Log out">${ICON.out}<span>Log out</span></button></div>`;
-  const body = S.view === "dashboard" ? dash() : S.view === "calendar" ? calView() : S.view === "premarket" ? preView() : journalView(list, st);
+  const tabs = VIEWS.map((v) => `<button class="${S.view === v ? "on" : ""}" data-nav="${v}">${ICON[v]}<span>${v === "gym" ? "Gym" : vlabel(v)}</span></button>`).join("");
+  const head = `<div class="top"><div class="logo"><i></i>NasLog</div><div class="nav">${nav}</div><button class="btn p addbtn ${["dashboard", "premarket", "gym"].includes(S.view) ? "nomob" : ""}" id="add">+ New trade</button><button class="pill outb" id="out" title="Log out">${ICON.out}<span>Log out</span></button></div>`;
+  const body = S.view === "dashboard" ? dash() : S.view === "calendar" ? calView() : S.view === "premarket" ? preView() : S.view === "gym" ? gymView() : journalView(list, st);
   $("#app").innerHTML = head + body + `<nav class="tabbar">${tabs}</nav>`;
   document.querySelectorAll("[data-nav]").forEach((b) => (b.onclick = () => go(b.dataset.nav)));
   document.querySelectorAll("[data-rg]").forEach((b) => (b.onclick = () => { S.range = b.dataset.rg; render(); }));
@@ -951,6 +1424,7 @@ function render() {
   if ($("#mfo")) $("#mfo").onclick = () => { S.mf = !S.mf; render(); };
   if ($("#clearF")) $("#clearF").onclick = () => { S.f = F0(); S.jc.sel = new Set(); render(); };
   if ($("#exportPdf")) $("#exportPdf").onclick = () => exportPdf(list, st);
+  if (S.view === "gym") gyBind();
 }
 
 S.token ? load().catch(authView) : authView();

@@ -44,6 +44,21 @@ try { await db.execute("ALTER TABLE trades ADD COLUMN trade_type TEXT DEFAULT 'f
 try { await db.execute("ALTER TABLE trades ADD COLUMN confluences TEXT"); } catch {}
 try { await db.execute("ALTER TABLE routine_logs ADD COLUMN notes TEXT"); } catch {}
 
+// Gym tracker: habits (with a schedule) and one check-in per habit per day
+await db.batch([
+  `CREATE TABLE IF NOT EXISTS habits (
+    id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, name TEXT NOT NULL,
+    kind TEXT DEFAULT 'check', unit TEXT, sched_type TEXT DEFAULT 'daily', sched TEXT,
+    start_date TEXT NOT NULL, end_date TEXT, skips_per_month INTEGER DEFAULT 2,
+    position INTEGER DEFAULT 0, created_at TEXT DEFAULT CURRENT_TIMESTAMP)`,
+  `CREATE INDEX IF NOT EXISTS idx_habits_user ON habits(user_id, position)`,
+  `CREATE TABLE IF NOT EXISTS habit_checkins (
+    id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, habit_id INTEGER NOT NULL,
+    check_date TEXT NOT NULL, status TEXT NOT NULL, value REAL, created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(habit_id, check_date))`,
+  `CREATE INDEX IF NOT EXISTS idx_checkins_user ON habit_checkins(user_id, check_date)`,
+]);
+
 // New journal fields
 const NEW2 = { entry_pattern: "TEXT", ny_gap_time: "TEXT", retracement: "INTEGER", sl_pd_array: "TEXT", ath: "INTEGER", inside_bar: "INTEGER", inside_bar_tf: "TEXT", inside_bar_bias: "TEXT", invalidation: "INTEGER", invalidation_types: "TEXT", reversal_time: "TEXT", reversal_gap_min: "INTEGER", liq_point: "TEXT" };
 for (const [c, t] of Object.entries(NEW2)) { try { await db.execute(`ALTER TABLE trades ADD COLUMN ${c} ${t}`); } catch {} }
@@ -204,6 +219,88 @@ const cleanConf = (raw) => {
 };
 const parseArr = (v) => { try { const a = JSON.parse(v || "[]"); return Array.isArray(a) ? a : []; } catch { return []; } };
 const parseJson = (v) => { try { return JSON.parse(v || "{}"); } catch { return {}; } };
+
+// ---------- Gym tracker ----------
+// Habits only store the schedule. Streaks, completion rates and badges are calculated in the app from these saved records.
+const SCHEDS = ["daily", "weekdays", "weekly_count", "custom_week", "interval"];
+const isDate = (s) => typeof s === "string" && /^\d{4}-\d{2}-\d{2}$/.test(s) && !isNaN(Date.parse(s));
+const clampInt = (v, lo, hi, d) => { const n = parseInt(v, 10); return Number.isFinite(n) ? Math.min(hi, Math.max(lo, n)) : d; };
+const HCOLS = "name,kind,unit,sched_type,sched,start_date,end_date,skips_per_month";
+
+function cleanHabit(b) {
+  const name = String(b.name || "").trim().slice(0, 60);
+  if (!name) return { error: "Give the habit a name" };
+  if (!isDate(b.start_date)) return { error: "Pick a valid start date" };
+  const end = b.end_date ? b.end_date : null;
+  if (end && (!isDate(end) || end < b.start_date)) return { error: "End date must be on or after the start date" };
+  const type = SCHEDS.includes(b.sched_type) ? b.sched_type : "daily", s = b.sched || {};
+  const days = [...new Set((Array.isArray(s.days) ? s.days : []).map(Number).filter((d) => Number.isInteger(d) && d >= 0 && d <= 6))].sort();
+  let sched = {};
+  if (type === "weekdays") { if (!days.length) return { error: "Pick at least one weekday" }; sched = { days }; }
+  else if (type === "weekly_count") sched = { target: clampInt(s.target, 1, 7, 3) };
+  else if (type === "custom_week") { if (!days.length) return { error: "Pick at least one weekday" }; sched = { days, target: clampInt(s.target, 1, days.length, days.length) }; }
+  else if (type === "interval") sched = { every: clampInt(s.every, 2, 365, 7), anchor: isDate(s.anchor) ? s.anchor : b.start_date };
+  const kind = b.kind === "value" ? "value" : "check";
+  return { row: [name, kind, kind === "value" ? String(b.unit || "").trim().slice(0, 12) : "", type, JSON.stringify(sched), b.start_date, end, clampInt(b.skips_per_month, 0, 10, 2)] };
+}
+const habitOut = (h) => ({ ...h, sched: parseJson(h.sched) });
+const nextPos = async (uid) => (await db.execute({ sql: "SELECT COALESCE(MAX(position),0)+1 AS p FROM habits WHERE user_id=?", args: [uid] })).rows[0].p;
+const HINS = `INSERT INTO habits (user_id,${HCOLS},position) VALUES (?,${HCOLS.split(",").map(() => "?")},?)`;
+
+app.get("/api/habits", auth, async (req, res) => {
+  const r = await db.execute({ sql: "SELECT * FROM habits WHERE user_id=? ORDER BY position,id", args: [req.uid] });
+  res.json(r.rows.map(habitOut));
+});
+app.post("/api/habits", auth, async (req, res) => {
+  const c = cleanHabit(req.body);
+  if (c.error) return res.status(400).json({ error: c.error });
+  await db.execute({ sql: HINS, args: [req.uid, ...c.row, await nextPos(req.uid)] });
+  res.json({ ok: true });
+});
+app.post("/api/habits/bulk", auth, async (req, res) => {
+  const list = (Array.isArray(req.body.habits) ? req.body.habits : []).slice(0, 20), cleaned = list.map(cleanHabit);
+  const bad = cleaned.find((c) => c.error);
+  if (!list.length || bad) return res.status(400).json({ error: bad ? bad.error : "Nothing to add" });
+  const p = await nextPos(req.uid);
+  await db.batch(cleaned.map((c, i) => ({ sql: HINS, args: [req.uid, ...c.row, p + i] })));
+  res.json({ ok: true, added: cleaned.length });
+});
+app.put("/api/habits/:id", auth, async (req, res) => {
+  const c = cleanHabit(req.body);
+  if (c.error) return res.status(400).json({ error: c.error });
+  await db.execute({ sql: `UPDATE habits SET ${HCOLS.split(",").map((x) => x + "=?")} WHERE id=? AND user_id=?`, args: [...c.row, req.params.id, req.uid] });
+  res.json({ ok: true });
+});
+app.delete("/api/habits/:id", auth, async (req, res) => {
+  await db.batch([
+    { sql: "DELETE FROM habit_checkins WHERE habit_id=? AND user_id=?", args: [req.params.id, req.uid] },
+    { sql: "DELETE FROM habits WHERE id=? AND user_id=?", args: [req.params.id, req.uid] },
+  ]);
+  res.json({ ok: true });
+});
+
+app.get("/api/checkins", auth, async (req, res) => {
+  const r = await db.execute({ sql: "SELECT habit_id,check_date,status,value FROM habit_checkins WHERE user_id=?", args: [req.uid] });
+  res.json(r.rows);
+});
+// status "done" or "skip" saves the day, an empty status clears it
+app.put("/api/checkins", auth, async (req, res) => {
+  const { habit_id, date, status, value } = req.body;
+  if (!isDate(date)) return res.status(400).json({ error: "Invalid date" });
+  if (date > new Date(Date.now() + 36 * 3600e3).toISOString().slice(0, 10)) return res.status(400).json({ error: "You can't check in for a future day" });
+  const h = await db.execute({ sql: "SELECT id FROM habits WHERE id=? AND user_id=?", args: [habit_id, req.uid] });
+  if (!h.rows.length) return res.status(404).json({ error: "Habit not found" });
+  if (!status) await db.execute({ sql: "DELETE FROM habit_checkins WHERE habit_id=? AND check_date=? AND user_id=?", args: [habit_id, date, req.uid] });
+  else if (["done", "skip"].includes(status)) {
+    const v = value === "" || value == null || !Number.isFinite(+value) ? null : +value;
+    await db.execute({
+      sql: `INSERT INTO habit_checkins (user_id,habit_id,check_date,status,value) VALUES (?,?,?,?,?)
+            ON CONFLICT(habit_id,check_date) DO UPDATE SET status=excluded.status,value=excluded.value`,
+      args: [req.uid, habit_id, date, status, status === "done" ? v : null],
+    });
+  } else return res.status(400).json({ error: "Invalid status" });
+  res.json({ ok: true });
+});
 
 app.get("/", (_, res) => res.send("NAS100 journal API running"));
 app.listen(process.env.PORT || 3000, () => console.log("API up"));
