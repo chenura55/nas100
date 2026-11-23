@@ -160,6 +160,7 @@ const parseJson = (v) => { try { return JSON.parse(v || "{}"); } catch { return 
 const SCHEDS = ["daily", "weekdays", "weekly_count", "custom_week", "interval"];
 const isDate = (s) => typeof s === "string" && /^\d{4}-\d{2}-\d{2}$/.test(s) && !isNaN(Date.parse(s));
 const clampInt = (v, lo, hi, d) => { const n = parseInt(v, 10); return Number.isFinite(n) ? Math.min(hi, Math.max(lo, n)) : d; };
+const addDays = (s, n) => new Date(Date.parse(s) + n * 864e5).toISOString().slice(0, 10);
 const HCOLS = "name,kind,unit,sched_type,sched,start_date,end_date,skips_per_month";
 
 function cleanHabit(b) {
@@ -224,8 +225,20 @@ app.put("/api/checkins", auth, async (req, res) => {
   if (!isDate(date)) return res.status(400).json({ error: "Invalid date" });
   const slToday = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Colombo", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date()); // a day unlocks at 00:00 Sri Lanka time
   if (date > slToday) return res.status(400).json({ error: "This day unlocks at 00:00 Sri Lanka time" });
-  const h = await db.execute({ sql: "SELECT id FROM habits WHERE id=? AND user_id=?", args: [habit_id, req.uid] });
+  const h = await db.execute({ sql: "SELECT id,sched_type,sched,start_date,end_date FROM habits WHERE id=? AND user_id=?", args: [habit_id, req.uid] });
   if (!h.rows.length) return res.status(404).json({ error: "Habit not found" });
+  // Repeat-interval habits (weight, waist...): a new entry unlocks only N days after the previous entry
+  const hb = h.rows[0];
+  if (status === "done" && hb.sched_type === "interval") {
+    const sc = parseJson(hb.sched), every = Math.max(1, +sc.every || 7), anchor = sc.anchor && sc.anchor > hb.start_date ? sc.anchor : hb.start_date;
+    const ex = (await db.execute({ sql: "SELECT check_date FROM habit_checkins WHERE habit_id=? AND user_id=? AND status='done'", args: [habit_id, req.uid] })).rows.map((r) => r.check_date).sort();
+    if (hb.end_date && date > hb.end_date) return res.status(400).json({ error: "This habit has ended" });
+    if (!ex.includes(date)) {
+      const prev = ex.filter((x) => x < date).pop(), next = ex.find((x) => x > date), unlock = prev ? addDays(prev, every) : anchor;
+      if (date < unlock) return res.status(400).json({ error: `Locked. This unlocks on ${unlock}` });
+      if (next && addDays(date, every) > next) return res.status(400).json({ error: `Too close to your next entry on ${next}` });
+    }
+  }
   if (!status) await db.execute({ sql: "DELETE FROM habit_checkins WHERE habit_id=? AND check_date=? AND user_id=?", args: [habit_id, date, req.uid] });
   else if (status === "done") {
     const v = value === "" || value == null || !Number.isFinite(+value) ? null : +value;

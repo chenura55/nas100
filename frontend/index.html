@@ -661,28 +661,55 @@ const gNextM = (m1) => gS(Date.UTC(+m1.slice(0, 4), +m1.slice(5, 7), 1));
 const gyDay = (h) => ["daily", "weekdays", "interval"].includes(h.sched_type);
 
 // Is the habit scheduled (or available, for weekly habits) on this date?
-function gySched(h, d) {
+function gySched(h, d, x) {
   if (d < h.start_date || (h.end_date && d > h.end_date)) return false;
   const s = h.sched || {}, w = gDow(d);
   if (h.sched_type === "weekdays" || h.sched_type === "custom_week") return (s.days || []).includes(w);
-  if (h.sched_type === "interval") { const a = s.anchor || h.start_date; return d >= a && gDiff(d, a) % (s.every || 7) === 0; }
+  if (h.sched_type === "interval") return !!(x && x.IV && x.IV[h.id] && x.IV[h.id].dues.has(d)); // due dates follow your ticks (see gyIvInfo)
   return true; // daily, weekly_count
+}
+// Repeat-interval habits (weight, waist, any "every N days" habit): the first entry unlocks on the first due date,
+// then every next entry unlocks N days AFTER the day you actually ticked. Until then the boxes stay locked.
+// dues = due dates used for streaks. open = the day the next entry unlocks.
+function gyIvInfo(h, C, t) {
+  const every = (h.sched || {}).every || 7, ds = Object.keys(C).sort(), dues = new Set();
+  let open = (h.sched || {}).anchor || h.start_date; if (open < h.start_date) open = h.start_date;
+  for (let g = 0; g < 2000; g++) {
+    dues.add(open);
+    const f = ds.find((d) => d >= open);
+    if (!f) break;
+    open = gAdd(f, every);
+  }
+  for (let d = gAdd(open, every), n = 0; n < 60; d = gAdd(d, every), n++) if (d > t) dues.add(d); // future due dates, so weeks/months stay "in progress"
+  return { dues, open };
+}
+// Can this date be ticked? Yes if it already has an entry (edit/clear), otherwise only when at least N days have passed since the previous entry (and N days remain before the next one).
+function gyCanTick(h, d, x) {
+  if (x.C[h.id]?.[d]) return true;
+  if (d > x.today || d < h.start_date || (h.end_date && d > h.end_date)) return false;
+  if (h.sched_type !== "interval") return true;
+  const s = h.sched || {}, every = s.every || 7, ds = Object.keys(x.C[h.id] || {}), prev = ds.filter((k) => k < d).sort().pop(), next = ds.filter((k) => k > d).sort()[0];
+  const first = (s.anchor || h.start_date) > h.start_date ? (s.anchor || h.start_date) : h.start_date;
+  if (prev ? gDiff(d, prev) < every : d < first) return false;
+  if (next && gDiff(next, d) < every) return false;
+  return true;
 }
 // Context: check-ins indexed by habit/date. Only "done" check-ins exist: a day that is not ticked is a miss.
 function gyCtx(H, K, t) {
   const C = {}; K.forEach((c) => { if (c.status === "done") (C[c.habit_id] = C[c.habit_id] || {})[c.check_date] = c; });
-  return { H, C, today: t };
+  const IV = {}; H.forEach((h) => { if (h.sched_type === "interval") IV[h.id] = gyIvInfo(h, C[h.id] || {}, t); });
+  return { H, C, today: t, IV };
 }
 // Outcome of one scheduled day for a daily-type habit: done | fail | pending | null (not scheduled)
 function gyOut(h, d, x) {
-  if (!gySched(h, d)) return null;
+  if (!gySched(h, d, x)) return null;
   if (x.C[h.id]?.[d]) return "done";
   return d >= x.today ? "pending" : "fail";
 }
 // Outcome of one Mon-Sun week for a weekly habit
 function gyWeek(h, mon, x) {
   const s = h.sched || {}, av = [];
-  for (let i = 0; i < 7; i++) { const d = gAdd(mon, i); if (gySched(h, d)) av.push(d); }
+  for (let i = 0; i < 7; i++) { const d = gAdd(mon, i); if (gySched(h, d, x)) av.push(d); }
   if (!av.length) return null;
   let done = 0, rem = 0;
   av.forEach((d) => { if (x.C[h.id]?.[d]) done++; else if (d >= x.today) rem++; });
@@ -781,7 +808,7 @@ const gyDays = (s) => GORD.filter((d) => (s.days || []).includes(d)).map((d) => 
 const gyPct = (p) => (p == null ? "–" : Math.round(p) + "%");
 function gyDesc(h) {
   const s = h.sched || {};
-  return ({ daily: "Every day", weekdays: gyDays(s).join(" · "), weekly_count: `${s.target}× per week, any days`, custom_week: `${s.target} of ${gyDays(s).join("/")} each week`, interval: `Every ${s.every} days from ${s.anchor}` })[h.sched_type] || "Every day";
+  return ({ daily: "Every day", weekdays: gyDays(s).join(" · "), weekly_count: `${s.target}× per week, any days`, custom_week: `${s.target} of ${gyDays(s).join("/")} each week`, interval: `Unlocks ${s.every} days after each tick (first: ${s.anchor})` })[h.sched_type] || "Every day";
 }
 function gyShort(h) {
   const s = h.sched || {};
@@ -812,16 +839,27 @@ function gyBtn(h, d, x, big, opt) {
 }
 
 function gyToday(x) {
-  const t = x.today, items = x.H.filter((h) => gySched(h, t)), extra = x.H.filter((h) => h.kind === "value" && !gySched(h, t) && h.start_date <= t && (!h.end_date || h.end_date >= t));
+  const t = x.today, iv = (h) => h.sched_type === "interval", act = (h) => h.start_date <= t && (!h.end_date || h.end_date >= t);
+  const items = x.H.filter((h) => (iv(h) ? !!x.C[h.id]?.[t] || gyCanTick(h, t, x) : gySched(h, t, x))), extra = x.H.filter((h) => h.kind === "value" && !iv(h) && !gySched(h, t, x) && act(h)), locked = x.H.filter((h) => iv(h) && act(h) && !items.includes(h));
+  const lk = (h) => `<div class="gy-ti"><div class="m"><b>${esc(h.name)}</b><small>${esc(gyShort(h))} · Locked until ${x.IV[h.id].open}</small></div><button class="gy-b big" disabled></button></div>`;
   const sub = (h) => {
     if (!gyDay(h)) { const w = gyWeek(h, gMon(t), x); return w ? `${w.done}/${w.need} this week` : ""; }
     return `${ico("fire", "fire")} ${gyHabitStats(h, x).cur}-day streak`;
   };
   const outs = items.filter(gyDay).map((h) => gyOut(h, t, x)), left = outs.filter((o) => o !== "done").length;
   const note = outs.length ? (left ? ` · ${left} left for a perfect day` : " · Perfect day!") : "";
-  return `<div class="card" style="margin-bottom:16px"><div class="ct">Today · ${nice(t).split(",")[0]} ${+t.slice(8)}${note}</div>${items.map((h) => `<div class="gy-ti"><div class="m"><b>${esc(h.name)}</b><small>${esc(gyShort(h))} · ${sub(h)}</small></div>${gyBtn(h, t, x, true)}</div>`).join("")}${extra.map((h) => `<div class="gy-ti"><div class="m"><b>${esc(h.name)}</b><small>Optional entry · not due today</small></div>${gyBtn(h, t, x, true, true)}</div>`).join("")}${!items.length && !extra.length ? `<div class="empty sm">Nothing scheduled today. Enjoy your rest day ${ico("moon")}</div>` : ""}</div>`;
+  return `<div class="card" style="margin-bottom:16px"><div class="ct">Today · ${nice(t).split(",")[0]} ${+t.slice(8)}${note}</div>${items.map((h) => `<div class="gy-ti"><div class="m"><b>${esc(h.name)}</b><small>${esc(gyShort(h))} · ${sub(h)}</small></div>${gyBtn(h, t, x, true)}</div>`).join("")}${extra.map((h) => `<div class="gy-ti"><div class="m"><b>${esc(h.name)}</b><small>Optional entry · not due today</small></div>${gyBtn(h, t, x, true, true)}</div>`).join("")}${locked.map(lk).join("")}${!items.length && !extra.length && !locked.length ? `<div class="empty sm">Nothing scheduled today. Enjoy your rest day ${ico("moon")}</div>` : ""}</div>`;
 }
 
+function gyCell(h, d, x) {
+  const due = gySched(h, d, x), done = !!x.C[h.id]?.[d];
+  if (h.sched_type === "interval") {
+    if (d > x.today) return x.IV[h.id]?.open === d ? `<td class="gy-off" title="Unlocks on this day"><small>unlocks</small></td>` : `<td class="gy-off">–</td>`;
+    if (done || gyCanTick(h, d, x)) return `<td>${gyBtn(h, d, x, false, !due && !done)}</td>`;
+    return `<td class="gy-off" title="Locked until ${x.IV[h.id]?.open || ""}">–</td>`;
+  }
+  return due ? `<td>${gyBtn(h, d, x)}</td>` : h.kind === "value" ? `<td>${gyBtn(h, d, x, false, true)}</td>` : `<td class="gy-off">–</td>`;
+}
 function gySheet(x) {
   const m = gyM(), first = m + "-01", last = gMEnd(m), t = x.today;
   const H = x.H.filter((h) => h.start_date <= last && (!h.end_date || h.end_date >= first));
@@ -833,13 +871,13 @@ function gySheet(x) {
   for (let d = first; d <= last; d = gAdd(d, 1)) {
     const dow = gDow(d), med = dow === 0 && d <= t && gyRange(gAdd(d, -6), d, x).complete;
     const outs = d <= t ? dayH.map((h) => gyOut(h, d, x)).filter(Boolean) : [], bad = outs.includes("fail"), good = outs.length && !bad && !outs.includes("pending");
-    rows += `<tr class="${d === t ? "gy-today" : ""} ${dow === 0 ? "gy-sun" : ""} ${bad ? "gy-miss" : ""}" ${d === t ? 'id="gy-now"' : ""}><td><b>${+d.slice(8)}</b><small>${GWD[dow]}</small>${bad ? " " + ico("x-circle", "no") : good ? " " + ico("check-circle", "ok") : ""}${med ? " " + ico("trophy", "gold") : ""}</td>${H.map((h) => (gySched(h, d) ? `<td>${gyBtn(h, d, x)}</td>` : h.kind === "value" ? `<td>${gyBtn(h, d, x, false, true)}</td>` : `<td class="gy-off">–</td>`)).join("")}</tr>`;
+    rows += `<tr class="${d === t ? "gy-today" : ""} ${dow === 0 ? "gy-sun" : ""} ${bad ? "gy-miss" : ""}" ${d === t ? 'id="gy-now"' : ""}><td><b>${+d.slice(8)}</b><small>${GWD[dow]}</small>${bad ? " " + ico("x-circle", "no") : good ? " " + ico("check-circle", "ok") : ""}${med ? " " + ico("trophy", "gold") : ""}</td>${H.map((h) => gyCell(h, d, x)).join("")}</tr>`;
   }
   const foot = (lab, f) => `<tr><td>${lab}</td>${H.map((h) => `<td>${f(h)}</td>`).join("")}</tr>`;
   return nav + `<p class="lbl" style="margin:0 2px 10px">This month: <b class="up">${tally.perfect} perfect day${tally.perfect === 1 ? "" : "s"}</b> · <b class="dn">${tally.miss} missed day${tally.miss === 1 ? "" : "s"}</b>. A day counts as missed if even one habit is not ticked.</p>
     <div class="gy-sheet"><table class="gy-t"><thead><tr><th>Day</th>${H.map((h) => `<th><div class="gy-hn">${esc(h.name)}</div><div class="gy-hs">${esc(gyShort(h))}</div></th>`).join("")}</tr></thead><tbody>${rows}</tbody>
     <tfoot>${foot("Streak", (h) => `${ico("fire", "fire")} ${st[h.id].cur}<br><span class="gy-hs">best ${st[h.id].best}</span>`)}${foot("Done", (h) => `${st[h.id].done}<span class="gy-hs"> ${st[h.id].unit}s</span>`)}</tfoot></table></div>
-    <p class="lbl" style="margin:10px 2px">Tap a box to tick it, tap again to clear. If even one habit is not ticked on a scheduled day, the whole day is missed and every streak that habit had resets to 0. The dashed “+” boxes (weight etc.) are optional extra entries on days they are not due.</p>`;
+    <p class="lbl" style="margin:10px 2px">Tap a box to tick it, tap again to clear. If even one habit is not ticked on a scheduled day, the whole day is missed and every streak that habit had resets to 0. Repeat-interval habits (weight, waist…) stay locked until the whole interval has passed since the day you last ticked them, then they unlock.</p>`;
 }
 
 function gyHero(x) {
@@ -962,6 +1000,7 @@ async function gyTap(hid, d) {
   const h = S.habits.find((x) => x.id === hid); if (!h) return;
   if (d > today()) return toast("This day unlocks at 00:00 Sri Lanka time", "error");
   const c = S.checkins.find((k) => k.habit_id === hid && k.check_date === d);
+  if (h.sched_type === "interval" && !c) { const x = gyX(); if (!gyCanTick(h, d, x)) return toast("Locked until " + (x.IV[h.id]?.open || "later"), "error"); }
   if (h.kind === "value") return gyValue(h, d, c);
   gySet(h, d, c ? null : "done");
 }
@@ -980,7 +1019,7 @@ async function gyValue(h, d, c) {
 
 /* ---- habit form ---- */
 const PRE = ["Check economic calendar", "Mark key levels", "Mark HTF bias", "Review last trades", "Set max daily loss", "Read my trading rules", "Breathing / meditation"];
-const GSCHED = [["daily", "Every day", "Counts every single day"], ["weekdays", "Selected weekdays", "Pick the days, e.g. Mon · Wed · Fri"], ["weekly_count", "Days per week", "Do it N times a week on any days"], ["custom_week", "Custom weekly schedule", "Pick available days and how many you must complete"], ["interval", "Custom repeat interval", "Every N days from a first date, e.g. weigh-in every 7 days"]];
+const GSCHED = [["daily", "Every day", "Counts every single day"], ["weekdays", "Selected weekdays", "Pick the days, e.g. Mon · Wed · Fri"], ["weekly_count", "Days per week", "Do it N times a week on any days"], ["custom_week", "Custom weekly schedule", "Pick available days and how many you must complete"], ["interval", "Custom repeat interval", "Unlocks N days after the day you last ticked it, e.g. weigh-in every 7 days"]];
 
 async function gyHabitForm(h) {
   if (!window.Swal) return noSwal();
@@ -1157,7 +1196,7 @@ async function exportGymXlsx() {
     return ws;
   };
   const style = (ws) => ws.eachRow((r, n) => { if (n > 1) r.eachCell({ includeEmpty: true }, (c) => { c.border = grid; c.alignment = { vertical: "middle", horizontal: "center" }; }); });
-  const cellOf = (h, d) => { if (!gySched(h, d)) { const e = x.C[h.id]?.[d]; return e && e.value != null ? gyNum(e.value) : "–"; } const c = x.C[h.id]?.[d]; if (c?.status === "done") return c.value != null ? gyNum(c.value) : "✓"; return gyDay(h) && d < x.today ? "✗" : ""; };
+  const cellOf = (h, d) => { if (!gySched(h, d, x)) { const e = x.C[h.id]?.[d]; return e && e.value != null ? gyNum(e.value) : "–"; } const c = x.C[h.id]?.[d]; if (c?.status === "done") return c.value != null ? gyNum(c.value) : "✓"; return gyDay(h) && d < x.today ? "✗" : ""; };
 
   const w1 = sheet(gyMonthName(m), [{ header: "Date", key: "d", width: 13 }, { header: "Day", key: "w", width: 8 }, ...H.map((h, i) => ({ header: h.name, key: "h" + i, width: Math.min(24, Math.max(13, h.name.length * 0.9)) })), { header: "Score", key: "s", width: 10 }, { header: "Day result", key: "res", width: 13 }]);
   const scores = [];
