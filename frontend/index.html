@@ -154,6 +154,17 @@ td{padding:12px 8px;border-top:1px solid var(--line);white-space:nowrap}
 .nl-form .nl-close{color:var(--mute)!important;font-size:34px!important;top:8px;right:8px}
 .nl-up{animation:nlup .32s cubic-bezier(.2,.9,.3,1)}.nl-down{animation:nldown .22s ease forwards}
 @keyframes nlup{from{transform:translateY(100%)}to{transform:none}}@keyframes nldown{to{transform:translateY(100%)}}
+@keyframes nl-medal-in{0%{transform:scale(.2) rotate(-20deg);opacity:0}55%{transform:scale(1.15) rotate(6deg);opacity:1}100%{transform:scale(1) rotate(0)}}
+@keyframes nl-burst{0%{transform:translate(0,0) scale(1);opacity:1}100%{transform:translate(var(--tx),var(--ty)) scale(.2);opacity:0}}
+@keyframes nl-ring{0%{transform:scale(.4);opacity:.9}100%{transform:scale(2.4);opacity:0}}
+@keyframes nl-flash{0%{opacity:0}15%{opacity:1}100%{opacity:0}}
+.nl-celeb{position:fixed;inset:0;z-index:10000;pointer-events:none;overflow:hidden}
+.nl-celeb .flash{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 85%,#7c3aed66 0%,transparent 55%);animation:nl-flash 1.1s ease-out forwards}
+.nl-celeb .ring{position:absolute;left:50%;bottom:12%;width:80px;height:80px;margin:-40px;border-radius:50%;border:3px solid #a78bfa;animation:nl-ring 1s ease-out forwards}
+.nl-celeb .p{position:absolute;left:50%;bottom:12%;width:10px;height:10px;margin:-5px;border-radius:2px;animation:nl-burst 1.15s cubic-bezier(.15,.7,.3,1) forwards}
+.nl-celeb-pop .swal2-html-container{overflow:visible!important}
+.nl-celeb-pop .nl-medal-wrap{animation:nl-medal-in .65s cubic-bezier(.2,1.2,.3,1) both;filter:drop-shadow(0 12px 28px #7c3aed88)}
+.nl-celeb-pop .nl-celeb-title{background:linear-gradient(90deg,#e9e0ff,#a78bfa,#c6f432);-webkit-background-clip:text;background-clip:text;color:transparent;font-weight:700}
 
 /* ---------- shared touch / input fixes ---------- */
 html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
@@ -224,6 +235,17 @@ input[type=date]::-webkit-date-and-time-value,input[type=time]::-webkit-date-and
 @media(max-height:480px) and (orientation:landscape){.tabbar{position:static}.wrap{padding-bottom:22px}.addbtn{bottom:14px}}
 
 /* ---------- gym tracker ---------- */
+.gy-hr{display:flex;align-items:center;gap:10px;padding:12px 0;border-top:1px solid var(--line);flex-wrap:wrap}.gy-hr:first-of-type{border-top:0}
+.gy-hr .drag{cursor:grab;color:var(--mute);padding:6px 4px;user-select:none;touch-action:none;font-size:18px;line-height:1}.gy-hr .drag:active{cursor:grabbing}
+.gy-hr.dragging{opacity:.45}.gy-hr.drag-over{border-top:2px solid var(--p2)}
+.gy-lv{display:grid;gap:12px;margin-bottom:20px}
+.gy-lv .card{display:flex;gap:16px;align-items:center;padding:16px 18px}
+.gy-lv .lv-num{width:48px;height:48px;border-radius:14px;background:var(--card2);display:grid;place-items:center;font-weight:700;font-size:18px;flex:none;color:var(--mute)}
+.gy-lv .lv-num.on{background:linear-gradient(135deg,#8b4dff,#6d28d9);color:#fff}
+.gy-lv .lv-num.cur{box-shadow:0 0 0 2px var(--p2)}
+.gy-lv h3{margin:0 0 2px;font-size:16px}.gy-lv .unlock{display:inline-block;margin-top:6px;font-size:12px;padding:3px 10px;border-radius:999px;background:#ffffff12;color:var(--mute)}
+.gy-lv .unlock.on{background:#c6f43222;color:var(--lime)}
+
 .gy-seg{display:flex;gap:4px;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:4px;margin:0 0 16px;overflow-x:auto;scrollbar-width:none}.gy-seg::-webkit-scrollbar{display:none}
 .gy-seg button{flex:1;border:0;background:none;color:var(--mute);padding:9px 16px;border-radius:999px;white-space:nowrap;font-weight:500}.gy-seg button.on{background:#fff;color:#000}
 .gy-hero{display:grid;grid-template-columns:1.2fr 1fr;gap:18px;align-items:center;margin-bottom:16px}.gy-hero .huge{font-size:52px}
@@ -518,8 +540,9 @@ function dash() {
       <div class="hero-main"><div><div class="lbl">Total R</div><div class="huge ${st.total > 0 ? "up" : st.total < 0 ? "dn" : ""}">${rs(st.total)}</div>
         <div class="hchips"><span class="chip">${st.n} trades</span><span class="chip">Today <b class="${cls(tp)}">${rs(tp)}</b></span><span class="chip">${st.win.toFixed(0)}% win</span></div></div>
         <div class="spark">${curve(L, { mini: true })}</div></div></div>
-    <div class="card pmc"><div class="ct">Gym tracker · ${nice(today()).split(",")[0]}</div><div class="pmr">${donut([{ v: gp / 100, c: gp >= 80 ? "#c6f432" : gp >= 50 ? "#38bdf8" : gt.fail ? "#f0627a" : "#7c3aed" }], gtot ? Math.round(gp) + "%" : "–", gtot ? `${gt.done}/${gtot} done` : S.habits.length ? "rest day" : "no habits", 112)}
+    <div class="card pmc"><div class="ct">Habit tracker · ${nice(today()).split(",")[0]}</div><div class="pmr">${donut([{ v: gp / 100, c: gp >= 80 ? "#c6f432" : gp >= 50 ? "#38bdf8" : gt.fail ? "#f0627a" : "#7c3aed" }], gtot ? Math.round(gp) + "%" : "–", gtot ? `${gt.done}/${gtot} done` : S.habits.length ? "rest day" : "no habits", 112)}
       <div style="min-width:0"><div class="lbl">${!S.habits.length ? "Set up your habits" : !gtot ? "Nothing due today" : gp === 100 ? "Perfect day so far" : "Keep ticking today's habits"}</div><div style="margin:4px 0 12px"><b>${gov.cur}</b> <span class="lbl">day streak</span></div><button class="btn p" data-nav="gym">Open tracker</button></div></div></div></div>
+  ${dashBadges(gx)}
   <div class="kpis">
     <div class="card kpi" style="--a:var(--lime)"><div class="lbl">Win rate</div><div class="big">${st.win.toFixed(1)}%</div><div class="lbl">${wins} wins · ${loss} losses</div></div>
     <div class="card kpi" style="--a:var(--p2)"><div class="lbl">Profit factor</div><div class="big">${st.pf === Infinity ? "∞" : st.pf.toFixed(2)}</div><div class="lbl">${rs(st.avgW)} / ${rs(st.avgL)}</div></div>
@@ -889,11 +912,75 @@ const GBADGE = [
   { k: "s100", name: "Centurion", tier: "gold", glyph: "100", desc: "100 perfect days in a row", goal: 100, streak: 1 },
   { k: "year", name: "Annual Legend", tier: "gold", glyph: "1Y", desc: "Complete 12 months in a row" },
 ];
+/* Progressive mission levels (kept alongside classic badges) */
+const GLEVELS = [
+  { n: 1,  name: "THE STARTER",          sub: "Month 1: Build the foundation.",                    unlock: "85% daily mission completion",   key: "l1" },
+  { n: 2,  name: "THE DISCIPLINED",      sub: "Month 2: Establish consistent habits.",             unlock: "4 successful weeks",              key: "l2" },
+  { n: 3,  name: "THE CONSISTENT",       sub: "Month 3: Follow your system even when motivation disappears.", unlock: "85% monthly completion", key: "l3" },
+  { n: 4,  name: "THE WARRIOR",          sub: "Build strength and improve performance.",           unlock: "30 perfect days total",           key: "l4" },
+  { n: 5,  name: "THE MACHINE",          sub: "Make your habits automatic.",                       unlock: "60-day overall streak",            key: "l5" },
+  { n: 6,  name: "THE HALF-YEAR CHAMPION", sub: "Complete six months without abandoning the system.", unlock: "6 complete months",            key: "l6" },
+  { n: 7,  name: "THE MENTAL BEAST",     sub: "Master your difficult days.",                       unlock: "Comeback after a miss + 14-day run", key: "l7" },
+  { n: 8,  name: "THE CONSISTENCY KING", sub: "Maintain your habits through imperfect weeks.",     unlock: "8 perfect weeks total",           key: "l8" },
+  { n: 9,  name: "THE ATHLETE",          sub: "Improve fitness and physical performance.",         unlock: "25 value logs (weight, cm…)",     key: "l9" },
+  { n: 10, name: "THE FINISHER",         sub: "Stay committed when progress feels slow.",          unlock: "100 perfect days total",          key: "l10" },
+  { n: 11, name: "THE UNBREAKABLE",      sub: "Protect your routines under pressure.",             unlock: "100-day overall streak",           key: "l11" },
+  { n: 12, name: "THE TRANSFORMED",      sub: "Complete the full 365-day mission.",                unlock: "365 active days tracked",         key: "l12" },
+];
+function gyLevels(x) {
+  const B = gyBadges(x), ov = B.ov, t = x.today;
+  const first = x.H.length ? x.H.reduce((a, h) => (h.start_date < a ? h.start_date : a), "9999-99-99") : t;
+  const daysTracked = Math.max(0, gDiff(t, first) + 1);
+  // Rolling / period stats
+  const last30from = gAdd(t, -29), r30 = gyRange(last30from, t, x, false);
+  const mo = gyRange(gM1(t), gMEnd(t.slice(0, 7)), x);
+  const dayPct = r30.ce ? (r30.cd / r30.ce) * 100 : 0;
+  const monthPct = mo.ce ? (mo.cd / mo.ce) * 100 : 0;
+  const perfectDays = (() => { let n = 0; for (let d = first; d <= t; d = gAdd(d, 1)) if (gyPerfectDay(d, x)) n++; return n; })();
+  const ok = {
+    l1: dayPct >= 85,
+    l2: B.week.length >= 4,
+    l3: monthPct >= 85 && mo.ce > 0,
+    l4: perfectDays >= 30,
+    l5: ov.best >= 60 || ov.cur >= 60,
+    l6: B.month.length >= 6,
+    l7: !!ov.comeback && (ov.cur >= 14 || ov.best >= 14),
+    l8: B.week.length >= 8,
+    l9: B.n.values >= 25,
+    l10: perfectDays >= 100,
+    l11: ov.best >= 100 || ov.cur >= 100,
+    l12: daysTracked >= 365 && B.month.length >= 10,
+  };
+  // Sequential: unlock next only if previous is earned
+  let max = 0;
+  for (let i = 0; i < GLEVELS.length; i++) {
+    if (ok[GLEVELS[i].key]) max = i + 1;
+    else break;
+  }
+  return { ok, max, dayPct, monthPct, perfectDays, daysTracked, weekCount: B.week.length, monthCount: B.month.length, values: B.n.values, streak: ov.cur, best: ov.best };
+}
 function gyMedal(tier, glyph, locked, size = 84) {
   const c = { bronze: ["#f0b27a", "#9a5a22"], silver: ["#f3f6fa", "#8493a8"], gold: ["#ffe38a", "#c98a00"] }[tier], id = "gm" + ++gid;
   return `<svg viewBox="0 0 100 124" width="${size}" height="${Math.round(size * 1.24)}" style="${locked ? "filter:grayscale(1) opacity(.3)" : `filter:drop-shadow(0 6px 14px ${c[1]}99)`}"><defs><linearGradient id="${id}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${c[0]}"/><stop offset="1" stop-color="${c[1]}"/></linearGradient></defs><path d="M28 0h17l15 46H43zM72 0H55L40 46h17z" fill="#7c3aed"/><circle cx="50" cy="78" r="38" fill="url(#${id})"/><circle cx="50" cy="78" r="30" fill="none" stroke="#fff" stroke-opacity=".6" stroke-width="3"/><text x="50" y="88" text-anchor="middle" font-size="${glyph.length > 2 ? 19 : glyph.length > 1 ? 25 : 32}" font-weight="700" fill="#2a1a00" font-family="DM Sans,sans-serif">${glyph}</text></svg>`;
 }
 const gyBadgeTotals = () => { const B = gyBadges(gyX()); return Object.fromEntries(GBADGE.map((b) => [b.k, B[b.k].length])); };
+
+function dashBadges(x) {
+  if (!S.habits.length) return "";
+  const B = gyBadges(x), L = gyLevels(x);
+  const earnedLv = GLEVELS.filter((lv) => L.max >= lv.n);
+  const earnedBg = GBADGE.filter((b) => B[b.k].length).map((b) => ({ b, n: B[b.k].length }));
+  if (!earnedLv.length && !earnedBg.length) {
+    return `<div class="card" style="margin-bottom:16px"><div class="ph" style="align-items:center"><div class="ct">Achievements</div><button class="pill sm" data-nav="gym" data-gtab="badges">View all</button></div>
+      <div class="empty sm" style="padding:18px 0">${ico("trophy", "gold")} Tick every habit for a perfect day to earn your first badge</div></div>`;
+  }
+  const lvRow = earnedLv.length ? `<div class="lbl" style="margin:0 0 8px">Mission levels · ${L.max}/12</div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px">${earnedLv.map((lv) => `<span class="chip" style="background:#7c3aed33;border:1px solid #a78bfa55"><b>L${String(lv.n).padStart(2,"0")}</b>&nbsp;${lv.name}</span>`).join("")}</div>` : "";
+  const bgRow = earnedBg.length ? `<div class="lbl" style="margin:0 0 8px">Badges earned · ${earnedBg.length}/${GBADGE.length}</div>
+    <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end">${earnedBg.map(({ b, n }) => `<div style="text-align:center;width:72px" title="${esc(b.desc)}">${gyMedal(b.tier, b.glyph, false, 52)}<div style="font-size:11px;margin-top:4px;line-height:1.2;color:var(--text)">${esc(b.name)}${n > 1 ? ` ×${n}` : ""}</div></div>`).join("")}</div>` : "";
+  return `<div class="card" style="margin-bottom:16px"><div class="ph" style="align-items:center"><div class="ct">Earned achievements</div><button class="pill sm" data-nav="gym" data-gtab="badges">View all</button></div>
+    ${lvRow}${bgRow}</div>`;
+}
 
 // One tick box. Used in the sheet and the Today card.
 function gyBtn(h, d, x, big, opt) {
@@ -1069,23 +1156,29 @@ function gyBadgesView(x) {
   const earned = GBADGE.flatMap((b) => B[b.k].map((e) => ({ ...b, ...e }))).sort((a, c) => (a.to < c.to ? 1 : -1)).slice(0, 40);
   const lab = (e) => e.k === "week" ? `Week of ${e.from}` : e.k === "month" ? gyMonthName(e.from.slice(0, 7)) : e.k === "year" ? `${gyMonthName(e.from.slice(0, 7))} → ${gyMonthName(e.to.slice(0, 7))}` : e.k === "weeks4" || e.k === "weekend" ? `${e.from} → ${e.to}` : e.to;
   const nb = next ? `<div class="card" style="margin-bottom:16px;display:flex;gap:16px;align-items:center">${gyMedal(next.b.tier, next.b.glyph, true, 64)}<div style="min-width:0;flex:1"><div class="lbl">Next badge · ${got}/${GBADGE.length} earned</div><h3 style="margin:2px 0 4px">${next.b.name}</h3><div class="lbl">${next.b.desc}</div><div class="bar slim" style="margin:8px 0"><span style="width:${next.pct}%;background:var(--p2)"></span></div><div class="lbl">${next.txt}</div></div></div>` : `<div class="card" style="margin-bottom:16px;text-align:center">${ico("trophy", "gold")} You earned every badge. Legend!</div>`;
-  return `${nb}<div class="gy-bgs">${cards}</div><div class="card"><div class="ct">Earned badges</div>${earned.map((e) => `<div class="gy-er">${gyMedal(e.tier, e.glyph, false, 34)}<div style="flex:1"><b>${e.name}</b><div class="lbl">${lab(e)}</div></div><span class="lbl">${e.to > t ? t : e.to}</span></div>`).join("") || `<div class="empty sm">${ico("trophy", "gold")} Tick every habit for one day to earn your first badge</div>`}</div>
+  const L = gyLevels(x);
+  const lvCards = GLEVELS.map((lv) => {
+    const earned = L.max >= lv.n, current = L.max + 1 === lv.n;
+    return `<div class="card"><div class="lv-num ${earned ? "on" : ""} ${current ? "cur" : ""}">${String(lv.n).padStart(2, "0")}</div><div style="min-width:0;flex:1"><h3>LEVEL ${String(lv.n).padStart(2, "0")} — ${lv.name}</h3><div class="lbl">${lv.sub}</div><span class="unlock ${earned ? "on" : ""}">${earned ? "✓ Unlocked" : "Unlock: " + lv.unlock}</span></div>${earned ? ico("check-circle", "ok") : ico("lock-closed")}</div>`;
+  }).join("");
+  const lvHead = `<div class="card" style="margin-bottom:16px"><div class="ct">Mission levels · ${L.max}/12 unlocked</div><p class="lbl" style="margin:0">Progressive levels. Each one unlocks only after the previous level is earned. These are achievement levels — not permission to crash-diet.</p></div><div class="gy-lv">${lvCards}</div>`;
+  return `${lvHead}<div class="card" style="margin:8px 0 16px"><div class="ct">Classic badges · ${got}/${GBADGE.length} earned</div></div>${nb}<div class="gy-bgs">${cards}</div><div class="card"><div class="ct">Earned badges</div>${earned.map((e) => `<div class="gy-er">${gyMedal(e.tier, e.glyph, false, 34)}<div style="flex:1"><b>${e.name}</b><div class="lbl">${lab(e)}</div></div><span class="lbl">${e.to > t ? t : e.to}</span></div>`).join("") || `<div class="empty sm">${ico("trophy", "gold")} Tick every habit for one day to earn your first badge</div>`}</div>
   <p class="lbl" style="margin:12px 2px">Rules: a perfect day means every habit due that day is ticked. Weeks and months count only when no day was missed. A repeat-interval habit (weight, waist…) counts as done once you tick it, and as missed only if it is still not ticked 3 days after it unlocked.</p>`;
 }
 
 function gyHabitsTab(x) {
-  const t = x.today, row = (h) => { const r = gyHabitStats(h, x), status = h.end_date && h.end_date < t ? `Ended ${h.end_date}` : h.start_date > t ? `Starts ${h.start_date}` : "Active";
-    return `<div class="gy-hr"><div class="m"><b>${esc(h.name)}</b> ${h.kind === "value" ? `<span class="tag">${esc(h.unit || "value")}</span>` : ""}<div class="lbl">${esc(gyDesc(h))} · ${h.start_date} → ${h.end_date || "ongoing"}</div></div><span class="tag">${status}</span><span class="lbl">${ico("fire", "fire")} ${r.cur} · best ${r.best}</span><span><button class="x" data-ghe="${h.id}">Edit</button><button class="x" data-ghd="${h.id}">Delete</button></span></div>`; };
+  const t = x.today, row = (h, drag) => { const r = gyHabitStats(h, x), status = h.end_date && h.end_date < t ? `Ended ${h.end_date}` : h.start_date > t ? `Starts ${h.start_date}` : "Active";
+    return `<div class="gy-hr" data-hid="${h.id}" ${drag ? 'draggable="true"' : ""}>${drag ? '<span class="drag" title="Drag to reorder">⠿</span>' : ""}<div class="m"><b>${esc(h.name)}</b> ${h.kind === "value" ? `<span class="tag">${esc(h.unit || "value")}</span>` : ""}<div class="lbl">${esc(gyDesc(h))} · ${h.start_date} → ${h.end_date || "ongoing"}</div></div><span class="tag">${status}</span><span class="lbl">${ico("fire", "fire")} ${r.cur} · best ${r.best}</span><span><button class="x" data-ghe="${h.id}">Edit</button><button class="x" data-ghd="${h.id}">Delete</button></span></div>`; };
   const act = x.H.filter((h) => !h.end_date || h.end_date >= t), old = x.H.filter((h) => h.end_date && h.end_date < t);
-  return `<div class="card" style="margin-bottom:16px"><div class="ct">Active habits</div>${act.map(row).join("") || `<div class="empty sm">No active habits</div>`}</div>${old.length ? `<div class="card"><div class="ct">Ended habits (history is kept)</div>${old.map(row).join("")}</div>` : ""}
-  <p class="lbl" style="margin:12px 2px">Tip: to customise a month, use Templates → “Copy from last month”, or give a habit an end date and add new ones for the next month.</p>`;
+  return `<div class="card" style="margin-bottom:16px" id="gy-act"><div class="ct">Active habits <span class="lbl">· drag ⠿ to reorder</span></div>${act.map((h) => row(h, true)).join("") || `<div class="empty sm">No active habits</div>`}</div>${old.length ? `<div class="card"><div class="ct">Ended habits (history is kept)</div>${old.map((h) => row(h, false)).join("")}</div>` : ""}
+  <p class="lbl" style="margin:12px 2px">Tip: drag the ⠿ handle to change habit order. Order is saved for the sheet and Today view too.</p>`;
 }
 
 function gymView() {
   const x = gyX();
-  const head = `<div class="ph"><div><h1>Gym <span>tracker</span></h1><p class="sub">${nice(today())}</p></div><div style="display:flex;gap:8px"><button class="btn g" id="gxl" title="Download this month as an Excel file">${ico("arrow-down-tray")}Export Excel</button><button class="btn g" data-gtp>Templates</button><button class="btn p" data-gah>+ Habit</button></div></div>`;
-  if (!S.habits.length) return head + `<div class="card empty" style="padding:44px 20px"><div style="color:var(--p2)">${ico("bolt", "big")}</div><h2 style="margin:8px 0">Build your habit tracker</h2><p class="lbl" style="max-width:380px;margin:0 auto 18px">Track gym, food, water, weight, your premarket routine and anything else. Start from the 28-day Gym &amp; Health sheet or create your own habits with custom schedules.</p><button class="btn p" data-gtp>Choose a template</button> <button class="btn g" data-gah>Add a habit</button></div>`;
-  const tabs = [["sheet", "Sheet"], ["insights", "Insights"], ["badges", "Badges"], ["habits", "Habits"]].map(([k, l]) => `<button class="${S.gy.tab === k ? "on" : ""}" data-gt="${k}">${l}</button>`).join("");
+  const head = `<div class="ph"><div><h1>Habit <span>tracker</span></h1><p class="sub">${nice(today())}</p></div><div style="display:flex;gap:8px"><button class="btn g" id="gxl" title="Download this month as an Excel file">${ico("arrow-down-tray")}Export Excel</button><button class="btn g" data-gtp>Templates</button><button class="btn p" data-gah>+ Habit</button></div></div>`;
+  if (!S.habits.length) return head + `<div class="card empty" style="padding:44px 20px"><div style="color:var(--p2)">${ico("bolt", "big")}</div><h2 style="margin:8px 0">Build your habit tracker</h2><p class="lbl" style="max-width:380px;margin:0 auto 18px">Track gym, food, water, weight, your premarket routine and anything else. Start from a template or create your own habits with custom schedules.</p><button class="btn p" data-gtp>Choose a template</button> <button class="btn g" data-gah>Add a habit</button></div>`;
+  const tabs = [["sheet", "Sheet"], ["insights", "Insights"], ["badges", "Achievements"], ["habits", "Habits"]].map(([k, l]) => `<button class="${S.gy.tab === k ? "on" : ""}" data-gt="${k}">${l}</button>`).join("");
   const body = { sheet: () => gyToday(x) + gySheet(x), insights: () => gyInsights(x), badges: () => gyBadgesView(x), habits: () => gyHabitsTab(x) }[S.gy.tab]();
   return head + gyHero(x) + `<div class="gy-seg">${tabs}</div>` + body;
 }
@@ -1093,15 +1186,93 @@ function gymView() {
 /* ---- actions ---- */
 const gyReload = async () => { const [h, k] = await Promise.all([api("/api/habits"), api("/api/checkins")]); S.habits = h; S.checkins = k.filter((c) => c.status === "done"); };
 
-async function gyCelebrate(list) {
-  if (!window.Swal || !list.length) return;
+function gyConfetti() {
+  const root = document.createElement("div");
+  root.className = "nl-celeb";
+  root.innerHTML = '<div class="flash"></div><div class="ring"></div>';
+  const colors = ["#7c3aed", "#a78bfa", "#c6f432", "#38bdf8", "#fbbf24", "#f0627a", "#e9e0ff", "#fff"];
+  const n = 48;
+  for (let i = 0; i < n; i++) {
+    const p = document.createElement("div");
+    p.className = "p";
+    const ang = (Math.PI * 1.15) * (i / (n - 1)) - Math.PI * 0.075 - Math.PI / 2; // upward fan from bottom
+    const dist = 140 + Math.random() * 220;
+    const tx = Math.cos(ang) * dist * (0.7 + Math.random() * 0.6);
+    const ty = Math.sin(ang) * dist - 40 - Math.random() * 80;
+    p.style.setProperty("--tx", tx.toFixed(1) + "px");
+    p.style.setProperty("--ty", ty.toFixed(1) + "px");
+    p.style.background = colors[i % colors.length];
+    p.style.width = (6 + Math.random() * 8) + "px";
+    p.style.height = (6 + Math.random() * 10) + "px";
+    p.style.borderRadius = Math.random() > 0.5 ? "50%" : "2px";
+    p.style.animationDelay = (Math.random() * 0.12) + "s";
+    p.style.animationDuration = (0.9 + Math.random() * 0.5) + "s";
+    root.appendChild(p);
+  }
+  // second burst a bit higher
+  for (let i = 0; i < 24; i++) {
+    const p = document.createElement("div");
+    p.className = "p";
+    const ang = Math.random() * Math.PI * 2;
+    const dist = 80 + Math.random() * 160;
+    p.style.setProperty("--tx", (Math.cos(ang) * dist).toFixed(1) + "px");
+    p.style.setProperty("--ty", (-80 - Math.random() * 180).toFixed(1) + "px");
+    p.style.left = (30 + Math.random() * 40) + "%";
+    p.style.bottom = (8 + Math.random() * 10) + "%";
+    p.style.background = colors[i % colors.length];
+    p.style.width = (4 + Math.random() * 6) + "px";
+    p.style.height = (4 + Math.random() * 6) + "px";
+    p.style.borderRadius = "50%";
+    p.style.animationDelay = (0.05 + Math.random() * 0.2) + "s";
+    root.appendChild(p);
+  }
+  document.body.appendChild(root);
+  setTimeout(() => root.remove(), 1600);
+}
+
+async function gyCelebrate(list, level) {
+  gyConfetti();
+  if (!window.Swal) return;
+  if (level) {
+    await Swal.fire({
+      ...SW,
+      customClass: { popup: "nl-pop nl-celeb-pop", confirmButton: "nl-ok" },
+      showCancelButton: false,
+      confirmButtonText: "Let's go!",
+      timer: 10000,
+      timerProgressBar: true,
+      html: `<div style="text-align:center">
+        <div class="nl-medal-wrap" style="font-size:56px;line-height:1;margin-bottom:8px">🏆</div>
+        <div class="lbl">Level ${String(level.n).padStart(2, "0")} unlocked</div>
+        <h2 class="nl-celeb-title" style="margin:6px 0 8px;font-size:26px">${level.name}</h2>
+        <p style="margin:0;color:var(--mute)">${level.sub}</p>
+        <div class="chip" style="margin-top:14px;background:#c6f43222;color:var(--lime)">${level.unlock}</div>
+      </div>`,
+    });
+    return;
+  }
+  if (!list || !list.length) return;
   const b = list[list.length - 1];
-  await Swal.fire({ ...SW, customClass: { popup: "nl-pop", confirmButton: "nl-ok" }, showCancelButton: false, confirmButtonText: "Keep going", timer: 9000, timerProgressBar: true,
-    html: `<div style="text-align:center">${gyMedal(b.tier, b.glyph, false, 120)}<h2 style="margin:6px 0 4px;color:var(--text)">${b.name} unlocked!</h2><p style="margin:0">${b.desc}. Amazing consistency!</p></div>` });
+  const extra = list.length > 1 ? `<div class="lbl" style="margin-top:10px">+${list.length - 1} more badge${list.length > 2 ? "s" : ""} earned</div>` : "";
+  await Swal.fire({
+    ...SW,
+    customClass: { popup: "nl-pop nl-celeb-pop", confirmButton: "nl-ok" },
+    showCancelButton: false,
+    confirmButtonText: "Keep going",
+    timer: 10000,
+    timerProgressBar: true,
+    html: `<div style="text-align:center">
+      <div class="nl-medal-wrap">${gyMedal(b.tier, b.glyph, false, 128)}</div>
+      <div class="lbl" style="margin-top:10px">Badge unlocked</div>
+      <h2 class="nl-celeb-title" style="margin:6px 0 8px;font-size:24px">${b.name}</h2>
+      <p style="margin:0;color:var(--mute)">${b.desc}</p>${extra}
+    </div>`,
+  });
 }
 
 async function gySet(h, d, status, value) {
   const before = gyBadgeTotals();
+  const beforeLv = gyLevels(gyX()).max;
   try { await api("/api/checkins", "PUT", { habit_id: h.id, date: d, status: status || "", value: value ?? null }); } catch (e) { return toast(e.message, "error"); }
   const i = S.checkins.findIndex((c) => c.habit_id === h.id && c.check_date === d);
   if (i >= 0) S.checkins.splice(i, 1);
@@ -1118,7 +1289,13 @@ async function gySet(h, d, status, value) {
     }
   }
   const after = gyBadgeTotals(), won = GBADGE.filter((b) => after[b.k] > before[b.k]);
-  if (won.length) gyCelebrate(won);
+  const afterLv = gyLevels(gyX()).max;
+  if (afterLv > beforeLv) {
+    const lv = GLEVELS[afterLv - 1];
+    await gyCelebrate(won, lv);
+  } else if (won.length) {
+    await gyCelebrate(won);
+  }
 }
 
 async function gyTap(hid, d) {
@@ -1155,8 +1332,12 @@ async function gyHabitForm(h) {
     <div class="full" id="hu"><label>Unit</label><input id="hun" maxlength="12" placeholder="kg, cm, L" value="${esc(h?.unit || "")}"></div>
     <div class="full"><label>Schedule</label><div class="gy-opts" id="hs">${GSCHED.map(([k, n, d]) => `<button type="button" data-s="${k}"><b>${n}</b><small>${d}</small></button>`).join("")}</div></div>
     <div class="full gy-det" id="hd"></div>
-    <div><label>Starts</label><input type="date" id="hst" value="${h?.start_date || dflt}"></div><div><label>Ends (optional)</label><input type="date" id="hen" value="${h?.end_date || ""}"></div>
-    <div class="full chips" style="margin:0"><button type="button" class="pill sm" id="hmo">This month only</button><button type="button" class="pill sm" id="hon">Ongoing</button></div>
+    <div class="full"><button type="button" class="pill sm" id="hadv" style="margin:0">${h ? "Dates" : "Dates (optional · defaults to today, ongoing)"}</button></div>
+    <div class="full" id="hdates" style="display:${h ? "grid" : "none"};grid-template-columns:1fr 1fr;gap:12px">
+      <div><label>Starts</label><input type="date" id="hst" value="${h?.start_date || dflt}"></div>
+      <div><label>Ends (optional)</label><input type="date" id="hen" value="${h?.end_date || ""}"></div>
+      <div class="full chips" style="margin:0;grid-column:1/-1"><button type="button" class="pill sm" id="hmo">This month only</button><button type="button" class="pill sm" id="hon">Ongoing</button></div>
+    </div>
     </div>`;
   const res = await Swal.fire({ ...pop("nl-form"), title: h ? "Edit habit" : "New habit", html, confirmButtonText: h ? "Save changes" : "Add habit",
     didOpen: () => {
@@ -1177,8 +1358,9 @@ async function gyHabitForm(h) {
       const paint = () => { document.querySelectorAll("#hk button").forEach((b) => b.classList.toggle("on", b.dataset.v === st.kind)); document.querySelectorAll("#hs button").forEach((b) => b.classList.toggle("on", b.dataset.s === st.type)); $("#hu").hidden = st.kind !== "value"; };
       document.querySelectorAll("#hk button").forEach((b) => (b.onclick = () => { st.kind = b.dataset.v; paint(); }));
       document.querySelectorAll("#hs button").forEach((b) => (b.onclick = () => { st.type = b.dataset.s; paint(); det(); }));
-      $("#hmo").onclick = () => { $("#hst").value = m + "-01"; $("#hen").value = gMEnd(m); };
+      $("#hmo").onclick = () => { $("#hst").value = m + "-01"; $("#hen").value = gMEnd(m); $("#hdates").style.display = "grid"; };
       $("#hon").onclick = () => { $("#hen").value = ""; };
+      if ($("#hadv")) $("#hadv").onclick = () => { const box = $("#hdates"); box.style.display = box.style.display === "none" ? "grid" : "none"; };
       paint(); det();
     },
     preConfirm: async () => {
@@ -1252,6 +1434,29 @@ function gyBind() {
   if ($("#gprev")) { $("#gprev").onclick = () => mv(-1); $("#gnext").onclick = () => mv(1); }
   const box = $(".gy-sheet");
   if (box) { if (S.gy.sc) { box.scrollTop = S.gy.sc[0]; box.scrollLeft = S.gy.sc[1]; } else if ($("#gy-now")) box.scrollTop = Math.max(0, $("#gy-now").offsetTop - 130); }
+  // Drag-reorder active habits
+  const list = $("#gy-act");
+  if (list) {
+    let dragEl = null;
+    list.querySelectorAll(".gy-hr[draggable]").forEach((row) => {
+      row.ondragstart = (e) => { dragEl = row; row.classList.add("dragging"); e.dataTransfer.effectAllowed = "move"; try { e.dataTransfer.setData("text/plain", row.dataset.hid); } catch {} };
+      row.ondragend = async () => {
+        row.classList.remove("dragging");
+        list.querySelectorAll(".gy-hr").forEach((r) => r.classList.remove("drag-over"));
+        const ids = [...list.querySelectorAll(".gy-hr[data-hid]")].map((r) => +r.dataset.hid);
+        const ended = S.habits.filter((h) => h.end_date && h.end_date < today()).map((h) => h.id);
+        try {
+          await api("/api/habits/reorder", "PUT", { ids: [...ids, ...ended] });
+          await gyReload();
+          toast("Order saved");
+        } catch (err) { toast(err.message, "error"); render(); }
+        dragEl = null;
+      };
+      row.ondragover = (e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; if (dragEl && row !== dragEl) { row.classList.add("drag-over"); const rect = row.getBoundingClientRect(); const before = e.clientY < rect.top + rect.height / 2; list.insertBefore(dragEl, before ? row : row.nextSibling); } };
+      row.ondragleave = () => row.classList.remove("drag-over");
+      row.ondrop = (e) => { e.preventDefault(); row.classList.remove("drag-over"); };
+    });
+  }
 }
 
 function authView() {
@@ -1270,7 +1475,7 @@ function authView() {
   $("#go").onclick = go; $("#pw").onkeydown = (e) => { if (e.key === "Enter") go(); };
 }
 
-const VIEWS = ["dashboard", "calendar", "gym", "journal"], vlabel = (v) => (v === "gym" ? "Gym tracker" : v[0].toUpperCase() + v.slice(1));
+const VIEWS = ["dashboard", "calendar", "gym", "journal"], vlabel = (v) => (v === "gym" ? "Habit tracker" : v[0].toUpperCase() + v.slice(1));
 const go = (v) => { S.view = v; render(); window.scrollTo({ top: 0, left: 0, behavior: "instant" }); };
 
 async function exportJournalXlsx(list, st) {
@@ -1338,7 +1543,7 @@ async function exportGymXlsx() {
   style(w2); w2.eachRow((r, n) => { if (n > 1) { const p = r.getCell("p").value; if (typeof p === "number") paint(r.getCell("p"), tone(p * 100)); } });
 
   const buf = await wb.xlsx.writeBuffer(), url = URL.createObjectURL(new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" })), a = document.createElement("a");
-  a.href = url; a.download = `NasLog_Gym_Tracker_${m}.xlsx`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 2000);
+  a.href = url; a.download = `NasLog_Habit_Tracker_${m}.xlsx`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 2000);
   toast("Excel file downloaded");
 }
 
@@ -1348,11 +1553,11 @@ function render() {
   app.style.minHeight = app.offsetHeight + "px"; // the page never shrinks while it is redrawn, so the scroll position cannot jump
   const list = filtered(), st = stats(list);
   const nav = VIEWS.map((v) => `<button class="pill ${S.view === v ? "on" : ""}" data-nav="${v}">${vlabel(v)}</button>`).join("");
-  const tabs = VIEWS.map((v) => `<button class="${S.view === v ? "on" : ""}" data-nav="${v}">${ICON[v]}<span>${v === "gym" ? "Gym" : vlabel(v)}</span></button>`).join("");
+  const tabs = VIEWS.map((v) => `<button class="${S.view === v ? "on" : ""}" data-nav="${v}">${ICON[v]}<span>${v === "gym" ? "Habits" : vlabel(v)}</span></button>`).join("");
   const head = `<div class="top"><div class="logo"><i></i>NasLog</div><div class="nav">${nav}</div><button class="btn p addbtn ${["dashboard", "gym"].includes(S.view) ? "nomob" : ""}" id="add">+ New trade</button><button class="pill outb" id="out" title="Log out">${ICON.out}<span>Log out</span></button></div>`;
   const body = S.view === "dashboard" ? dash() : S.view === "calendar" ? calView() : S.view === "gym" ? gymView() : journalView(list, st);
   $("#app").innerHTML = head + body + `<nav class="tabbar">${tabs}</nav>`;
-  document.querySelectorAll("[data-nav]").forEach((b) => (b.onclick = () => go(b.dataset.nav)));
+  document.querySelectorAll("[data-nav]").forEach((b) => (b.onclick = () => { if (b.dataset.gtab) S.gy.tab = b.dataset.gtab; go(b.dataset.nav); }));
   document.querySelectorAll("[data-rg]").forEach((b) => (b.onclick = () => { S.range = b.dataset.rg; render(); }));
   $("#out").onclick = logout; $("#add").onclick = () => openForm();
   document.querySelectorAll("[data-jt]").forEach((b) => (b.onclick = () => { S.jt = b.dataset.jt; render(); }));

@@ -207,6 +207,15 @@ app.put("/api/habits/:id", auth, async (req, res) => {
   await db.execute({ sql: `UPDATE habits SET ${HCOLS.split(",").map((x) => x + "=?")} WHERE id=? AND user_id=?`, args: [...c.row, req.params.id, req.uid] });
   res.json({ ok: true });
 });
+app.put("/api/habits/reorder", auth, async (req, res) => {
+  const ids = Array.isArray(req.body.ids) ? req.body.ids.map(Number).filter((n) => Number.isInteger(n) && n > 0) : [];
+  if (!ids.length) return res.status(400).json({ error: "No habit order provided" });
+  const own = await db.execute({ sql: "SELECT id FROM habits WHERE user_id=?", args: [req.uid] });
+  const set = new Set(own.rows.map((r) => Number(r.id)));
+  if (ids.some((id) => !set.has(id))) return res.status(400).json({ error: "Invalid habit id" });
+  await db.batch(ids.map((id, i) => ({ sql: "UPDATE habits SET position=? WHERE id=? AND user_id=?", args: [i + 1, id, req.uid] })));
+  res.json({ ok: true });
+});
 app.delete("/api/habits/:id", auth, async (req, res) => {
   await db.batch([
     { sql: "DELETE FROM habit_checkins WHERE habit_id=? AND user_id=?", args: [req.params.id, req.uid] },
