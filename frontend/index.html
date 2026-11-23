@@ -239,7 +239,8 @@ input[type=date]::-webkit-date-and-time-value,input[type=time]::-webkit-date-and
 .gy-t tr.gy-today td{background:#7c3aed22}.gy-t tr.gy-today td:first-child{background:#2a2050}
 .gy-t tr.gy-sun td{border-bottom:2px solid #ffffff14}
 .gy-t td small{color:var(--mute);margin-left:5px;font-size:11px}
-.gy-t tfoot td{background:#1a1a20;font-size:13px;color:var(--text);vertical-align:top;padding:10px 5px}.gy-t tfoot td:first-child{color:var(--mute);font-size:12px}
+.gy-t tfoot td{background:#1a1a20;font-size:13px;color:var(--text);vertical-align:top;padding:10px 6px;position:sticky;bottom:0;z-index:3;border-top:2px solid #ffffff14}.gy-t tfoot td:first-child{color:var(--mute);font-size:12px;z-index:4}
+.gy-ft{display:grid;gap:3px;line-height:1.25;white-space:normal;min-width:78px}.gy-ft b{font-size:13px;font-weight:600}.gy-ft span{color:var(--mute);font-size:11px}
 .gy-off{color:#3d3d47}
 .gy-b.opt{color:#6a6a76;border-style:dashed;background:none}
 .gy-t tr.gy-miss td:first-child{background:#3a1c27}
@@ -861,6 +862,13 @@ function gyCell(h, d, x) {
   }
   return due ? `<td>${gyBtn(h, d, x)}</td>` : h.kind === "value" ? `<td>${gyBtn(h, d, x, false, true)}</td>` : `<td class="gy-off">–</td>`;
 }
+// Done / scheduled count for one habit inside the shown month. Daily-type habits count days, weekly habits count weeks.
+function gyHabitMonth(h, from, to, x) {
+  const r = { done: 0, total: 0, unit: gyDay(h) ? "day" : "week" };
+  if (gyDay(h)) { for (let d = from; d <= to; d = gAdd(d, 1)) { const o = gyOut(h, d, x); if (!o) continue; r.total++; if (o === "done") r.done++; } }
+  else for (let m = gMon(from); m <= to; m = gAdd(m, 7)) { const th = gAdd(m, 3); if (th < from || th > to) continue; const w = gyWeek(h, m, x); if (!w) continue; r.total++; if (w.status === "ok") r.done++; }
+  return r;
+}
 function gySheet(x) {
   const m = gyM(), first = m + "-01", last = gMEnd(m), t = x.today;
   const H = x.H.filter((h) => h.start_date <= last && (!h.end_date || h.end_date >= first));
@@ -877,7 +885,7 @@ function gySheet(x) {
   const foot = (lab, f) => `<tr><td>${lab}</td>${H.map((h) => `<td>${f(h)}</td>`).join("")}</tr>`;
   return nav + `<p class="lbl" style="margin:0 2px 10px">This month: <b class="up">${tally.perfect} perfect day${tally.perfect === 1 ? "" : "s"}</b> · <b class="dn">${tally.miss} missed day${tally.miss === 1 ? "" : "s"}</b>. A day counts as missed if even one habit is not ticked.</p>
     <div class="gy-sheet"><table class="gy-t"><thead><tr><th>Day</th>${H.map((h) => `<th><div class="gy-hn">${esc(h.name)}</div><div class="gy-hs">${esc(gyShort(h))}</div></th>`).join("")}</tr></thead><tbody>${rows}</tbody>
-    <tfoot>${foot("Streak", (h) => `${ico("fire", "fire")} ${st[h.id].cur}<br><span class="gy-hs">best ${st[h.id].best}</span>`)}${foot("Done", (h) => `${st[h.id].done}<span class="gy-hs"> ${st[h.id].unit}s</span>`)}</tfoot></table></div>
+    <tfoot>${foot("Summary", (h) => { const a = st[h.id], m = gyHabitMonth(h, first, last, x), u = (n, k) => `${n} ${k}${n === 1 ? "" : "s"}`; return `<div class="gy-ft"><b>${ico("fire", "fire")} ${u(a.cur, a.unit)}</b><span>Best ${u(a.best, a.unit)}</span><span>${m.done}/${m.total} ${m.unit}s done this month</span></div>`; })}</tfoot></table></div>
     <p class="lbl" style="margin:10px 2px">Tap a box to tick it, tap again to clear. If even one habit is not ticked on a scheduled day, the whole day is missed and every streak that habit had resets to 0. Repeat-interval habits (weight, waist…) stay locked until the whole interval has passed since the day you last ticked them, then they unlock.</p>`;
 }
 
