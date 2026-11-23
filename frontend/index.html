@@ -235,9 +235,14 @@ input[type=date]::-webkit-date-and-time-value,input[type=time]::-webkit-date-and
 @media(max-height:480px) and (orientation:landscape){.tabbar{position:static}.wrap{padding-bottom:22px}.addbtn{bottom:14px}}
 
 /* ---------- gym tracker ---------- */
-.gy-hr{display:flex;align-items:center;gap:10px;padding:12px 0;border-top:1px solid var(--line);flex-wrap:wrap}.gy-hr:first-of-type{border-top:0}
-.gy-hr .drag{cursor:grab;color:var(--mute);padding:6px 4px;user-select:none;touch-action:none;font-size:18px;line-height:1}.gy-hr .drag:active{cursor:grabbing}
-.gy-hr.dragging{opacity:.45}.gy-hr.drag-over{border-top:2px solid var(--p2)}
+.gy-hr{display:flex;align-items:center;gap:10px;padding:12px 0;border-top:1px solid var(--line);flex-wrap:wrap;background:transparent;transition:background .12s,box-shadow .12s,transform .12s}.gy-hr:first-of-type{border-top:0}
+.gy-hr .drag{cursor:grab;color:var(--mute);padding:10px 8px;margin:-6px 0 -6px -4px;user-select:none;touch-action:none;-webkit-user-select:none;font-size:20px;line-height:1;border-radius:10px}
+.gy-hr .drag:hover{color:var(--text);background:#ffffff10}.gy-hr .drag:active{cursor:grabbing}
+.gy-hr.dragging{opacity:.92;background:var(--card2);border-radius:14px;box-shadow:0 12px 32px #0008;z-index:5;position:relative;border-top-color:transparent}
+.gy-hr.drag-over{box-shadow:inset 0 3px 0 0 var(--p2)}
+.gy-hr .ord{display:flex;flex-direction:column;gap:2px;margin-left:4px}
+.gy-hr .ord button{background:var(--card2);border:1px solid var(--line);color:var(--mute);border-radius:8px;width:28px;height:22px;padding:0;font-size:12px;line-height:1}
+.gy-hr .ord button:hover{color:var(--text);border-color:var(--p2)}
 .gy-lv{display:grid;gap:12px;margin-bottom:20px}
 .gy-lv .card{display:flex;gap:16px;align-items:center;padding:16px 18px}
 .gy-lv .lv-num{width:48px;height:48px;border-radius:14px;background:var(--card2);display:grid;place-items:center;font-weight:700;font-size:18px;flex:none;color:var(--mute)}
@@ -1168,10 +1173,10 @@ function gyBadgesView(x) {
 
 function gyHabitsTab(x) {
   const t = x.today, row = (h, drag) => { const r = gyHabitStats(h, x), status = h.end_date && h.end_date < t ? `Ended ${h.end_date}` : h.start_date > t ? `Starts ${h.start_date}` : "Active";
-    return `<div class="gy-hr" data-hid="${h.id}" ${drag ? 'draggable="true"' : ""}>${drag ? '<span class="drag" title="Drag to reorder">⠿</span>' : ""}<div class="m"><b>${esc(h.name)}</b> ${h.kind === "value" ? `<span class="tag">${esc(h.unit || "value")}</span>` : ""}<div class="lbl">${esc(gyDesc(h))} · ${h.start_date} → ${h.end_date || "ongoing"}</div></div><span class="tag">${status}</span><span class="lbl">${ico("fire", "fire")} ${r.cur} · best ${r.best}</span><span><button class="x" data-ghe="${h.id}">Edit</button><button class="x" data-ghd="${h.id}">Delete</button></span></div>`; };
+    return `<div class="gy-hr" data-hid="${h.id}">${drag ? '<span class="drag" title="Hold and drag to reorder" aria-label="Reorder">⠿</span>' : ""}<div class="m"><b>${esc(h.name)}</b> ${h.kind === "value" ? `<span class="tag">${esc(h.unit || "value")}</span>` : ""}<div class="lbl">${esc(gyDesc(h))} · ${h.start_date} → ${h.end_date || "ongoing"}</div></div><span class="tag">${status}</span><span class="lbl">${ico("fire", "fire")} ${r.cur} · best ${r.best}</span>${drag ? '<span class="ord"><button type="button" data-gup="' + h.id + '" title="Move up">▲</button><button type="button" data-gdn="' + h.id + '" title="Move down">▼</button></span>' : ""}<span><button class="x" data-ghe="${h.id}">Edit</button><button class="x" data-ghd="${h.id}">Delete</button></span></div>`; };
   const act = x.H.filter((h) => !h.end_date || h.end_date >= t), old = x.H.filter((h) => h.end_date && h.end_date < t);
-  return `<div class="card" style="margin-bottom:16px" id="gy-act"><div class="ct">Active habits <span class="lbl">· drag ⠿ to reorder</span></div>${act.map((h) => row(h, true)).join("") || `<div class="empty sm">No active habits</div>`}</div>${old.length ? `<div class="card"><div class="ct">Ended habits (history is kept)</div>${old.map((h) => row(h, false)).join("")}</div>` : ""}
-  <p class="lbl" style="margin:12px 2px">Tip: drag the ⠿ handle to change habit order. Order is saved for the sheet and Today view too.</p>`;
+  return `<div class="card" style="margin-bottom:16px" id="gy-act"><div class="ct">Active habits <span class="lbl">· ⠿ drag or ▲▼ to reorder</span></div>${act.map((h) => row(h, true)).join("") || `<div class="empty sm">No active habits</div>`}</div>${old.length ? `<div class="card"><div class="ct">Ended habits (history is kept)</div>${old.map((h) => row(h, false)).join("")}</div>` : ""}
+  <p class="lbl" style="margin:12px 2px">Tip: hold ⠿ and drag, or use ▲ ▼, to change habit order. Order is saved for the sheet and Today view too.</p>`;
 }
 
 function gymView() {
@@ -1434,27 +1439,87 @@ function gyBind() {
   if ($("#gprev")) { $("#gprev").onclick = () => mv(-1); $("#gnext").onclick = () => mv(1); }
   const box = $(".gy-sheet");
   if (box) { if (S.gy.sc) { box.scrollTop = S.gy.sc[0]; box.scrollLeft = S.gy.sc[1]; } else if ($("#gy-now")) box.scrollTop = Math.max(0, $("#gy-now").offsetTop - 130); }
-  // Drag-reorder active habits
+  // Reorder active habits: pointer-drag on ⠿ handle + ▲/▼ buttons (works on mobile too)
   const list = $("#gy-act");
   if (list) {
-    let dragEl = null;
-    list.querySelectorAll(".gy-hr[draggable]").forEach((row) => {
-      row.ondragstart = (e) => { dragEl = row; row.classList.add("dragging"); e.dataTransfer.effectAllowed = "move"; try { e.dataTransfer.setData("text/plain", row.dataset.hid); } catch {} };
-      row.ondragend = async () => {
-        row.classList.remove("dragging");
-        list.querySelectorAll(".gy-hr").forEach((r) => r.classList.remove("drag-over"));
-        const ids = [...list.querySelectorAll(".gy-hr[data-hid]")].map((r) => +r.dataset.hid);
-        const ended = S.habits.filter((h) => h.end_date && h.end_date < today()).map((h) => h.id);
-        try {
-          await api("/api/habits/reorder", "PUT", { ids: [...ids, ...ended] });
-          await gyReload();
-          toast("Order saved");
-        } catch (err) { toast(err.message, "error"); render(); }
-        dragEl = null;
+    const rows = () => [...list.querySelectorAll(".gy-hr[data-hid]")];
+    const saveOrder = async () => {
+      const ids = rows().map((r) => +r.dataset.hid);
+      const ended = S.habits.filter((h) => h.end_date && h.end_date < today()).map((h) => +h.id);
+      try {
+        await api("/api/habits/reorder", "PUT", { ids: [...ids, ...ended] });
+        // keep local order in sync without full reload flicker
+        const map = new Map(S.habits.map((h) => [+h.id, h]));
+        S.habits = [...ids, ...ended].map((id) => map.get(id)).filter(Boolean).concat(S.habits.filter((h) => !ids.includes(+h.id) && !ended.includes(+h.id)));
+        toast("Order saved");
+      } catch (err) { toast(err.message, "error"); await gyReload(); render(); }
+    };
+    const moveBy = async (id, dir) => {
+      const rs = rows();
+      const i = rs.findIndex((r) => +r.dataset.hid === +id);
+      if (i < 0) return;
+      const j = i + dir;
+      if (j < 0 || j >= rs.length) return;
+      if (dir < 0) list.insertBefore(rs[i], rs[j]);
+      else list.insertBefore(rs[j], rs[i]);
+      await saveOrder();
+    };
+    list.querySelectorAll("[data-gup]").forEach((b) => (b.onclick = (e) => { e.stopPropagation(); moveBy(b.dataset.gup, -1); }));
+    list.querySelectorAll("[data-gdn]").forEach((b) => (b.onclick = (e) => { e.stopPropagation(); moveBy(b.dataset.gdn, 1); }));
+
+    let dragEl = null, startY = 0, moved = false, startOrder = "";
+    const clearOver = () => rows().forEach((r) => r.classList.remove("drag-over"));
+    const onMove = (e) => {
+      if (!dragEl) return;
+      const y = e.clientY ?? (e.touches && e.touches[0]?.clientY);
+      if (y == null) return;
+      if (Math.abs(y - startY) > 4) moved = true;
+      e.preventDefault();
+      clearOver();
+      const others = rows().filter((r) => r !== dragEl);
+      let target = null, before = true;
+      for (const r of others) {
+        const rect = r.getBoundingClientRect();
+        const mid = rect.top + rect.height / 2;
+        if (y < mid) { target = r; before = true; break; }
+        target = r; before = false;
+      }
+      if (target) {
+        target.classList.add("drag-over");
+        if (before) list.insertBefore(dragEl, target);
+        else list.insertBefore(dragEl, target.nextSibling);
+      }
+    };
+    const onUp = async (e) => {
+      if (!dragEl) return;
+      window.removeEventListener("pointermove", onMove, true);
+      window.removeEventListener("pointerup", onUp, true);
+      window.removeEventListener("pointercancel", onUp, true);
+      dragEl.classList.remove("dragging");
+      clearOver();
+      const endOrder = rows().map((r) => r.dataset.hid).join(",");
+      const el = dragEl;
+      dragEl = null;
+      if (moved && endOrder !== startOrder) await saveOrder();
+      else if (!moved) { /* tap on handle — ignore */ }
+    };
+    list.querySelectorAll(".gy-hr .drag").forEach((handle) => {
+      handle.onpointerdown = (e) => {
+        if (e.button != null && e.button !== 0) return;
+        const row = handle.closest(".gy-hr");
+        if (!row) return;
+        dragEl = row;
+        startY = e.clientY;
+        moved = false;
+        startOrder = rows().map((r) => r.dataset.hid).join(",");
+        row.classList.add("dragging");
+        try { handle.setPointerCapture(e.pointerId); } catch {}
+        window.addEventListener("pointermove", onMove, true);
+        window.addEventListener("pointerup", onUp, true);
+        window.addEventListener("pointercancel", onUp, true);
+        e.preventDefault();
+        e.stopPropagation();
       };
-      row.ondragover = (e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; if (dragEl && row !== dragEl) { row.classList.add("drag-over"); const rect = row.getBoundingClientRect(); const before = e.clientY < rect.top + rect.height / 2; list.insertBefore(dragEl, before ? row : row.nextSibling); } };
-      row.ondragleave = () => row.classList.remove("drag-over");
-      row.ondrop = (e) => { e.preventDefault(); row.classList.remove("drag-over"); };
     });
   }
 }
