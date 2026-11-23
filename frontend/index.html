@@ -230,10 +230,10 @@ input[type=date]::-webkit-date-and-time-value,input[type=time]::-webkit-date-and
 .gy-rings{display:flex;gap:18px;justify-content:flex-end}
 .gy-mnav{display:flex;align-items:center;gap:10px;margin-bottom:12px}.gy-mnav h2{margin:0;flex:1;text-align:center;font-size:20px;font-weight:600}
 .gy-sheet{overflow:auto;max-height:68vh;border:1px solid var(--line);border-radius:18px;background:#121216;-webkit-overflow-scrolling:touch}
-.gy-t{border-collapse:separate;border-spacing:0;min-width:100%}
+.gy-t{--cw:92px;--fw:104px;border-collapse:separate;border-spacing:0;table-layout:fixed;min-width:100%}
 .gy-t th,.gy-t td{padding:6px 5px;text-align:center;border-top:1px solid var(--line);white-space:nowrap}
-.gy-t thead th{position:sticky;top:0;z-index:3;background:#1a1a20;border-top:0;vertical-align:bottom;min-width:86px;padding:10px 6px}
-.gy-t th:first-child,.gy-t td:first-child{position:sticky;left:0;z-index:2;background:#17171c;text-align:left;min-width:78px;padding-left:12px}
+.gy-t thead th{position:sticky;top:0;z-index:3;background:#1a1a20;border-top:0;vertical-align:bottom;width:var(--cw);padding:10px 6px}
+.gy-t th:first-child,.gy-t td:first-child{position:sticky;left:0;z-index:2;background:#17171c;text-align:left;width:var(--fw);padding-left:12px}
 .gy-t thead th:first-child{z-index:4}
 .gy-hn{font-weight:600;font-size:13px;white-space:normal;line-height:1.2;color:var(--text)}.gy-hs{color:var(--mute);font-size:11px;font-weight:400;margin-top:2px}
 .gy-t tr.gy-today td{background:#7c3aed22}.gy-t tr.gy-today td:first-child{background:#2a2050}
@@ -297,6 +297,15 @@ img,svg,canvas{max-width:100%}
   .swal2-popup:not(.nl-form){width:calc(100vw - 24px)!important;max-width:none!important}
 }
 @media(max-width:380px){.gy-t thead th{min-width:68px}.gy-b{width:36px;height:36px}.top{margin-left:-10px;margin-right:-10px;padding-left:10px;padding-right:10px}.gy-sheet{margin:0 -10px}.gy-seg{margin-left:-10px;margin-right:-10px}}
+
+/* ---------- stable gym table ---------- */
+.gy-t thead th,.gy-t th:first-child,.gy-t td:first-child{min-width:0}
+.gy-t tbody td{height:52px;overflow:hidden}
+.gy-t thead th,.gy-t tfoot td{overflow:hidden}
+.gy-ic{display:inline-flex;gap:2px;align-items:center;min-width:36px;margin-left:4px;vertical-align:middle}
+.gy-sheet{overflow-anchor:none}
+@media(max-width:700px){.gy-t{--cw:78px;--fw:96px}.gy-t tbody td{height:50px}.gy-ic{min-width:34px}.gy-t td small{margin-left:3px}}
+@media(max-width:380px){.gy-t{--cw:72px;--fw:92px}}
 </style>
 </head>
 <body>
@@ -901,11 +910,11 @@ function gySheet(x) {
   for (let d = first; d <= last; d = gAdd(d, 1)) {
     const dow = gDow(d), med = dow === 0 && d <= t && gyRange(gAdd(d, -6), d, x).complete;
     const outs = d <= t ? dayH.map((h) => gyOut(h, d, x)).filter(Boolean) : [], bad = outs.includes("fail"), good = outs.length && !bad && !outs.includes("pending");
-    rows += `<tr class="${d === t ? "gy-today" : ""} ${dow === 0 ? "gy-sun" : ""} ${bad ? "gy-miss" : ""}" ${d === t ? 'id="gy-now"' : ""}><td><b>${+d.slice(8)}</b><small>${GWD[dow]}</small>${bad ? " " + ico("x-circle", "no") : good ? " " + ico("check-circle", "ok") : ""}${med ? " " + ico("trophy", "gold") : ""}</td>${H.map((h) => gyCell(h, d, x)).join("")}</tr>`;
+    rows += `<tr class="${d === t ? "gy-today" : ""} ${dow === 0 ? "gy-sun" : ""} ${bad ? "gy-miss" : ""}" ${d === t ? 'id="gy-now"' : ""}><td><b>${+d.slice(8)}</b><small>${GWD[dow]}</small><span class="gy-ic">${bad ? ico("x-circle", "no") : good ? ico("check-circle", "ok") : ""}${med ? ico("trophy", "gold") : ""}</span></td>${H.map((h) => gyCell(h, d, x)).join("")}</tr>`;
   }
   const foot = (lab, f) => `<tr><td>${lab}</td>${H.map((h) => `<td>${f(h)}</td>`).join("")}</tr>`;
   return nav + `<p class="lbl" style="margin:0 2px 10px">This month: <b class="up">${tally.perfect} perfect day${tally.perfect === 1 ? "" : "s"}</b> · <b class="dn">${tally.miss} missed day${tally.miss === 1 ? "" : "s"}</b>. A day counts as missed if even one habit is not ticked.</p>
-    <div class="gy-sheet"><table class="gy-t"><thead><tr><th>Day</th>${H.map((h) => `<th><div class="gy-hn">${esc(h.name)}</div><div class="gy-hs">${esc(gyShort(h))}</div></th>`).join("")}</tr></thead><tbody>${rows}</tbody>
+    <div class="gy-sheet"><table class="gy-t" style="width:max(100%,calc(var(--fw) + ${H.length} * var(--cw)))"><thead><tr><th>Day</th>${H.map((h) => `<th><div class="gy-hn">${esc(h.name)}</div><div class="gy-hs">${esc(gyShort(h))}</div></th>`).join("")}</tr></thead><tbody>${rows}</tbody>
     <tfoot>${foot("Summary", (h) => { const a = st[h.id], m = gyHabitMonth(h, first, last, x), u = (n, k) => `${n} ${k}${n === 1 ? "" : "s"}`; return `<div class="gy-ft"><b>${ico("fire", "fire")} ${u(a.cur, a.unit)}</b><span>Best ${u(a.best, a.unit)}</span><span>${m.done}/${m.total} ${m.unit}s done this month</span></div>`; })}</tfoot></table></div>
     <p class="lbl" style="margin:10px 2px">Tap a box to tick it, tap again to clear. If even one habit is not ticked on a scheduled day, the whole day is missed and every streak that habit had resets to 0. Repeat-interval habits (weight, waist…) stay locked until the whole interval has passed since the day you last ticked them, then they unlock.</p>`;
 }
@@ -1020,8 +1029,17 @@ async function gySet(h, d, status, value) {
   const i = S.checkins.findIndex((c) => c.habit_id === h.id && c.check_date === d);
   if (i >= 0) S.checkins.splice(i, 1);
   if (status) S.checkins.push({ habit_id: h.id, check_date: d, status, value: status === "done" && value != null ? +value : null });
+  const a = S.gy.anchor; S.gy.anchor = null;
+  const key = a ? a.dataset.gc : null, inSheet = !!(a && a.closest(".gy-sheet")), top0 = a && a.isConnected ? a.getBoundingClientRect().top : null, boxTop0 = inSheet ? a.closest(".gy-sheet").getBoundingClientRect().top : 0;
   const box = $(".gy-sheet"); if (box) S.gy.sc = [box.scrollTop, box.scrollLeft];
   render();
+  if (key != null && top0 != null) { // anchor: the box you tapped stays at the same spot on screen, whatever changed above it
+    const n = document.querySelector((inSheet ? ".gy-sheet " : ".gy-ti ") + `[data-gc="${key}"]`);
+    if (n) {
+      if (inSheet) { const bx = n.closest(".gy-sheet"); bx.scrollTop += n.getBoundingClientRect().top - bx.getBoundingClientRect().top - (top0 - boxTop0); S.gy.sc = [bx.scrollTop, bx.scrollLeft]; }
+      const dy = n.getBoundingClientRect().top - top0; if (Math.abs(dy) > 0.5) window.scrollBy({ top: dy, left: 0, behavior: "instant" });
+    }
+  }
   const after = gyBadgeTotals(), won = GBADGE.filter((b) => after[b.k] > before[b.k]);
   if (won.length) gyCelebrate(won);
 }
@@ -1150,7 +1168,7 @@ function gyBind() {
   document.querySelectorAll("[data-gtp]").forEach((b) => (b.onclick = () => gyTemplates()));
   document.querySelectorAll("[data-ghe]").forEach((b) => (b.onclick = () => gyHabitForm(S.habits.find((h) => h.id == b.dataset.ghe))));
   document.querySelectorAll("[data-ghd]").forEach((b) => (b.onclick = async () => { const h = S.habits.find((x) => x.id == b.dataset.ghd); if (await ask(`Delete “${h.name}”?`, "All of its check-ins are deleted too. To keep the history, set an end date instead.")) { await api("/api/habits/" + h.id, "DELETE"); await gyReload(); render(); toast("Habit deleted"); } }));
-  document.querySelectorAll("[data-gc]").forEach((b) => (b.onclick = () => { const [id, d] = b.dataset.gc.split("|"); gyTap(+id, d); }));
+  document.querySelectorAll("[data-gc]").forEach((b) => (b.onclick = () => { const [id, d] = b.dataset.gc.split("|"); S.gy.anchor = b; gyTap(+id, d); }));
   const mv = (n) => { const d = new Date(Date.UTC(+gyM().slice(0, 4), +gyM().slice(5, 7) - 1 + n, 1)); S.gy.m = gS(d).slice(0, 7); S.gy.sc = null; render(); };
   if ($("#gxl")) $("#gxl").onclick = exportGymXlsx;
   if ($("#gprev")) { $("#gprev").onclick = () => mv(-1); $("#gnext").onclick = () => mv(1); }
