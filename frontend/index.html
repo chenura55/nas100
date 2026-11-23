@@ -493,7 +493,7 @@ function dash() {
       </div></div></div>
   ${periodCard(L, st, S.range === "all" ? "All time" : "Last " + S.range + " days", "16px 0 0")}
   ${gyTradeLink(gx, L, "16px 0 0")}
-  <div class="bkg">${bk("By NY phase", group(L, (t) => t.session))}${bk("By weekday", group(L, (t) => DAYS[new Date(t.trade_date + "T00:00").getDay()]))}${bk("By entry pattern", group(L, (t) => t.entry_pattern))}${bk("By mistake", group(L.filter((t) => t.mistake), (t) => t.mistake))}${bk("By SL reason (PD array)", group(L.filter((t) => t.sl_pd_array), (t) => t.sl_pd_array))}${bk("By reversal → entry lag", group(L.filter((t) => t.reversal_gap_min != null), lagBucket))}${bk("By side", group(L, (t) => t.direction))}${bk("By liquidity point", group(L.filter((t) => t.liq_point), (t) => t.liq_point))}</div>
+  <div class="bkg">${bk("By NY phase", group(L, (t) => t.session))}${bk("By weekday", group(L, (t) => DAYS[new Date(t.trade_date + "T00:00").getDay()]))}${bk("By entry pattern", group(L, (t) => t.entry_pattern))}${bk("By mistake", group(L.filter((t) => t.mistake), (t) => t.mistake))}${bk("By SL reason (PD array)", group(L.filter((t) => t.sl_pd_array), (t) => t.sl_pd_array))}${bk("By entry timing", group(L.filter((t) => t.reversal_gap_min != null), lagBucket))}${bk("By side", group(L, (t) => t.direction))}${bk("By liquidity point", group(L.filter((t) => t.liq_point), (t) => t.liq_point))}</div>
   ${advCard(L)}`;
 }
 
