@@ -222,7 +222,8 @@ app.get("/api/checkins", auth, async (req, res) => {
 app.put("/api/checkins", auth, async (req, res) => {
   const { habit_id, date, status, value } = req.body;
   if (!isDate(date)) return res.status(400).json({ error: "Invalid date" });
-  if (date > new Date(Date.now() + 36 * 3600e3).toISOString().slice(0, 10)) return res.status(400).json({ error: "You can't check in for a future day" });
+  const slToday = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Colombo", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date()); // a day unlocks at 00:00 Sri Lanka time
+  if (date > slToday) return res.status(400).json({ error: "This day unlocks at 00:00 Sri Lanka time" });
   const h = await db.execute({ sql: "SELECT id FROM habits WHERE id=? AND user_id=?", args: [habit_id, req.uid] });
   if (!h.rows.length) return res.status(404).json({ error: "Habit not found" });
   if (!status) await db.execute({ sql: "DELETE FROM habit_checkins WHERE habit_id=? AND check_date=? AND user_id=?", args: [habit_id, date, req.uid] });

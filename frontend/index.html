@@ -301,7 +301,8 @@ const fmtT = (s) => (s || "").replace("T", " ").slice(5, 16);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const safeUrl = (u) => (/^https?:\/\//i.test(u || "") ? esc(u) : "");
 const dstr = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-const today = () => dstr(new Date());
+const SL_DAY = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Colombo", year: "numeric", month: "2-digit", day: "2-digit" });
+const today = () => SL_DAY.format(new Date()); // YYYY-MM-DD in Sri Lanka time
 const nice = (k) => new Date(k + "T00:00").toLocaleDateString("en", { weekday: "long", day: "numeric", month: "short", year: "numeric" });
 const scCls = (s) => (s >= 80 ? "up" : s < 50 ? "dn" : "");
 const scCol = (s) => (s >= 80 ? "var(--lime)" : s >= 50 ? "var(--blue)" : "var(--red)");
@@ -801,12 +802,13 @@ const gyBadgeTotals = () => { const B = gyBadges(gyX()); return { week: B.week.l
 
 // One tick box. Used in the sheet and the Today card.
 function gyBtn(h, d, x, big, opt) {
-  const c = x.C[h.id]?.[d], fut = d > x.today, val = c && c.value != null ? gyNum(c.value) : "";
+  if (d > x.today) return ""; // locked: tomorrow's box only appears at 00:00 Sri Lanka time
+  const c = x.C[h.id]?.[d], val = c && c.value != null ? gyNum(c.value) : "";
   let k = "", txt = "";
   if (c) { k = "done"; txt = val !== "" ? val : ico("check"); }
   else if (opt) { k = "opt"; txt = ico("plus"); }
   else if (gyDay(h) && d < x.today) { k = "miss"; txt = "·"; }
-  return `<button class="gy-b ${k} ${big ? "big" : ""} ${String(val).length > 3 ? "sm" : ""}" data-gc="${h.id}|${d}" ${fut ? "disabled" : ""}>${txt}</button>`;
+  return `<button class="gy-b ${k} ${big ? "big" : ""} ${String(val).length > 3 ? "sm" : ""}" data-gc="${h.id}|${d}">${txt}</button>`;
 }
 
 function gyToday(x) {
@@ -957,7 +959,8 @@ async function gySet(h, d, status, value) {
 }
 
 async function gyTap(hid, d) {
-  const h = S.habits.find((x) => x.id === hid); if (!h || d > today()) return;
+  const h = S.habits.find((x) => x.id === hid); if (!h) return;
+  if (d > today()) return toast("This day unlocks at 00:00 Sri Lanka time", "error");
   const c = S.checkins.find((k) => k.habit_id === hid && k.check_date === d);
   if (h.kind === "value") return gyValue(h, d, c);
   gySet(h, d, c ? null : "done");
@@ -1201,6 +1204,11 @@ function render() {
   if ($("#exportJ")) $("#exportJ").onclick = () => exportJournalXlsx(list, st);
   if (S.view === "gym") gyBind();
 }
+
+// Day rollover: when the date changes in Sri Lanka (00:00), tomorrow's boxes unlock even if the page stays open
+let _day = today();
+const dayCheck = () => { const t = today(); if (t === _day || document.querySelector(".swal2-container")) return; _day = t; if (S.token) render(); };
+setInterval(dayCheck, 15000); document.addEventListener("visibilitychange", () => { if (!document.hidden) dayCheck(); }); addEventListener("focus", dayCheck);
 
 S.token ? load().catch(authView) : authView();
 </script>
