@@ -230,7 +230,7 @@ app.put("/api/checkins", auth, async (req, res) => {
   // Repeat-interval habits (weight, waist...): a new entry unlocks only N days after the previous entry
   const hb = h.rows[0];
   if (status === "done" && hb.sched_type === "interval") {
-    const sc = parseJson(hb.sched), every = Math.max(1, +sc.every || 7), anchor = sc.anchor && sc.anchor > hb.start_date ? sc.anchor : hb.start_date;
+    const sc = parseJson(hb.sched), every = Math.max(1, +sc.every || 7), anchor = hb.start_date; // first entry unlocks on the start date
     const ex = (await db.execute({ sql: "SELECT check_date FROM habit_checkins WHERE habit_id=? AND user_id=? AND status='done'", args: [habit_id, req.uid] })).rows.map((r) => r.check_date).sort();
     if (hb.end_date && date > hb.end_date) return res.status(400).json({ error: "This habit has ended" });
     if (!ex.includes(date)) {

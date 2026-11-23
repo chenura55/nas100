@@ -250,6 +250,7 @@ input[type=date]::-webkit-date-and-time-value,input[type=time]::-webkit-date-and
 .gy-b.over{background:#f0627a22;border-color:var(--red);color:var(--red)}
 .gy-b.miss{color:#f0627acc;border-style:dashed;border-color:#f0627a55}
 .gy-b:disabled{opacity:.22;cursor:default}
+.gy-b.ul{color:var(--p2);border-color:#a78bfa88}.gy-b.lk{color:var(--mute)}.gy-off .hi{width:14px;height:14px;opacity:.7}.gy-off small{display:block;font-size:10px}
 .gy-b.big{width:54px;height:54px;border-radius:16px;font-size:18px}
 .gy-ti{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--line)}.gy-ti:first-of-type{border-top:0}.gy-ti .m{flex:1;min-width:0}.gy-ti small{display:block;color:var(--mute);font-size:12px}
 .gy-hwrap{overflow-x:auto;padding-bottom:6px}
@@ -317,7 +318,7 @@ const ICON = {
   out: `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9"/></svg>`,
 };
 // Heroicons (v2, MIT) - 20px solid set, used inline in text and buttons
-const HI = {"fire": "<path fill-rule=\"evenodd\" d=\"M13.5 4.938a7 7 0 1 1-9.006 1.737c.202-.257.59-.218.793.039.278.352.594.672.943.954.332.269.786-.049.773-.476a5.977 5.977 0 0 1 .572-2.759 6.026 6.026 0 0 1 2.486-2.665c.247-.14.55-.016.677.238A6.967 6.967 0 0 0 13.5 4.938ZM14 12a4 4 0 0 1-4 4c-1.913 0-3.52-1.398-3.91-3.182-.093-.429.44-.643.814-.413a4.043 4.043 0 0 0 1.601.564c.303.038.531-.24.51-.544a5.975 5.975 0 0 1 1.315-4.192.447.447 0 0 1 .431-.16A4.001 4.001 0 0 1 14 12Z\" clip-rule=\"evenodd\"/>", "check-circle": "<path fill-rule=\"evenodd\" d=\"M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm3.857-9.809a.75.75 0 0 0-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 1 0-1.06 1.061l2.5 2.5a.75.75 0 0 0 1.137-.089l4-5.5Z\" clip-rule=\"evenodd\"/>", "x-circle": "<path fill-rule=\"evenodd\" d=\"M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16ZM8.28 7.22a.75.75 0 0 0-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 1 0 1.06 1.06L10 11.06l1.72 1.72a.75.75 0 1 0 1.06-1.06L11.06 10l1.72-1.72a.75.75 0 0 0-1.06-1.06L10 8.94 8.28 7.22Z\" clip-rule=\"evenodd\"/>", "trophy": "<path fill-rule=\"evenodd\" d=\"M10 1c-1.828 0-3.623.149-5.371.435a.75.75 0 0 0-.629.74v.387c-.827.157-1.642.345-2.445.564a.75.75 0 0 0-.552.698 5 5 0 0 0 4.503 5.152 6 6 0 0 0 2.946 1.822A6.451 6.451 0 0 1 7.768 13H7.5A1.5 1.5 0 0 0 6 14.5V17h-.75C4.56 17 4 17.56 4 18.25c0 .414.336.75.75.75h10.5a.75.75 0 0 0 .75-.75c0-.69-.56-1.25-1.25-1.25H14v-2.5a1.5 1.5 0 0 0-1.5-1.5h-.268a6.453 6.453 0 0 1-.684-2.202 6 6 0 0 0 2.946-1.822 5 5 0 0 0 4.503-5.152.75.75 0 0 0-.552-.698A31.804 31.804 0 0 0 16 2.562v-.387a.75.75 0 0 0-.629-.74A33.227 33.227 0 0 0 10 1ZM2.525 4.422C3.012 4.3 3.504 4.19 4 4.09V5c0 .74.134 1.448.38 2.103a3.503 3.503 0 0 1-1.855-2.68Zm14.95 0a3.503 3.503 0 0 1-1.854 2.68C15.866 6.449 16 5.74 16 5v-.91c.496.099.988.21 1.475.332Z\" clip-rule=\"evenodd\"/>", "check": "<path fill-rule=\"evenodd\" d=\"M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.05-.143Z\" clip-rule=\"evenodd\"/>", "chevron-left": "<path fill-rule=\"evenodd\" d=\"M11.78 5.22a.75.75 0 0 1 0 1.06L8.06 10l3.72 3.72a.75.75 0 1 1-1.06 1.06l-4.25-4.25a.75.75 0 0 1 0-1.06l4.25-4.25a.75.75 0 0 1 1.06 0Z\" clip-rule=\"evenodd\"/>", "chevron-right": "<path fill-rule=\"evenodd\" d=\"M8.22 5.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 0 1-1.06-1.06L11.94 10 8.22 6.28a.75.75 0 0 1 0-1.06Z\" clip-rule=\"evenodd\"/>", "chevron-up": "<path fill-rule=\"evenodd\" d=\"M9.47 6.47a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 1 1-1.06 1.06L10 8.06l-3.72 3.72a.75.75 0 0 1-1.06-1.06l4.25-4.25Z\" clip-rule=\"evenodd\"/>", "chevron-down": "<path fill-rule=\"evenodd\" d=\"M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z\" clip-rule=\"evenodd\"/>", "moon": "<path fill-rule=\"evenodd\" d=\"M7.455 2.004a.75.75 0 0 1 .26.77 7 7 0 0 0 9.958 7.967.75.75 0 0 1 1.067.853A8.5 8.5 0 1 1 6.647 1.921a.75.75 0 0 1 .808.083Z\" clip-rule=\"evenodd\"/>", "bolt": "<path d=\"M11.983 1.907a.75.75 0 0 0-1.292-.657l-8.5 9.5A.75.75 0 0 0 2.75 12h6.572l-1.305 6.093a.75.75 0 0 0 1.292.657l8.5-9.5A.75.75 0 0 0 17.25 8h-6.572l1.305-6.093Z\"/>", "plus": "<path d=\"M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5Z\"/>", "arrow-down-tray": "<path d=\"M10.75 2.75a.75.75 0 0 0-1.5 0v8.614L6.295 8.235a.75.75 0 1 0-1.09 1.03l4.25 4.5a.75.75 0 0 0 1.09 0l4.25-4.5a.75.75 0 0 0-1.09-1.03l-2.955 3.129V2.75Z\"/><path d=\"M3.5 12.75a.75.75 0 0 0-1.5 0v2.5A2.75 2.75 0 0 0 4.75 18h10.5A2.75 2.75 0 0 0 18 15.25v-2.5a.75.75 0 0 0-1.5 0v2.5c0 .69-.56 1.25-1.25 1.25H4.75c-.69 0-1.25-.56-1.25-1.25v-2.5Z\"/>"};
+const HI = {"lock-closed": "<path fill-rule=\"evenodd\" d=\"M10 1a4.5 4.5 0 0 0-4.5 4.5V9H5a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2h-.5V5.5A4.5 4.5 0 0 0 10 1Zm3 8V5.5a3 3 0 1 0-6 0V9h6Z\" clip-rule=\"evenodd\"/>", "lock-open": "<path fill-rule=\"evenodd\" d=\"M14.5 1A4.5 4.5 0 0 0 10 5.5V9H3a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2h-1.5V5.5a3 3 0 1 1 6 0v2.75a.75.75 0 0 0 1.5 0V5.5A4.5 4.5 0 0 0 14.5 1Z\" clip-rule=\"evenodd\"/>", "fire": "<path fill-rule=\"evenodd\" d=\"M13.5 4.938a7 7 0 1 1-9.006 1.737c.202-.257.59-.218.793.039.278.352.594.672.943.954.332.269.786-.049.773-.476a5.977 5.977 0 0 1 .572-2.759 6.026 6.026 0 0 1 2.486-2.665c.247-.14.55-.016.677.238A6.967 6.967 0 0 0 13.5 4.938ZM14 12a4 4 0 0 1-4 4c-1.913 0-3.52-1.398-3.91-3.182-.093-.429.44-.643.814-.413a4.043 4.043 0 0 0 1.601.564c.303.038.531-.24.51-.544a5.975 5.975 0 0 1 1.315-4.192.447.447 0 0 1 .431-.16A4.001 4.001 0 0 1 14 12Z\" clip-rule=\"evenodd\"/>", "check-circle": "<path fill-rule=\"evenodd\" d=\"M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm3.857-9.809a.75.75 0 0 0-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 1 0-1.06 1.061l2.5 2.5a.75.75 0 0 0 1.137-.089l4-5.5Z\" clip-rule=\"evenodd\"/>", "x-circle": "<path fill-rule=\"evenodd\" d=\"M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16ZM8.28 7.22a.75.75 0 0 0-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 1 0 1.06 1.06L10 11.06l1.72 1.72a.75.75 0 1 0 1.06-1.06L11.06 10l1.72-1.72a.75.75 0 0 0-1.06-1.06L10 8.94 8.28 7.22Z\" clip-rule=\"evenodd\"/>", "trophy": "<path fill-rule=\"evenodd\" d=\"M10 1c-1.828 0-3.623.149-5.371.435a.75.75 0 0 0-.629.74v.387c-.827.157-1.642.345-2.445.564a.75.75 0 0 0-.552.698 5 5 0 0 0 4.503 5.152 6 6 0 0 0 2.946 1.822A6.451 6.451 0 0 1 7.768 13H7.5A1.5 1.5 0 0 0 6 14.5V17h-.75C4.56 17 4 17.56 4 18.25c0 .414.336.75.75.75h10.5a.75.75 0 0 0 .75-.75c0-.69-.56-1.25-1.25-1.25H14v-2.5a1.5 1.5 0 0 0-1.5-1.5h-.268a6.453 6.453 0 0 1-.684-2.202 6 6 0 0 0 2.946-1.822 5 5 0 0 0 4.503-5.152.75.75 0 0 0-.552-.698A31.804 31.804 0 0 0 16 2.562v-.387a.75.75 0 0 0-.629-.74A33.227 33.227 0 0 0 10 1ZM2.525 4.422C3.012 4.3 3.504 4.19 4 4.09V5c0 .74.134 1.448.38 2.103a3.503 3.503 0 0 1-1.855-2.68Zm14.95 0a3.503 3.503 0 0 1-1.854 2.68C15.866 6.449 16 5.74 16 5v-.91c.496.099.988.21 1.475.332Z\" clip-rule=\"evenodd\"/>", "check": "<path fill-rule=\"evenodd\" d=\"M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.05-.143Z\" clip-rule=\"evenodd\"/>", "chevron-left": "<path fill-rule=\"evenodd\" d=\"M11.78 5.22a.75.75 0 0 1 0 1.06L8.06 10l3.72 3.72a.75.75 0 1 1-1.06 1.06l-4.25-4.25a.75.75 0 0 1 0-1.06l4.25-4.25a.75.75 0 0 1 1.06 0Z\" clip-rule=\"evenodd\"/>", "chevron-right": "<path fill-rule=\"evenodd\" d=\"M8.22 5.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 0 1-1.06-1.06L11.94 10 8.22 6.28a.75.75 0 0 1 0-1.06Z\" clip-rule=\"evenodd\"/>", "chevron-up": "<path fill-rule=\"evenodd\" d=\"M9.47 6.47a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 1 1-1.06 1.06L10 8.06l-3.72 3.72a.75.75 0 0 1-1.06-1.06l4.25-4.25Z\" clip-rule=\"evenodd\"/>", "chevron-down": "<path fill-rule=\"evenodd\" d=\"M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z\" clip-rule=\"evenodd\"/>", "moon": "<path fill-rule=\"evenodd\" d=\"M7.455 2.004a.75.75 0 0 1 .26.77 7 7 0 0 0 9.958 7.967.75.75 0 0 1 1.067.853A8.5 8.5 0 1 1 6.647 1.921a.75.75 0 0 1 .808.083Z\" clip-rule=\"evenodd\"/>", "bolt": "<path d=\"M11.983 1.907a.75.75 0 0 0-1.292-.657l-8.5 9.5A.75.75 0 0 0 2.75 12h6.572l-1.305 6.093a.75.75 0 0 0 1.292.657l8.5-9.5A.75.75 0 0 0 17.25 8h-6.572l1.305-6.093Z\"/>", "plus": "<path d=\"M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5Z\"/>", "arrow-down-tray": "<path d=\"M10.75 2.75a.75.75 0 0 0-1.5 0v8.614L6.295 8.235a.75.75 0 1 0-1.09 1.03l4.25 4.5a.75.75 0 0 0 1.09 0l4.25-4.5a.75.75 0 0 0-1.09-1.03l-2.955 3.129V2.75Z\"/><path d=\"M3.5 12.75a.75.75 0 0 0-1.5 0v2.5A2.75 2.75 0 0 0 4.75 18h10.5A2.75 2.75 0 0 0 18 15.25v-2.5a.75.75 0 0 0-1.5 0v2.5c0 .69-.56 1.25-1.25 1.25H4.75c-.69 0-1.25-.56-1.25-1.25v-2.5Z\"/>"};
 const ico = (n, c = "") => `<svg class="hi ${c}" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">${HI[n]}</svg>`;
 
 async function load() {
@@ -673,7 +674,7 @@ function gySched(h, d, x) {
 // dues = due dates used for streaks. open = the day the next entry unlocks.
 function gyIvInfo(h, C, t) {
   const every = (h.sched || {}).every || 7, ds = Object.keys(C).sort(), dues = new Set();
-  let open = (h.sched || {}).anchor || h.start_date; if (open < h.start_date) open = h.start_date;
+  let open = h.start_date; // the very first entry unlocks on the start date
   for (let g = 0; g < 2000; g++) {
     dues.add(open);
     const f = ds.find((d) => d >= open);
@@ -689,8 +690,7 @@ function gyCanTick(h, d, x) {
   if (d > x.today || d < h.start_date || (h.end_date && d > h.end_date)) return false;
   if (h.sched_type !== "interval") return true;
   const s = h.sched || {}, every = s.every || 7, ds = Object.keys(x.C[h.id] || {}), prev = ds.filter((k) => k < d).sort().pop(), next = ds.filter((k) => k > d).sort()[0];
-  const first = (s.anchor || h.start_date) > h.start_date ? (s.anchor || h.start_date) : h.start_date;
-  if (prev ? gDiff(d, prev) < every : d < first) return false;
+  if (prev ? gDiff(d, prev) < every : d < h.start_date) return false;
   if (next && gDiff(next, d) < every) return false;
   return true;
 }
@@ -808,7 +808,7 @@ const gyDays = (s) => GORD.filter((d) => (s.days || []).includes(d)).map((d) => 
 const gyPct = (p) => (p == null ? "–" : Math.round(p) + "%");
 function gyDesc(h) {
   const s = h.sched || {};
-  return ({ daily: "Every day", weekdays: gyDays(s).join(" · "), weekly_count: `${s.target}× per week, any days`, custom_week: `${s.target} of ${gyDays(s).join("/")} each week`, interval: `Unlocks ${s.every} days after each tick (first: ${s.anchor})` })[h.sched_type] || "Every day";
+  return ({ daily: "Every day", weekdays: gyDays(s).join(" · "), weekly_count: `${s.target}× per week, any days`, custom_week: `${s.target} of ${gyDays(s).join("/")} each week`, interval: `First entry on the start date, then unlocks ${s.every} days after each tick` })[h.sched_type] || "Every day";
 }
 function gyShort(h) {
   const s = h.sched || {};
@@ -835,13 +835,14 @@ function gyBtn(h, d, x, big, opt) {
   if (c) { k = "done"; txt = val !== "" ? val : ico("check"); }
   else if (opt) { k = "opt"; txt = ico("plus"); }
   else if (gyDay(h) && d < x.today) { k = "miss"; txt = "·"; }
+  if (!c && h.sched_type === "interval") { k += " ul"; txt = ico("lock-open"); } // unlocked and waiting for your entry
   return `<button class="gy-b ${k} ${big ? "big" : ""} ${String(val).length > 3 ? "sm" : ""}" data-gc="${h.id}|${d}">${txt}</button>`;
 }
 
 function gyToday(x) {
   const t = x.today, iv = (h) => h.sched_type === "interval", act = (h) => h.start_date <= t && (!h.end_date || h.end_date >= t);
   const items = x.H.filter((h) => (iv(h) ? !!x.C[h.id]?.[t] || gyCanTick(h, t, x) : gySched(h, t, x))), extra = x.H.filter((h) => h.kind === "value" && !iv(h) && !gySched(h, t, x) && act(h)), locked = x.H.filter((h) => iv(h) && act(h) && !items.includes(h));
-  const lk = (h) => `<div class="gy-ti"><div class="m"><b>${esc(h.name)}</b><small>${esc(gyShort(h))} · Locked until ${x.IV[h.id].open}</small></div><button class="gy-b big" disabled></button></div>`;
+  const lk = (h) => `<div class="gy-ti"><div class="m"><b>${esc(h.name)}</b><small>${esc(gyShort(h))} · Locked until ${x.IV[h.id].open}</small></div><button class="gy-b big lk" disabled>${ico("lock-closed")}</button></div>`;
   const sub = (h) => {
     if (!gyDay(h)) { const w = gyWeek(h, gMon(t), x); return w ? `${w.done}/${w.need} this week` : ""; }
     return `${ico("fire", "fire")} ${gyHabitStats(h, x).cur}-day streak`;
@@ -854,9 +855,9 @@ function gyToday(x) {
 function gyCell(h, d, x) {
   const due = gySched(h, d, x), done = !!x.C[h.id]?.[d];
   if (h.sched_type === "interval") {
-    if (d > x.today) return x.IV[h.id]?.open === d ? `<td class="gy-off" title="Unlocks on this day"><small>unlocks</small></td>` : `<td class="gy-off">–</td>`;
+    if (d > x.today) return x.IV[h.id]?.open === d ? `<td class="gy-off" title="Unlocks on this day">${ico("lock-closed")}<small>unlocks</small></td>` : `<td class="gy-off">–</td>`;
     if (done || gyCanTick(h, d, x)) return `<td>${gyBtn(h, d, x, false, !due && !done)}</td>`;
-    return `<td class="gy-off" title="Locked until ${x.IV[h.id]?.open || ""}">–</td>`;
+    return `<td class="gy-off" title="Locked until ${x.IV[h.id]?.open || ""}">${ico("lock-closed")}</td>`;
   }
   return due ? `<td>${gyBtn(h, d, x)}</td>` : h.kind === "value" ? `<td>${gyBtn(h, d, x, false, true)}</td>` : `<td class="gy-off">–</td>`;
 }
@@ -1019,7 +1020,7 @@ async function gyValue(h, d, c) {
 
 /* ---- habit form ---- */
 const PRE = ["Check economic calendar", "Mark key levels", "Mark HTF bias", "Review last trades", "Set max daily loss", "Read my trading rules", "Breathing / meditation"];
-const GSCHED = [["daily", "Every day", "Counts every single day"], ["weekdays", "Selected weekdays", "Pick the days, e.g. Mon · Wed · Fri"], ["weekly_count", "Days per week", "Do it N times a week on any days"], ["custom_week", "Custom weekly schedule", "Pick available days and how many you must complete"], ["interval", "Custom repeat interval", "Unlocks N days after the day you last ticked it, e.g. weigh-in every 7 days"]];
+const GSCHED = [["daily", "Every day", "Counts every single day"], ["weekdays", "Selected weekdays", "Pick the days, e.g. Mon · Wed · Fri"], ["weekly_count", "Days per week", "Do it N times a week on any days"], ["custom_week", "Custom weekly schedule", "Pick available days and how many you must complete"], ["interval", "Custom repeat interval", "First entry on the start date, then unlocks N days after each tick, e.g. weigh-in every 7 days"]];
 
 async function gyHabitForm(h) {
   if (!window.Swal) return noSwal();
@@ -1043,7 +1044,7 @@ async function gyHabitForm(h) {
           weekdays: `<div class="lbl">Due on these days only. Other days never break the streak.</div><div class="cchips" style="padding:0">${dc}</div>`,
           weekly_count: `<div class="lbl">How many days per week (any days)?</div>${tg(7)}<div class="lbl">The week counts when you reach this number. Missing it resets the weekly streak.</div>`,
           custom_week: `<div class="lbl">Days you can do it</div><div class="cchips" style="padding:0">${dc}</div><div class="lbl">Must complete at least</div>${tg(n)}<div class="lbl">of those days each week.</div>`,
-          interval: `<div class="lbl">Repeat every (days)</div><input type="number" id="hev" min="2" max="365" value="${st.every}" inputmode="numeric"><div class="lbl">First due date</div><input type="date" id="han" value="${st.anchor || $("#hst").value}">` }[st.type];
+          interval: `<div class="lbl">Repeat every (days)</div><input type="number" id="hev" min="2" max="365" value="${st.every}" inputmode="numeric"><div class="lbl">${ico("lock-open")} Your first entry unlocks on the start date. After you tick it, the next one stays locked ${ico("lock-closed")} for ${st.every || "N"} days and then unlocks again. This works for any Tick or Value habit.</div>` }[st.type];
         document.querySelectorAll("[data-wd]").forEach((b) => (b.onclick = () => { const d = +b.dataset.wd; st.days.has(d) ? st.days.delete(d) : st.days.add(d); det(); }));
         if ($("#htg")) $("#htg").onchange = () => (st.target = +$("#htg").value);
         if ($("#hev")) $("#hev").oninput = () => (st.every = +$("#hev").value);
@@ -1071,7 +1072,7 @@ async function gyTemplates() {
   if (!window.Swal) return noSwal();
   const m = gyM(), pm = gM1(gAdd(m + "-01", -1));
   const pick = await new Promise((resolve) => Swal.fire({ ...pop(), allowOutsideClick: true, showCloseButton: true, showCancelButton: false, showConfirmButton: false, title: "Templates",
-    html: `<div class="gy-tp"><button data-t="p28"><b>28-Day Gym &amp; Health</b><small>Gym · No junk foods · Water 4.5L daily, plus Weight &amp; WM every 7 days (day 7, 14, 21, 28) like your tracker sheet</small></button>
+    html: `<div class="gy-tp"><button data-t="p28"><b>28-Day Gym &amp; Health</b><small>Gym · No junk foods · Water 4.5L daily, plus Weight &amp; WM every 7 days (first entry on day 1, then unlocks 7 days after each tick)</small></button>
       <button data-t="flex"><b>Flexible Fitness</b><small>Workout 4× a week · Stretching 3 of Mon–Sat · 10k steps · Sleep 8h · Weekly weigh-in</small></button>
       <button data-t="pre"><b>Premarket routine</b><small>Your pre-trading checklist as habits: calendar, key levels, HTF bias, review… due Mon–Fri</small></button>
       <button data-t="copy"><b>Copy from last month</b><small>Bring last month's habits into ${gyMonthName(m)} and customise them</small></button>
@@ -1082,11 +1083,11 @@ async function gyTemplates() {
   if (pick === "p28") {
     const first = m === today().slice(0, 7) ? today() : m + "-01";
     const r = await Swal.fire({ ...pop(), allowOutsideClick: true, title: "28-Day Gym & Health", confirmButtonText: "Create habits",
-      html: `<div class="f"><div class="full lbl">Creates Gym, No Junk Foods, Water 4.5L (daily) and Weight &amp; WM (every 7 days, starting day 7). You can edit any of them afterwards.</div><div class="full"><label>Day 1 (start date)</label><input type="date" id="t1" value="${first}"></div>
+      html: `<div class="f"><div class="full lbl">Creates Gym, No Junk Foods, Water 4.5L (daily) and Weight &amp; WM (first entry on day 1, then each unlocks 7 days after your last tick). You can edit any of them afterwards.</div><div class="full"><label>Day 1 (start date)</label><input type="date" id="t1" value="${first}"></div>
       <label class="full" style="display:flex;gap:10px;align-items:center;color:var(--text)"><input type="checkbox" id="t2" checked style="width:20px;height:20px"> End after day 28 (untick to keep it going)</label></div>`,
       preConfirm: () => ({ start: $("#t1").value, end: $("#t2").checked }) });
     if (!r.isConfirmed || !r.value.start) return;
-    const s = r.value.start, e = r.value.end ? gAdd(s, 27) : null, a7 = gAdd(s, 6), base = { start_date: s, end_date: e };
+    const s = r.value.start, e = r.value.end ? gAdd(s, 27) : null, a7 = s, base = { start_date: s, end_date: e };
     S.gy.m = s.slice(0, 7);
     return gyBulk([{ name: "Gym", sched_type: "daily" }, { name: "No Junk Foods", sched_type: "daily" }, { name: "Water 4.5L", sched_type: "daily" },
       { name: "Weight", kind: "value", unit: "kg", sched_type: "interval", sched: { every: 7, anchor: a7 } }, { name: "WM (waist)", kind: "value", unit: "cm", sched_type: "interval", sched: { every: 7, anchor: a7 } }].map((h) => ({ ...base, ...h })), "28-day tracker created");
