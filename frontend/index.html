@@ -306,6 +306,16 @@ img,svg,canvas{max-width:100%}
 .gy-sheet{overflow-anchor:none}
 @media(max-width:700px){.gy-t{--cw:78px;--fw:96px}.gy-t tbody td{height:50px}.gy-ic{min-width:34px}.gy-t td small{margin-left:3px}}
 @media(max-width:380px){.gy-t{--cw:72px;--fw:92px}}
+
+/* ---------- gym day cards (phones) ---------- */
+.gy-dc{padding:12px 14px;margin-bottom:10px;border-radius:20px}.gy-dtoday{border-color:#a78bfa77;background:linear-gradient(180deg,#241b3d,#17141f)}.gy-dmiss{border-color:#f0627a44}
+.gy-dh{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;font-size:16px}.gy-dh .gy-ic{margin:0}
+.gy-dg{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:12px 8px}
+.gy-ch{display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0;font-size:11px;color:var(--mute);text-align:center}.gy-ch span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gy-ch .gy-b{width:44px;height:44px}
+.gy-b.ghost:disabled{opacity:.5}
+.gy-bgs{grid-template-columns:repeat(auto-fill,minmax(250px,1fr))!important}
+.gy-bg h3{font-size:17px}
 </style>
 </head>
 <body>
@@ -704,16 +714,17 @@ function gySched(h, d, x) {
 // then every next entry unlocks N days AFTER the day you actually ticked. Until then the boxes stay locked.
 // dues = due dates used for streaks. open = the day the next entry unlocks.
 function gyIvInfo(h, C, t) {
-  const every = (h.sched || {}).every || 7, ds = Object.keys(C).sort(), dues = new Set();
+  const every = (h.sched || {}).every || 7, ds = Object.keys(C).sort(), dues = new Set(), ful = new Map();
   let open = h.start_date; // the very first entry unlocks on the start date
   for (let g = 0; g < 2000; g++) {
     dues.add(open);
     const f = ds.find((d) => d >= open);
     if (!f) break;
+    ful.set(open, f); // this due date was fulfilled by the entry on day f
     open = gAdd(f, every);
   }
   for (let d = gAdd(open, every), n = 0; n < 60; d = gAdd(d, every), n++) if (d > t) dues.add(d); // future due dates, so weeks/months stay "in progress"
-  return { dues, open };
+  return { dues, open, ful };
 }
 // Can this date be ticked? Yes if it already has an entry (edit/clear), otherwise only when at least N days have passed since the previous entry (and N days remain before the next one).
 function gyCanTick(h, d, x) {
@@ -735,6 +746,8 @@ function gyCtx(H, K, t) {
 function gyOut(h, d, x) {
   if (!gySched(h, d, x)) return null;
   if (x.C[h.id]?.[d]) return "done";
+  // repeat-interval habits: done once ticked (even a little late); missed only if still not ticked 3+ days after it unlocked
+  if (h.sched_type === "interval") { const iv = x.IV[h.id]; if (iv && iv.ful.has(d)) return "done"; return gDiff(x.today, d) > 2 ? "fail" : "pending"; }
   return d >= x.today ? "pending" : "fail";
 }
 // Outcome of one Mon-Sun week for a weekly habit
@@ -768,14 +781,14 @@ function gyHabitStats(h, x) {
 }
 // Overall streak. A day is PERFECT only when every daily-type habit scheduled that day is ticked. One missed habit = a missed day.
 function gyOverall(x) {
-  const dh = x.H.filter(gyDay), r = { cur: 0, best: 0, days: 0, miss: 0 };
+  const dh = x.H.filter(gyDay), r = { cur: 0, best: 0, days: 0, miss: 0, at: {}, first: null, comeback: null };
   if (!dh.length) return r;
   const first = dh.reduce((a, h) => (h.start_date < a ? h.start_date : a), "9999-99-99");
   for (let d = first; d <= x.today; d = gAdd(d, 1)) {
     const o = dh.map((h) => gyOut(h, d, x)).filter(Boolean); if (!o.length) continue;
     if (o.includes("fail")) { r.cur = 0; r.miss++; }
     else if (o.includes("pending")) continue;
-    else { r.cur++; r.days++; r.best = Math.max(r.best, r.cur); }
+    else { r.cur++; r.days++; r.best = Math.max(r.best, r.cur); if (!r.at[r.cur]) r.at[r.cur] = d; if (!r.first) r.first = d; if (r.cur === 7 && r.miss > 0 && !r.comeback) r.comeback = d; }
   }
   return r;
 }
@@ -811,11 +824,12 @@ function gyRange(from, to, x, weekly = true) {
   r.complete = r.done > 0 && r.fail === 0 && r.pend === 0;
   return r;
 }
-// Badges: Week Warrior = a full week, Monthly Master = a full calendar month, Annual Legend = 12 complete months in a row
+// Badges. Everything is calculated from the saved habits + check-ins, so edits and deletes are always reflected.
+const gyPerfectDay = (d, x) => { const o = x.H.filter(gyDay).map((h) => gyOut(h, d, x)).filter(Boolean); return o.length > 0 && !o.includes("fail") && !o.includes("pending"); };
 function gyBadges(x) {
-  const B = { week: [], month: [], year: [], run: 0 };
+  const B = { run: 0, n: { ticks: 0, values: 0 }, ov: gyOverall(x) }; GBADGE.forEach((b) => (B[b.k] = []));
   if (!x.H.length) return B;
-  const first = x.H.reduce((a, h) => (h.start_date < a ? h.start_date : a), "9999-99-99"), t = x.today;
+  const first = x.H.reduce((a, h) => (h.start_date < a ? h.start_date : a), "9999-99-99"), t = x.today, ov = B.ov;
   for (let m = gMon(first); m <= t; m = gAdd(m, 7)) if (gyRange(m, gAdd(m, 6), x).complete) B.week.push({ from: m, to: gAdd(m, 6) });
   let run = [];
   for (let m = gM1(first); m <= t; m = gNextM(m)) {
@@ -825,6 +839,17 @@ function gyBadges(x) {
     else run = [];
   }
   B.run = run.length;
+  let wr = 0, prev = null; // 4 perfect weeks in a row
+  B.week.forEach((w) => { wr = prev && gDiff(w.from, prev) === 7 ? wr + 1 : 1; prev = w.from; if (wr === 4) { B.weeks4.push({ from: gAdd(w.from, -21), to: w.to }); wr = 0; } });
+  if (ov.first) B.first.push({ from: ov.first, to: ov.first });
+  [[3, "s3"], [7, "s7"], [14, "s14"], [30, "s30"], [100, "s100"]].forEach(([n, k]) => { if (ov.at[n]) B[k].push({ from: ov.at[n], to: ov.at[n] }); });
+  if (ov.comeback) B.comeback.push({ from: ov.comeback, to: ov.comeback });
+  for (let d = first; d < t; d = gAdd(d, 1)) if (gDow(d) === 6 && gyPerfectDay(d, x) && gyPerfectDay(gAdd(d, 1), x)) B.weekend.push({ from: d, to: gAdd(d, 1) });
+  const all = []; x.H.forEach((h) => Object.entries(x.C[h.id] || {}).forEach(([d, c]) => all.push([d, c.value != null])));
+  all.sort((a, b) => (a[0] < b[0] ? -1 : 1));
+  [[100, "ticks100"], [500, "ticks500"]].forEach(([n, k]) => { if (all.length >= n) B[k].push({ from: all[n - 1][0], to: all[n - 1][0] }); });
+  const vals = all.filter((a) => a[1]); if (vals.length >= 10) B.data.push({ from: vals[9][0], to: vals[9][0] });
+  B.n = { ticks: all.length, values: vals.length };
   return B;
 }
 /*GYM-ENGINE-END*/
@@ -848,15 +873,27 @@ function gyShort(h) {
 }
 
 const GBADGE = [
+  { k: "first", name: "First Step", tier: "bronze", glyph: "1", desc: "Complete your first perfect day (every habit ticked)", goal: 1 },
+  { k: "s3", name: "Spark", tier: "bronze", glyph: "3", desc: "3 perfect days in a row", goal: 3, streak: 1 },
+  { k: "s7", name: "Hot Streak", tier: "bronze", glyph: "7", desc: "7 perfect days in a row", goal: 7, streak: 1 },
   { k: "week", name: "Week Warrior", tier: "bronze", glyph: "7D", desc: "Finish every scheduled habit for a whole week" },
+  { k: "weekend", name: "Weekend Warrior", tier: "bronze", glyph: "WW", desc: "Tick every habit on a Saturday and the Sunday after it" },
+  { k: "ticks100", name: "Tick Machine", tier: "bronze", glyph: "100", desc: "Tick 100 boxes in total", goal: 100 },
+  { k: "data", name: "Data Driven", tier: "bronze", glyph: "DD", desc: "Log 10 values (weight, waist…)", goal: 10 },
+  { k: "s14", name: "Unstoppable", tier: "silver", glyph: "14", desc: "14 perfect days in a row", goal: 14, streak: 1 },
+  { k: "comeback", name: "Comeback Kid", tier: "silver", glyph: "CK", desc: "Miss a day, then bounce back with a 7-day streak" },
+  { k: "weeks4", name: "Power Month", tier: "silver", glyph: "4W", desc: "4 perfect weeks in a row" },
   { k: "month", name: "Monthly Master", tier: "silver", glyph: "1M", desc: "Complete a full calendar month with no missed days" },
+  { k: "ticks500", name: "Tick Titan", tier: "silver", glyph: "500", desc: "Tick 500 boxes in total", goal: 500 },
+  { k: "s30", name: "Iron Will", tier: "gold", glyph: "30", desc: "30 perfect days in a row", goal: 30, streak: 1 },
+  { k: "s100", name: "Centurion", tier: "gold", glyph: "100", desc: "100 perfect days in a row", goal: 100, streak: 1 },
   { k: "year", name: "Annual Legend", tier: "gold", glyph: "1Y", desc: "Complete 12 months in a row" },
 ];
 function gyMedal(tier, glyph, locked, size = 84) {
   const c = { bronze: ["#f0b27a", "#9a5a22"], silver: ["#f3f6fa", "#8493a8"], gold: ["#ffe38a", "#c98a00"] }[tier], id = "gm" + ++gid;
-  return `<svg viewBox="0 0 100 124" width="${size}" height="${Math.round(size * 1.24)}" style="${locked ? "filter:grayscale(1) opacity(.3)" : `filter:drop-shadow(0 6px 14px ${c[1]}99)`}"><defs><linearGradient id="${id}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${c[0]}"/><stop offset="1" stop-color="${c[1]}"/></linearGradient></defs><path d="M28 0h17l15 46H43zM72 0H55L40 46h17z" fill="#7c3aed"/><circle cx="50" cy="78" r="38" fill="url(#${id})"/><circle cx="50" cy="78" r="30" fill="none" stroke="#fff" stroke-opacity=".6" stroke-width="3"/><text x="50" y="88" text-anchor="middle" font-size="${glyph.length > 1 ? 25 : 32}" font-weight="700" fill="#2a1a00" font-family="DM Sans,sans-serif">${glyph}</text></svg>`;
+  return `<svg viewBox="0 0 100 124" width="${size}" height="${Math.round(size * 1.24)}" style="${locked ? "filter:grayscale(1) opacity(.3)" : `filter:drop-shadow(0 6px 14px ${c[1]}99)`}"><defs><linearGradient id="${id}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${c[0]}"/><stop offset="1" stop-color="${c[1]}"/></linearGradient></defs><path d="M28 0h17l15 46H43zM72 0H55L40 46h17z" fill="#7c3aed"/><circle cx="50" cy="78" r="38" fill="url(#${id})"/><circle cx="50" cy="78" r="30" fill="none" stroke="#fff" stroke-opacity=".6" stroke-width="3"/><text x="50" y="88" text-anchor="middle" font-size="${glyph.length > 2 ? 19 : glyph.length > 1 ? 25 : 32}" font-weight="700" fill="#2a1a00" font-family="DM Sans,sans-serif">${glyph}</text></svg>`;
 }
-const gyBadgeTotals = () => { const B = gyBadges(gyX()); return { week: B.week.length, month: B.month.length, year: B.year.length }; };
+const gyBadgeTotals = () => { const B = gyBadges(gyX()); return Object.fromEntries(GBADGE.map((b) => [b.k, B[b.k].length])); };
 
 // One tick box. Used in the sheet and the Today card.
 function gyBtn(h, d, x, big, opt) {
@@ -865,7 +902,7 @@ function gyBtn(h, d, x, big, opt) {
   let k = "", txt = "";
   if (c) { k = "done"; txt = val !== "" ? val : ico("check"); }
   else if (opt) { k = "opt"; txt = ico("plus"); }
-  else if (gyDay(h) && d < x.today) { k = "miss"; txt = "·"; }
+  else if (gyOut(h, d, x) === "fail") { k = "miss"; txt = "·"; }
   if (!c && h.sched_type === "interval") { k += " ul"; txt = ico("lock-open"); } // unlocked and waiting for your entry
   return `<button class="gy-b ${k} ${big ? "big" : ""} ${String(val).length > 3 ? "sm" : ""}" data-gc="${h.id}|${d}">${txt}</button>`;
 }
@@ -883,11 +920,36 @@ function gyToday(x) {
   return `<div class="card" style="margin-bottom:16px"><div class="ct">Today · ${nice(t).split(",")[0]} ${+t.slice(8)}${note}</div>${items.map((h) => `<div class="gy-ti"><div class="m"><b>${esc(h.name)}</b><small>${esc(gyShort(h))} · ${sub(h)}</small></div>${gyBtn(h, t, x, true)}</div>`).join("")}${extra.map((h) => `<div class="gy-ti"><div class="m"><b>${esc(h.name)}</b><small>Optional entry · not due today</small></div>${gyBtn(h, t, x, true, true)}</div>`).join("")}${locked.map(lk).join("")}${!items.length && !extra.length && !locked.length ? `<div class="empty sm">Nothing scheduled today. Enjoy your rest day ${ico("moon")}</div>` : ""}</div>`;
 }
 
+const gyViewToggle = () => (isMob() ? `<div style="margin:0 0 10px"><button class="pill sm on" id="gview">${S.gy.grid ? "Switch to day cards" : "Switch to table view"}</button></div>` : "");
+// One tick box with its habit name, used inside the day cards. Returns "" when the habit does not apply that day.
+function gyChip(h, d, x) {
+  const due = gySched(h, d, x), done = !!x.C[h.id]?.[d];
+  let b;
+  if (h.sched_type === "interval") { if (d > x.today) return ""; b = done || gyCanTick(h, d, x) ? gyBtn(h, d, x, false, !due && !done) : due && x.IV[h.id]?.ful.has(d) ? `<button class="gy-b done ghost" disabled>${ico("check")}</button>` : `<button class="gy-b lk" disabled>${ico("lock-closed")}</button>`; }
+  else if (due) b = gyBtn(h, d, x);
+  else if (h.kind === "value") b = gyBtn(h, d, x, false, true);
+  else return "";
+  return `<div class="gy-ch"><span>${esc(h.name)}</span>${b}</div>`;
+}
+function gyCards(x, H, st, tally, first, last) {
+  const t = x.today, dayH = H.filter(gyDay), u = (n, k) => `${n} ${k}${n === 1 ? "" : "s"}`;
+  const sum = H.map((h) => { const a = st[h.id], m = gyHabitMonth(h, first, last, x); return `<div class="gy-er"><div style="flex:1;min-width:0"><b>${esc(h.name)}</b><div class="lbl">${esc(gyShort(h))}</div></div><div style="text-align:right"><b>${ico("fire", "fire")} ${u(a.cur, a.unit)}</b><div class="lbl">${m.done}/${m.total} ${m.unit}s this month</div></div></div>`; }).join("");
+  let cards = "";
+  for (let d = last < t ? last : t; d >= first; d = gAdd(d, -1)) {
+    const dow = gDow(d), outs = dayH.map((h) => gyOut(h, d, x)).filter(Boolean), bad = outs.includes("fail"), good = outs.length && !bad && !outs.includes("pending"), med = dow === 0 && gyRange(gAdd(d, -6), d, x).complete, chips = H.map((h) => gyChip(h, d, x)).join("");
+    if (!chips) continue;
+    cards += `<div class="card gy-dc ${d === t ? "gy-dtoday" : ""} ${bad ? "gy-dmiss" : ""}"><div class="gy-dh"><b>${GWD[dow]} ${+d.slice(8)}${d === t ? ' <span class="lbl">· Today</span>' : ""}</b><span class="gy-ic">${bad ? ico("x-circle", "no") : good ? ico("check-circle", "ok") : ""}${med ? ico("trophy", "gold") : ""}</span></div><div class="gy-dg">${chips}</div></div>`;
+  }
+  return `<p class="lbl" style="margin:0 2px 10px">This month: <b class="up">${tally.perfect} perfect day${tally.perfect === 1 ? "" : "s"}</b> · <b class="dn">${tally.miss} missed day${tally.miss === 1 ? "" : "s"}</b>. A day counts as missed if even one habit is not ticked.</p>
+    <div class="card" style="margin-bottom:12px"><div class="ct">Habit summary</div>${sum}</div>${cards || `<div class="card empty sm">Nothing to tick in this month yet</div>`}
+    <p class="lbl" style="margin:10px 2px">Tap a box to tick it, tap again to clear. ${ico("lock-closed")} means that habit is still locked until its repeat interval has passed.</p>`;
+}
 function gyCell(h, d, x) {
   const due = gySched(h, d, x), done = !!x.C[h.id]?.[d];
   if (h.sched_type === "interval") {
     if (d > x.today) return x.IV[h.id]?.open === d ? `<td class="gy-off" title="Unlocks on this day">${ico("lock-closed")}<small>unlocks</small></td>` : `<td class="gy-off">–</td>`;
     if (done || gyCanTick(h, d, x)) return `<td>${gyBtn(h, d, x, false, !due && !done)}</td>`;
+    if (due && x.IV[h.id]?.ful.has(d)) return `<td><button class="gy-b done ghost" disabled>${ico("check")}</button></td>`;
     return `<td class="gy-off" title="Locked until ${x.IV[h.id]?.open || ""}">${ico("lock-closed")}</td>`;
   }
   return due ? `<td>${gyBtn(h, d, x)}</td>` : h.kind === "value" ? `<td>${gyBtn(h, d, x, false, true)}</td>` : `<td class="gy-off">–</td>`;
@@ -902,10 +964,11 @@ function gyHabitMonth(h, from, to, x) {
 function gySheet(x) {
   const m = gyM(), first = m + "-01", last = gMEnd(m), t = x.today;
   const H = x.H.filter((h) => h.start_date <= last && (!h.end_date || h.end_date >= first));
-  const nav = `<div class="gy-mnav"><button class="pill" id="gprev">${ico("chevron-left")}</button><h2>${gyMonthName(m)}</h2><button class="pill" id="gnext">${ico("chevron-right")}</button></div>`;
+  const nav = gyViewToggle() + `<div class="gy-mnav"><button class="pill" id="gprev">${ico("chevron-left")}</button><h2>${gyMonthName(m)}</h2><button class="pill" id="gnext">${ico("chevron-right")}</button></div>`;
   if (!H.length) return nav + `<div class="card empty">No habits are active in this month.<br><br><button class="btn p" data-gtp>Set up this month</button></div>`;
   const st = {}; H.forEach((h) => (st[h.id] = gyHabitStats(h, x)));
   const dayH = H.filter(gyDay), tally = gyDayTally(first, last < t ? last : t, x);
+  if (isMob() && !S.gy.grid) return nav + gyCards(x, H, st, tally, first, last); // phones: one card per day instead of a wide table
   let rows = "";
   for (let d = first; d <= last; d = gAdd(d, 1)) {
     const dow = gDow(d), med = dow === 0 && d <= t && gyRange(gAdd(d, -6), d, x).complete;
@@ -984,16 +1047,30 @@ function gyInsights(x) {
 }
 
 function gyBadgesView(x) {
-  const B = gyBadges(x), t = x.today, mon = gMon(t), wk = gyRange(mon, gAdd(mon, 6), x), mo = gyRange(gM1(t), gMEnd(t.slice(0, 7)), x);
-  const cnt = { week: B.week.length, month: B.month.length, year: B.year.length };
-  const prog = { week: `${wk.done}/${wk.done + wk.pend + wk.fail} done this week${wk.fail ? " · missed, next week is a fresh start" : ""}`, month: `${mo.done}/${mo.done + mo.pend + mo.fail} done this month${mo.fail ? " · missed, try next month" : ""}`, year: `${B.run}/12 months in a row` };
-  const pp = { week: wk, month: mo };
-  const cards = GBADGE.map((b) => { const p = b.k === "year" ? (B.run / 12) * 100 : (pp[b.k].done + pp[b.k].pend + pp[b.k].fail ? (pp[b.k].done / (pp[b.k].done + pp[b.k].pend + pp[b.k].fail)) * 100 : 0);
-    return `<div class="card gy-bg">${gyMedal(b.tier, b.glyph, !cnt[b.k])}<div><h3>${b.name}</h3><div class="n">${cnt[b.k] ? `Earned ×${cnt[b.k]}` : "Not earned yet"}</div><div class="lbl" style="margin:6px 0">${b.desc}</div><div class="bar slim" style="margin:8px 0"><span style="width:${p}%;background:var(--p2)"></span></div><div class="lbl">${prog[b.k]}</div></div></div>`; }).join("");
-  const earned = GBADGE.flatMap((b) => B[b.k].map((e) => ({ ...b, ...e }))).sort((a, b) => (a.to < b.to ? 1 : -1)).slice(0, 40);
-  const lab = (e) => e.k === "week" ? `Week of ${e.from}` : e.k === "month" ? gyMonthName(e.from.slice(0, 7)) : `${gyMonthName(e.from.slice(0, 7))} → ${gyMonthName(e.to.slice(0, 7))}`;
-  return `<div class="gy-bgs">${cards}</div><div class="card"><div class="ct">Earned badges</div>${earned.map((e) => `<div class="gy-er">${gyMedal(e.tier, e.glyph, false, 34)}<div style="flex:1"><b>${e.name}</b><div class="lbl">${lab(e)}</div></div><span class="lbl">${e.to > t ? t : e.to}</span></div>`).join("") || `<div class="empty sm">${ico("trophy", "gold")} Finish a full week of your habits to earn your first badge</div>`}</div>
-  <p class="lbl" style="margin:12px 2px">Rules: a week or month counts only when every scheduled habit is ticked. Any missed habit makes that day a missed day and resets the streak to 0.</p>`;
+  const B = gyBadges(x), t = x.today, mon = gMon(t), ov = B.ov, wk = gyRange(mon, gAdd(mon, 6), x), mo = gyRange(gM1(t), gMEnd(t.slice(0, 7)), x);
+  const fr = (r) => { const n = r.done + r.pend + r.fail; return [r.done, n || 1]; };
+  let pw = 0, nx = gAdd(mon, -7); for (let i = B.week.length - 1; i >= 0; i--) { if (B.week[i].from === nx) { pw++; nx = gAdd(nx, -7); } else break; }
+  const REP = ["week", "month", "weeks4", "year"];
+  const P = (b) => {
+    if (b.k === "week") { const [a, n] = fr(wk); return [a, n, `${a}/${n} done this week${wk.fail ? " · missed, next week is a fresh start" : ""}`]; }
+    if (b.k === "month") { const [a, n] = fr(mo); return [a, n, `${a}/${n} done this month${mo.fail ? " · missed, try next month" : ""}`]; }
+    if (b.k === "year") return [B.run, 12, `${B.run}/12 months in a row`];
+    if (b.k === "weeks4") return [Math.min(pw, 4), 4, `${Math.min(pw, 4)}/4 perfect weeks in a row`];
+    if (b.streak) return [Math.min(ov.cur, b.goal), b.goal, `${ov.cur}/${b.goal} day streak now (best ${ov.best})`];
+    if (b.k === "first") return [Math.min(ov.days, 1), 1, "Tick every habit due today"];
+    if (b.k === "comeback") return ov.miss ? [Math.min(ov.cur, 7), 7, `${Math.min(ov.cur, 7)}/7 days since your last miss`] : [0, 7, "Needs a missed day first, then a 7-day run"];
+    if (b.k === "weekend") return [B.weekend.length ? 1 : 0, 1, "Perfect Saturday + Sunday"];
+    if (b.k === "data") return [Math.min(B.n.values, 10), 10, `${B.n.values}/10 values logged`];
+    return [Math.min(B.n.ticks, b.goal), b.goal, `${B.n.ticks}/${b.goal} ticks`];
+  };
+  const rows = GBADGE.map((b) => { const cnt = B[b.k].length, [a, n, txt] = P(b), pct = !REP.includes(b.k) && cnt ? 100 : n ? (a / n) * 100 : 0; return { b, cnt, pct, txt }; });
+  const got = rows.filter((r) => r.cnt).length, next = rows.filter((r) => !r.cnt && r.pct > 0).sort((a, c) => c.pct - a.pct)[0] || rows.find((r) => !r.cnt);
+  const cards = rows.map(({ b, cnt, pct, txt }) => `<div class="card gy-bg">${gyMedal(b.tier, b.glyph, !cnt, 72)}<div style="min-width:0"><h3>${b.name}</h3><div class="n">${cnt ? (REP.includes(b.k) ? `Earned ×${cnt}` : "Earned") : "Not earned yet"}</div><div class="lbl" style="margin:6px 0">${b.desc}</div><div class="bar slim" style="margin:8px 0"><span style="width:${pct}%;background:${cnt ? "var(--lime)" : "var(--p2)"}"></span></div><div class="lbl">${cnt && !REP.includes(b.k) ? "Completed" : txt}</div></div></div>`).join("");
+  const earned = GBADGE.flatMap((b) => B[b.k].map((e) => ({ ...b, ...e }))).sort((a, c) => (a.to < c.to ? 1 : -1)).slice(0, 40);
+  const lab = (e) => e.k === "week" ? `Week of ${e.from}` : e.k === "month" ? gyMonthName(e.from.slice(0, 7)) : e.k === "year" ? `${gyMonthName(e.from.slice(0, 7))} → ${gyMonthName(e.to.slice(0, 7))}` : e.k === "weeks4" || e.k === "weekend" ? `${e.from} → ${e.to}` : e.to;
+  const nb = next ? `<div class="card" style="margin-bottom:16px;display:flex;gap:16px;align-items:center">${gyMedal(next.b.tier, next.b.glyph, true, 64)}<div style="min-width:0;flex:1"><div class="lbl">Next badge · ${got}/${GBADGE.length} earned</div><h3 style="margin:2px 0 4px">${next.b.name}</h3><div class="lbl">${next.b.desc}</div><div class="bar slim" style="margin:8px 0"><span style="width:${next.pct}%;background:var(--p2)"></span></div><div class="lbl">${next.txt}</div></div></div>` : `<div class="card" style="margin-bottom:16px;text-align:center">${ico("trophy", "gold")} You earned every badge. Legend!</div>`;
+  return `${nb}<div class="gy-bgs">${cards}</div><div class="card"><div class="ct">Earned badges</div>${earned.map((e) => `<div class="gy-er">${gyMedal(e.tier, e.glyph, false, 34)}<div style="flex:1"><b>${e.name}</b><div class="lbl">${lab(e)}</div></div><span class="lbl">${e.to > t ? t : e.to}</span></div>`).join("") || `<div class="empty sm">${ico("trophy", "gold")} Tick every habit for one day to earn your first badge</div>`}</div>
+  <p class="lbl" style="margin:12px 2px">Rules: a perfect day means every habit due that day is ticked. Weeks and months count only when no day was missed. A repeat-interval habit (weight, waist…) counts as done once you tick it, and as missed only if it is still not ticked 3 days after it unlocked.</p>`;
 }
 
 function gyHabitsTab(x) {
@@ -1030,11 +1107,11 @@ async function gySet(h, d, status, value) {
   if (i >= 0) S.checkins.splice(i, 1);
   if (status) S.checkins.push({ habit_id: h.id, check_date: d, status, value: status === "done" && value != null ? +value : null });
   const a = S.gy.anchor; S.gy.anchor = null;
-  const key = a ? a.dataset.gc : null, inSheet = !!(a && a.closest(".gy-sheet")), top0 = a && a.isConnected ? a.getBoundingClientRect().top : null, boxTop0 = inSheet ? a.closest(".gy-sheet").getBoundingClientRect().top : 0;
+  const ctx = !a ? "" : a.closest(".gy-sheet") ? ".gy-sheet " : a.closest(".gy-dc") ? ".gy-dc " : ".gy-ti ", key = a ? a.dataset.gc : null, inSheet = !!(a && a.closest(".gy-sheet")), top0 = a && a.isConnected ? a.getBoundingClientRect().top : null, boxTop0 = inSheet ? a.closest(".gy-sheet").getBoundingClientRect().top : 0;
   const box = $(".gy-sheet"); if (box) S.gy.sc = [box.scrollTop, box.scrollLeft];
   render();
   if (key != null && top0 != null) { // anchor: the box you tapped stays at the same spot on screen, whatever changed above it
-    const n = document.querySelector((inSheet ? ".gy-sheet " : ".gy-ti ") + `[data-gc="${key}"]`);
+    const n = document.querySelector(ctx + `[data-gc="${key}"]`);
     if (n) {
       if (inSheet) { const bx = n.closest(".gy-sheet"); bx.scrollTop += n.getBoundingClientRect().top - bx.getBoundingClientRect().top - (top0 - boxTop0); S.gy.sc = [bx.scrollTop, bx.scrollLeft]; }
       const dy = n.getBoundingClientRect().top - top0; if (Math.abs(dy) > 0.5) window.scrollBy({ top: dy, left: 0, behavior: "instant" });
@@ -1171,6 +1248,7 @@ function gyBind() {
   document.querySelectorAll("[data-gc]").forEach((b) => (b.onclick = () => { const [id, d] = b.dataset.gc.split("|"); S.gy.anchor = b; gyTap(+id, d); }));
   const mv = (n) => { const d = new Date(Date.UTC(+gyM().slice(0, 4), +gyM().slice(5, 7) - 1 + n, 1)); S.gy.m = gS(d).slice(0, 7); S.gy.sc = null; render(); };
   if ($("#gxl")) $("#gxl").onclick = exportGymXlsx;
+  if ($("#gview")) $("#gview").onclick = () => { S.gy.grid = !S.gy.grid; S.gy.sc = null; render(); };
   if ($("#gprev")) { $("#gprev").onclick = () => mv(-1); $("#gnext").onclick = () => mv(1); }
   const box = $(".gy-sheet");
   if (box) { if (S.gy.sc) { box.scrollTop = S.gy.sc[0]; box.scrollLeft = S.gy.sc[1]; } else if ($("#gy-now")) box.scrollTop = Math.max(0, $("#gy-now").offsetTop - 130); }
@@ -1300,6 +1378,7 @@ function render() {
 // Day rollover: when the date changes in Sri Lanka (00:00), tomorrow's boxes unlock even if the page stays open
 let _day = today();
 const dayCheck = () => { const t = today(); if (t === _day || document.querySelector(".swal2-container")) return; _day = t; if (S.token) render(); };
+let _mob = isMob(); addEventListener("resize", () => { const m = isMob(); if (m !== _mob) { _mob = m; if (S.token && !document.querySelector(".swal2-container")) render(); } });
 setInterval(dayCheck, 15000); document.addEventListener("visibilitychange", () => { if (!document.hidden) dayCheck(); }); addEventListener("focus", dayCheck);
 
 S.token ? load().catch(authView) : authView();
