@@ -12,7 +12,7 @@
 <style>
 :root{--bg:#08080a;--card:#16161a;--card2:#212127;--line:#2b2b33;--text:#f4f4f6;--mute:#8e8e9a;--p:#7c3aed;--p2:#a78bfa;--lime:#c6f432;--red:#f0627a;--blue:#38bdf8}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html{scroll-behavior:smooth;overflow-y:scroll}
+html{overflow-y:scroll;overscroll-behavior-y:none}
 body{margin:0;color:var(--text);font:15px/1.45 "DM Sans",system-ui,sans-serif;min-height:100vh;overflow-x:hidden;
   background:radial-gradient(90% 45% at 0% 0%,#3c2a6b 0,transparent 65%),radial-gradient(60% 35% at 100% 0%,#173a4d66 0,transparent 65%),var(--bg) fixed}
 button,input,select,textarea{font:inherit;color:inherit}
@@ -276,6 +276,27 @@ input[type=date]::-webkit-date-and-time-value,input[type=time]::-webkit-date-and
   .gy-sheet{max-height:64dvh}.gy-t thead th{min-width:80px}.gy-bars{gap:3px;height:140px}.gy-hp{grid-template-columns:minmax(80px,1fr) 1fr 44px}
   .gy-b{width:40px;height:40px}.gy-mnav h2{font-size:18px}.gy-hr .m{min-width:100%}
 }
+
+/* ---------- mobile pass ---------- */
+img,svg,canvas{max-width:100%}
+.gy-sheet{overscroll-behavior-x:contain}
+@media(max-width:700px){
+  .wrap{padding-top:calc(14px + env(safe-area-inset-top));padding-left:max(14px,env(safe-area-inset-left));padding-right:max(14px,env(safe-area-inset-right))}
+  .top{position:sticky;top:0;z-index:12;margin:-14px -14px 16px;padding:calc(10px + env(safe-area-inset-top)) 14px 10px;background:#08080af2;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+  h1{font-size:26px}
+  .gy-sheet{margin:0 -14px;border-radius:0;border-left:0;border-right:0;max-height:calc(100dvh - 250px);min-height:300px}
+  .gy-t thead th{min-width:74px;padding:8px 4px}.gy-t th:first-child,.gy-t td:first-child{min-width:64px;padding-left:8px}
+  .gy-t td{padding:5px 3px}.gy-hn{font-size:12px}
+  .gy-ft{min-width:70px}.gy-ft b{font-size:12px}.gy-ft span{font-size:10px}
+  .gy-hero{padding:16px}.gy-rings{justify-content:space-around;width:100%}
+  .ph>div[style*="flex"]{flex-wrap:wrap}.ph>div[style*="flex"] .btn{flex:1 1 30%;padding:10px 12px;white-space:nowrap}
+  .gy-seg{margin-left:-14px;margin-right:-14px;border-radius:0;border-left:0;border-right:0;padding:4px 10px}
+  .gy-hr{gap:8px}.gy-hr>span:last-child{margin-left:auto}
+  .card,.kpi{min-width:0}.scroll{-webkit-overflow-scrolling:touch}
+  .gy-heat{grid-template-rows:repeat(7,13px);grid-auto-columns:13px}
+  .swal2-popup:not(.nl-form){width:calc(100vw - 24px)!important;max-width:none!important}
+}
+@media(max-width:380px){.gy-t thead th{min-width:68px}.gy-b{width:36px;height:36px}.top{margin-left:-10px;margin-right:-10px;padding-left:10px;padding-right:10px}.gy-sheet{margin:0 -10px}.gy-seg{margin-left:-10px;margin-right:-10px}}
 </style>
 </head>
 <body>
@@ -1154,7 +1175,7 @@ function authView() {
 }
 
 const VIEWS = ["dashboard", "calendar", "gym", "journal"], vlabel = (v) => (v === "gym" ? "Gym tracker" : v[0].toUpperCase() + v.slice(1));
-const go = (v) => { S.view = v; render(); scrollTo(0, 0); };
+const go = (v) => { S.view = v; render(); window.scrollTo({ top: 0, left: 0, behavior: "instant" }); };
 
 async function exportJournalXlsx(list, st) {
   if (!window.ExcelJS) return toast("Excel library failed to load. Check internet and refresh.", "error");
@@ -1227,6 +1248,8 @@ async function exportGymXlsx() {
 
 function render() {
   if (!S.token) return authView();
+  const app = $("#app"), sy = window.scrollY, hs = [...document.querySelectorAll(".chips")].map((c) => c.scrollLeft);
+  app.style.minHeight = app.offsetHeight + "px"; // the page never shrinks while it is redrawn, so the scroll position cannot jump
   const list = filtered(), st = stats(list);
   const nav = VIEWS.map((v) => `<button class="pill ${S.view === v ? "on" : ""}" data-nav="${v}">${vlabel(v)}</button>`).join("");
   const tabs = VIEWS.map((v) => `<button class="${S.view === v ? "on" : ""}" data-nav="${v}">${ICON[v]}<span>${v === "gym" ? "Gym" : vlabel(v)}</span></button>`).join("");
@@ -1251,6 +1274,9 @@ function render() {
   if ($("#clearF")) $("#clearF").onclick = () => { S.f = F0(); S.jc.sel = new Set(); render(); };
   if ($("#exportJ")) $("#exportJ").onclick = () => exportJournalXlsx(list, st);
   if (S.view === "gym") gyBind();
+  document.querySelectorAll(".chips").forEach((c, i) => { if (hs[i]) c.scrollLeft = hs[i]; });
+  window.scrollTo({ top: sy, left: 0, behavior: "instant" });
+  app.style.minHeight = "";
 }
 
 // Day rollover: when the date changes in Sri Lanka (00:00), tomorrow's boxes unlock even if the page stays open
